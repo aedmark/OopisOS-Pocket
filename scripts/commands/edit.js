@@ -32,7 +32,6 @@ KEYBOARD SHORTCUTS
       max: 1,
       error: "Usage: edit [filepath]",
     },
-    // --- FIX START: Corrected the structure from 'pathValidation' to 'validations.paths' ---
     validations: {
       paths: [
         {
@@ -43,7 +42,6 @@ KEYBOARD SHORTCUTS
         },
       ],
     },
-    // --- FIX END ---
     coreLogic: async (context) => {
       const { args, options, validatedPaths, dependencies } = context;
       const { ErrorHandler, Utils, CommandExecutor, AppLayerManager, EditorManager, EditorUI, App } = dependencies;
@@ -81,7 +79,11 @@ KEYBOARD SHORTCUTS
         }
 
         const fileContent = node ? node.content || "" : "";
-        AppLayerManager.show(new EditorManager(), { filePath: filePath, fileContent, dependencies: dependencies });
+        AppLayerManager.show(new EditorManager(), {
+          filePath: filePath,
+          fileContent,
+          dependencies: dependencies
+        });
 
         return ErrorHandler.createSuccess("");
       } catch (e) {

@@ -10,13 +10,13 @@ class ConfigManager {
     const defaultConfig = {
       DATABASE: {
         NAME: "OopisOsDB",
-        VERSION: 45,
+        VERSION: 46,
         FS_STORE_NAME: "FileSystemsStore",
         UNIFIED_FS_KEY: "OopisOS_SharedFS",
       },
       OS: {
         NAME: "OopisOs",
-        VERSION: "4.5",
+        VERSION: "4.6",
         DEFAULT_HOST_NAME: "OopisOs",
       },
       USER: {

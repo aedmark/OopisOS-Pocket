@@ -6,13 +6,13 @@ window.EditorManager = class EditorManager extends App {
     this.state = {};
     this.dependencies = {}; // To be populated on enter
     this._debouncedPushUndo = null;
-    this.callbacks = {}; // FIX: Initialize as empty
+    this.callbacks = {};
   }
 
   enter(appLayer, options = {}) {
     const { filePath, fileContent, onSaveCallback, dependencies } = options;
     this.dependencies = dependencies; // Dependency injection
-    this.callbacks = this._createCallbacks(); // <<< FIX: THIS LINE IS THE FIX
+    this.callbacks = this._createCallbacks();
 
     this._debouncedPushUndo = this.dependencies.Utils.debounce((content) => {
       if (!this.isActive) return;
@@ -125,8 +125,6 @@ window.EditorManager = class EditorManager extends App {
     return "text";
   }
 
-  // vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-  // vvvvv FIX: ADD THIS ENTIRE METHOD vvvvv
   _createCallbacks() {
     return {
       onContentChange: (newContent) => {
