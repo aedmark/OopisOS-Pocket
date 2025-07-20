@@ -1,0 +1,135 @@
+// scripts/apps/code/code_manager.js
+
+window.CodeManager = class CodeManager extends App {
+  constructor() {
+    super();
+    this.state = {};
+    this.uiElements = {};
+    this.dependencies = {};
+    this.debouncedHighlight = null; // Will be created with Utils
+    this.callbacks = {}; // FIX: Initialize as empty
+  }
+
+  // Highlighter logic, now part of the class
+  _jsHighlighter(text) {
+    const escapedText = text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    return escapedText
+        .replace(/(\/\*[\s\S]*?\*\/|\/\/.+)/g, "<em>$1</em>") // Comments
+        .replace(
+            /\b(new|if|else|do|while|switch|for|in|of|continue|break|return|typeof|function|var|const|let|async|await|class|extends|true|false|null)(?=[^\w])/g,
+            "<strong>$1</strong>"
+        ) // Keywords
+        .replace(/(".*?"|'.*?'|`.*?`)/g, "<strong><em>$1</em></strong>") // Strings
+        .replace(/\b(\d+)/g, "<em><strong>$1</strong></em>"); // Numbers
+  }
+
+  _highlight(content) {
+    if (this.uiElements.highlighter) {
+      this.uiElements.highlighter.innerHTML = this._jsHighlighter(content);
+    }
+  }
+
+  enter(appLayer, options = {}) {
+    if (this.isActive) return;
+
+    this.dependencies = options.dependencies;
+    this.callbacks = this._createCallbacks();
+    this.debouncedHighlight = this.dependencies.Utils.debounce(this._highlight.bind(this), 100);
+
+    this.state = {
+      isActive: true,
+      filePath: options.filePath,
+      originalContent: options.fileContent || "",
+    };
+
+    this.container = this.dependencies.CodeUI.buildAndShow(
+        {
+          filePath: options.filePath,
+          fileContent: options.fileContent || "",
+        },
+        this.callbacks
+    );
+
+    this.uiElements.textarea = this.container.querySelector('#code-editor-textarea');
+    this.uiElements.highlighter = this.container.querySelector('#code-editor-highlighter');
+
+    this.callbacks.onInput(options.fileContent || "");
+
+    appLayer.appendChild(this.container);
+    this.isActive = true;
+  }
+
+  exit() {
+    if (!this.isActive) return;
+    this._performExit();
+  }
+
+  _performExit() {
+    const { CodeUI, AppLayerManager } = this.dependencies;
+    CodeUI.hideAndReset();
+    AppLayerManager.hide(this);
+    this.isActive = false;
+    this.state = {};
+    this.uiElements = {};
+  }
+
+  _createCallbacks() {
+    return {
+      onSave: async (filePath, content) => {
+        const { OutputManager, UserManager, FileSystemManager } = this.dependencies;
+        if (!filePath || !filePath.trim()) {
+          await OutputManager.appendToOutput(
+              "Error: Filename cannot be empty.",
+              { typeClass: "text-error" }
+          );
+          return;
+        }
+        const currentUser = UserManager.getCurrentUser().name;
+        const primaryGroup = UserManager.getPrimaryGroupForUser(currentUser);
+        const saveResult = await FileSystemManager.createOrUpdateFile(
+            filePath,
+            content,
+            {
+              currentUser,
+              primaryGroup,
+            }
+        );
+
+        if (saveResult.success && (await FileSystemManager.save())) {
+          this._performExit();
+        } else {
+          await OutputManager.appendToOutput(
+              `Error saving file: ${saveResult.error || "Filesystem error"}`,
+              { typeClass: "text-error" }
+          );
+        }
+      },
+      onExit: this.exit.bind(this),
+      onTab: (textarea) => {
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const value = textarea.value;
+        textarea.value =
+            value.substring(0, start) + "  " + value.substring(end);
+        textarea.selectionStart = textarea.selectionEnd = start + 2;
+        this.callbacks.onInput(textarea.value);
+      },
+      onInput: (content) => {
+        this.debouncedHighlight(content);
+      },
+      onPaste: (textarea, pastedText) => {
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const value = textarea.value;
+        textarea.value =
+            value.substring(0, start) + pastedText + value.substring(end);
+        textarea.selectionStart = textarea.selectionEnd =
+            start + pastedText.length;
+        this.callbacks.onInput(textarea.value);
+      },
+    };
+  }
+}
