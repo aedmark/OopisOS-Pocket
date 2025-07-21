@@ -172,51 +172,8 @@ class CommandExecutor {
         }
       }
 
-      const context = {
-        args: remainingArgs,
-        options,
-        flags,
-        currentUser,
-        signal: options.signal,
-        validatedPaths: options.validatedPaths || [],
-        dependencies: commandDependencies, // Use the newly augmented object for the command's execution context.
-      };
-
-      if (definition.isInputStream) {
-        const inputParts = [];
-        let hadError = false;
-        let fileCount = 0;
-        let firstSourceName = null;
-
-        const firstFileArgIndex = definition.firstFileArgIndex || 0;
-
-        for await (const item of this._generateInputContent(
-            context,
-            firstFileArgIndex
-        )) {
-          fileCount++;
-          if (firstSourceName === null) firstSourceName = item.sourceName;
-
-          if (!item.success) {
-            await this.dependencies.OutputManager.appendToOutput(item.error, {
-              typeClass: this.dependencies.Config.CSS_CLASSES.ERROR_MSG,
-            });
-            hadError = true;
-          } else {
-            inputParts.push({
-              content: item.content,
-              sourceName: item.sourceName,
-            });
-          }
-        }
-
-        context.inputItems = inputParts;
-        context.inputError = hadError;
-        context.inputFileCount = fileCount;
-        context.firstSourceName = firstSourceName;
-      }
-
-      return definition.coreLogic(context);
+      const command = new Command(definition);
+      return command.execute(remainingArgs, options, commandDependencies);
     };
     handler.definition = definition;
     return handler;
@@ -511,7 +468,8 @@ class CommandExecutor {
         !pipeline.redirection &&
         lastResult.success &&
         lastResult.data !== null &&
-        lastResult.data !== undefined
+        lastResult.data !== undefined &&
+        !lastResult.suppressNewline
     ) {
       if (pipeline.isBackground) {
         if (lastResult.data) {
