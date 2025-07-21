@@ -1,3 +1,4 @@
+// scripts/apps/adventure/adventure_ui.js
 window.TextAdventureModal = class TextAdventureModal {
   constructor(callbacks, dependencies, scriptingContext) {
     this.elements = {};

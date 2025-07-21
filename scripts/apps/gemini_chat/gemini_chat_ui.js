@@ -1,11 +1,15 @@
+// scripts/apps/gemini_chat/gemini_chat_ui.js
 window.GeminiChatUI = (() => {
   "use strict";
 
   let elements = {};
   let managerCallbacks = {};
+  let dependencies = {};
 
-  function buildAndShow(callbacks) {
+  function buildAndShow(callbacks, deps) {
     managerCallbacks = callbacks;
+    dependencies = deps;
+    const { Utils } = dependencies;
 
     // Create DOM elements
     elements.container = Utils.createElement("div", {
@@ -83,6 +87,7 @@ window.GeminiChatUI = (() => {
 
   function appendMessage(message, sender, processMarkdown) {
     if (!elements.messageDisplay) return;
+    const { Utils } = dependencies;
 
     const messageDiv = Utils.createElement("div", {
       className: `gemini-chat-message ${sender}`,

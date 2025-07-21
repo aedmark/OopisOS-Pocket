@@ -3,6 +3,7 @@ const UIComponents = (() => {
   "use strict";
 
   function createAppHeader(title, onExit) {
+    const { Utils } = dependencies;
     const exitBtn = Utils.createElement("button", {
       className: "btn btn--cancel",
       textContent: "Exit",
@@ -10,13 +11,14 @@ const UIComponents = (() => {
     });
     const titleElement = Utils.createElement("h2", { textContent: title });
     return Utils.createElement(
-      "header",
-      { className: "app-header" }, // A generic class for styling
-      [titleElement, exitBtn]
+        "header",
+        { className: "app-header" }, // A generic class for styling
+        [titleElement, exitBtn]
     );
   }
 
   function createButton(text, options = {}) {
+    const { Utils } = dependencies;
     const { onClick, classes = [], id = null, title = null } = options;
     const btnClasses = ["btn", ...classes];
     const attributes = {

@@ -1,3 +1,4 @@
+// scripts/modal_manager.js
 var ModalManager = (() => {
   "use strict";
   let isAwaitingTerminalInput = false;
@@ -42,25 +43,6 @@ var ModalManager = (() => {
       }
     };
 
-    const confirmButton = Utils.createElement("button", {
-      className: "btn btn--confirm",
-      textContent: confirmText,
-    });
-
-    const cancelButton = Utils.createElement("button", {
-      className: "btn btn--cancel",
-      textContent: cancelText,
-    });
-
-    let inputField = null;
-    if (type === "input") {
-      inputField = Utils.createElement("input", {
-        type: obscured ? "password" : "text",
-        placeholder: placeholder,
-        className: "modal-dialog__input",
-      });
-    }
-
     const confirmHandler = () => {
       removeModal();
       if (onConfirm) {
@@ -74,15 +56,32 @@ var ModalManager = (() => {
       if (onCancel) onCancel(data);
     };
 
-    confirmButton.addEventListener("click", confirmHandler);
-    cancelButton.addEventListener("click", cancelHandler);
+    const confirmButton = Utils.createElement("button", {
+      className: "btn btn--confirm",
+      textContent: confirmText,
+      eventListeners: { click: confirmHandler }
+    });
 
-    if (inputField) {
-      inputField.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-          confirmHandler();
-        } else if (e.key === "Escape") {
-          cancelHandler();
+    const cancelButton = Utils.createElement("button", {
+      className: "btn btn--cancel",
+      textContent: cancelText,
+      eventListeners: { click: cancelHandler }
+    });
+
+    let inputField = null;
+    if (type === "input") {
+      inputField = Utils.createElement("input", {
+        type: obscured ? "password" : "text",
+        placeholder: placeholder,
+        className: "modal-dialog__input",
+        eventListeners: {
+          keydown: (e) => {
+            if (e.key === "Enter") {
+              confirmHandler();
+            } else if (e.key === "Escape") {
+              cancelHandler();
+            }
+          }
         }
       });
     }

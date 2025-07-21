@@ -3,8 +3,14 @@ var PagerUI = (() => {
   // ... (PagerUI remains unchanged as it has no external dependencies)
   "use strict";
   let elements = {};
+  let dependencies = {};
+
+  function setDependencies(injectedDependencies) {
+    dependencies = injectedDependencies;
+  }
 
   function buildLayout() {
+    const { Utils } = dependencies;
     elements.content = Utils.createElement("div", {
       id: "pager-content",
       className: "p-2 whitespace-pre-wrap",
@@ -44,6 +50,7 @@ var PagerUI = (() => {
   }
 
   function getTerminalRows() {
+    const { Utils } = dependencies;
     if (!elements.content) return 24;
     const screenHeight = elements.content.clientHeight;
     const computedStyle = window.getComputedStyle(elements.content);
@@ -60,7 +67,7 @@ var PagerUI = (() => {
     elements = {};
   }
 
-  return { buildLayout, render, getTerminalRows, reset };
+  return { setDependencies, buildLayout, render, getTerminalRows, reset };
 })();
 
 var PagerManager = (() => {
@@ -75,6 +82,7 @@ var PagerManager = (() => {
 
   function setDependencies(injectedDependencies) {
     dependencies = injectedDependencies;
+    PagerUI.setDependencies(injectedDependencies);
   }
 
   function _handleKeyDown(e) {
