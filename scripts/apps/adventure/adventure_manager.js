@@ -679,7 +679,27 @@ window.AdventureManager = class AdventureManager extends App {
           const inventoryList = this.state.player.inventory.map(id => this.state.adventure.items[id].name).join("\n");
           this.ui.appendOutput("You are carrying:\n" + inventoryList);
         }
-      }
+      },
+      _handleUse: () => this.ui.appendOutput("You can't use that."),
+      _handleOpen: () => this.ui.appendOutput("You can't open that."),
+      _handleClose: () => this.ui.appendOutput("You can't close that."),
+      _handleUnlock: () => this.ui.appendOutput("You can't unlock that."),
+      _handleHelp: () => this.ui.appendOutput("Try commands like 'look', 'go north', 'take key', etc."),
+      _handleSave: () => this.ui.appendOutput("Saving is not yet implemented."),
+      _handleLoad: () => this.ui.appendOutput("Loading is not yet implemented."),
+      _handleTalk: () => this.ui.appendOutput("There's no one to talk to."),
+      _handleAsk: () => this.ui.appendOutput("There's no one to ask."),
+      _handleGive: () => this.ui.appendOutput("There's no one to give that to."),
+      _handleShow: () => this.ui.appendOutput("There's no one to show that to."),
+      _handleScore: () => this.ui.appendOutput(`Your score is ${this.state.player.score}.`),
+      _handleRead: () => this.ui.appendOutput("There's nothing to read."),
+      _handleEatDrink: () => this.ui.appendOutput("You can't do that."),
+      _handlePushPullTurn: () => this.ui.appendOutput("Nothing happens."),
+      _handleWearRemove: () => this.ui.appendOutput("You can't do that."),
+      _handleSensoryVerb: () => this.ui.appendOutput("You don't notice anything special."),
+      _handleWait: () => this.ui.appendOutput("Time passes."),
+      _handleLight: () => this.ui.appendOutput("You can't light that."),
+      _processDaemons: () => {},
     };
 
     return engine;
