@@ -1,3 +1,4 @@
+// scripts/apps/log/log_ui.js
 window.LogUI = class LogUI {
   constructor(callbacks, dependencies) {
     this.elements = {};

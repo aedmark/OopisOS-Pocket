@@ -1,3 +1,4 @@
+// scripts/output_manager.js
 const OutputManager = (() => {
   "use strict";
 
@@ -81,7 +82,11 @@ const OutputManager = (() => {
   }
 
   function clearOutput() {
-    if (!isEditorActive && cachedOutputDiv) cachedOutputDiv.innerHTML = "";
+    if (!isEditorActive && cachedOutputDiv) {
+      while (cachedOutputDiv.firstChild) {
+        cachedOutputDiv.removeChild(cachedOutputDiv.firstChild);
+      }
+    }
   }
 
   function _consoleLogOverride(...args) {

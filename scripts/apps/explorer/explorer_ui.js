@@ -1,3 +1,4 @@
+// scripts/apps/explorer/explorer_ui.js
 window.ExplorerUI = class ExplorerUI {
   constructor(callbacks, dependencies) {
     this.callbacks = callbacks;

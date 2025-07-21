@@ -1,3 +1,4 @@
+// scripts/apps/chidi/chidi_ui.js
 window.ChidiUI = class ChidiUI {
   constructor(initialState, callbacks, dependencies) {
     this.elements = {};

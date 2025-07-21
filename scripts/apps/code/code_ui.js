@@ -1,3 +1,4 @@
+// scripts/apps/code/code_ui.js
 window.CodeUI = class CodeUI {
   constructor(initialState, callbacks, dependencies) {
     this.elements = {};
@@ -117,7 +118,7 @@ window.CodeUI = class CodeUI {
 
   highlight(content) {
     if (this.elements.highlighter) {
-      this.elements.highlighter.innerHTML = content;
+      this.elements.highlighter.innerHTML = DOMPurify.sanitize(content);
     }
   }
 }

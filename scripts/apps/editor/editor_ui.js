@@ -1,3 +1,4 @@
+// scripts/apps/editor/editor_ui.js
 window.EditorUI = class EditorUI {
   constructor(initialState, callbacks, deps) {
     this.elements = {};
