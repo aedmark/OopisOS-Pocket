@@ -218,11 +218,22 @@ class CommandExecutor {
 
     if (cmdInstance instanceof Command) {
       try {
+        const definition = cmdInstance.definition;
+        const commandDependencies = { ...this.dependencies };
+        if (definition.applicationModules && Array.isArray(definition.applicationModules)) {
+          for (const moduleName of definition.applicationModules) {
+            if (window[moduleName]) {
+              commandDependencies[moduleName] = window[moduleName];
+            } else {
+              console.error(`Command '${definition.commandName}' declared a dependency on '${moduleName}', but it was not found on the window object after loading.`);
+            }
+          }
+        }
         return await cmdInstance.execute(segment.args, {
           ...execCtxOpts,
           stdinContent,
           signal,
-        }, this.dependencies);
+        }, commandDependencies);
       } catch (e) {
         console.error(`Error in command handler for '${segment.command}':`, e);
         return ErrorHandler.createError(
