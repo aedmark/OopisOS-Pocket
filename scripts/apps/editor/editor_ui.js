@@ -25,6 +25,7 @@ window.EditorUI = class EditorUI {
         [this.elements.titleInput]
     );
 
+    // --- FIX START: Consolidated event listeners into the createButton calls ---
     this.elements.saveBtn = UIComponents.createButton("💾 Save", {
       onClick: () => this.managerCallbacks.onSaveRequest(),
     });
@@ -43,6 +44,7 @@ window.EditorUI = class EditorUI {
     this.elements.wordWrapBtn = UIComponents.createButton("Wrap", {
       onClick: () => this.managerCallbacks.onWordWrapToggle(),
     });
+    // --- FIX END ---
 
     const toolbarGroup = Utils.createElement(
         "div",
@@ -205,20 +207,5 @@ window.EditorUI = class EditorUI {
     this.elements.textarea.addEventListener("input", () => {
       this.managerCallbacks.onContentChange(this.elements.textarea.value);
     });
-
-    this.elements.saveBtn.addEventListener("click", () =>
-        this.managerCallbacks.onSaveRequest()
-    );
-    this.elements.exitBtn.addEventListener("click", () =>
-        this.managerCallbacks.onExitRequest()
-    );
-    this.elements.previewBtn.addEventListener("click", () =>
-        this.managerCallbacks.onTogglePreview()
-    );
-    this.elements.undoBtn.addEventListener("click", () => this.managerCallbacks.onUndo());
-    this.elements.redoBtn.addEventListener("click", () => this.managerCallbacks.onRedo());
-    this.elements.wordWrapBtn.addEventListener("click", () =>
-        this.managerCallbacks.onWordWrapToggle()
-    );
   }
 }
