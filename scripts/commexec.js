@@ -676,41 +676,42 @@ class CommandExecutor {
         pipeline.isBackground = true;
         const jobId = ++this.backgroundProcessIdCounter;
         pipeline.jobId = jobId;
-        // CORRECTED: Use the injected dependency
         this.dependencies.MessageBusManager.registerJob(jobId);
         const abortController = new AbortController();
 
-        const jobPromise = this._executePipeline(pipeline, {
-          isInteractive: false,
-          signal: abortController.signal,
-          scriptingContext,
-          suppressOutput: true,
-        }).finally(() => {
-          delete this.activeJobs[jobId];
-          // CORRECTED: Use the injected dependency
-          this.dependencies.MessageBusManager.unregisterJob(jobId);
-        });
+        setTimeout(() => {
+          const jobPromise = this._executePipeline(pipeline, {
+            isInteractive: false,
+            signal: abortController.signal,
+            scriptingContext,
+            suppressOutput: true,
+          }).finally(() => {
+            delete this.activeJobs[jobId];
+            this.dependencies.MessageBusManager.unregisterJob(jobId);
+          });
 
-        this.activeJobs[jobId] = {
-          id: jobId,
-          command: cmdToEcho,
-          abortController,
-          promise: jobPromise,
-        };
+          this.activeJobs[jobId] = {
+            id: jobId,
+            command: cmdToEcho,
+            abortController,
+            promise: jobPromise,
+          };
+
+          jobPromise.then((bgResult) => {
+            const statusMsg = `[Job ${pipeline.jobId} ${bgResult.success ? "finished" : "finished with error"}${bgResult.success ? "" : `: ${bgResult.error || "Unknown error"}`}]`;
+            OutputManager.appendToOutput(statusMsg, {
+              typeClass: bgResult.success
+                  ? Config.CSS_CLASSES.CONSOLE_LOG_MSG
+                  : Config.CSS_CLASSES.WARNING_MSG,
+              isBackground: true,
+            });
+          });
+        }, 0);
+
         await OutputManager.appendToOutput(
             `${Config.MESSAGES.BACKGROUND_PROCESS_STARTED_PREFIX}${jobId}${Config.MESSAGES.BACKGROUND_PROCESS_STARTED_SUFFIX}`,
             { typeClass: Config.CSS_CLASSES.CONSOLE_LOG_MSG }
         );
-
-        jobPromise.then((bgResult) => {
-          const statusMsg = `[Job ${pipeline.jobId} ${bgResult.success ? "finished" : "finished with error"}${bgResult.success ? "" : `: ${bgResult.error || "Unknown error"}`}]`;
-          OutputManager.appendToOutput(statusMsg, {
-            typeClass: bgResult.success
-                ? Config.CSS_CLASSES.CONSOLE_LOG_MSG
-                : Config.CSS_CLASSES.WARNING_MSG,
-            isBackground: true,
-          });
-        });
 
         result = ErrorHandler.createSuccess();
       } else {
