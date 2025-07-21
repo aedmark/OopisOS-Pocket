@@ -1,25 +1,25 @@
-// scripts/apps/basic/basic_manager.js
-
 window.BasicManager = class BasicManager extends App {
   constructor() {
     super();
     this.dependencies = {};
-    this.interpreter = null; // FIX: Initialize as null
+    this.interpreter = null;
     this.programBuffer = new Map();
     this.onInputPromiseResolver = null;
     this.loadOptions = {};
-    this.callbacks = {}; // FIX: Initialize as empty
+    this.callbacks = {};
+    this.ui = null;
   }
 
   enter(appLayer, options = {}) {
     this.dependencies = options.dependencies;
-    this.interpreter = new Basic_interp(this.dependencies);
+    this.interpreter = new this.dependencies.Basic_interp(this.dependencies);
     this.callbacks = this._createCallbacks();
 
     this.isActive = true;
     this.loadOptions = options;
 
-    this.container = this.dependencies.BasicUI.buildLayout(this.callbacks);
+    this.ui = new this.dependencies.BasicUI(this.callbacks, this.dependencies);
+    this.container = this.ui.getContainer();
 
     appLayer.appendChild(this.container);
 
@@ -28,9 +28,11 @@ window.BasicManager = class BasicManager extends App {
 
   exit() {
     if (!this.isActive) return;
-    const { BasicUI, AppLayerManager } = this.dependencies;
+    const { AppLayerManager } = this.dependencies;
 
-    BasicUI.reset();
+    if (this.ui) {
+      this.ui.reset();
+    }
     AppLayerManager.hide(this);
 
     this.isActive = false;
@@ -38,21 +40,21 @@ window.BasicManager = class BasicManager extends App {
     this.programBuffer.clear();
     this.onInputPromiseResolver = null;
     this.loadOptions = {};
+    this.ui = null;
   }
 
   _init() {
-    const { BasicUI } = this.dependencies;
-    BasicUI.writeln("Oopis BASIC [Version 1.0]");
-    BasicUI.writeln("(c) 2025 Oopis Systems. All rights reserved.");
-    BasicUI.writeln("");
+    this.ui.writeln("Oopis BASIC [Version 1.0]");
+    this.ui.writeln("(c) 2025 Oopis Systems. All rights reserved.");
+    this.ui.writeln("");
 
     if (this.loadOptions.content) {
       this._loadContentIntoBuffer(this.loadOptions.content);
-      BasicUI.writeln(`Loaded "${this.loadOptions.path}".`);
+      this.ui.writeln(`Loaded "${this.loadOptions.path}".`);
     }
 
-    BasicUI.writeln("READY.");
-    setTimeout(() => BasicUI.focusInput(), 0);
+    this.ui.writeln("READY.");
+    setTimeout(() => this.ui.focusInput(), 0);
   }
 
   _createCallbacks() {
@@ -79,9 +81,8 @@ window.BasicManager = class BasicManager extends App {
   }
 
   async _handleIdeInput(command) {
-    const { BasicUI } = this.dependencies;
     command = command.trim();
-    BasicUI.writeln(`> ${command}`);
+    this.ui.writeln(`> ${command}`);
 
     if (this.onInputPromiseResolver) {
       this.onInputPromiseResolver(command);
@@ -90,7 +91,7 @@ window.BasicManager = class BasicManager extends App {
     }
 
     if (command === "") {
-      BasicUI.writeln("READY.");
+      this.ui.writeln("READY.");
       return;
     }
 
@@ -116,12 +117,11 @@ window.BasicManager = class BasicManager extends App {
       await this._executeIdeCommand(cmd, argsStr);
     }
     if (this.isActive) {
-      BasicUI.writeln("READY.");
+      this.ui.writeln("READY.");
     }
   }
 
   async _executeIdeCommand(cmd, argsStr) {
-    const { BasicUI } = this.dependencies;
     switch (cmd) {
       case "RUN":
         await this._runProgram();
@@ -132,7 +132,7 @@ window.BasicManager = class BasicManager extends App {
       case "NEW":
         this.programBuffer.clear();
         this.loadOptions = {};
-        BasicUI.writeln("OK");
+        this.ui.writeln("OK");
         break;
       case "SAVE":
         await this._saveProgram(argsStr);
@@ -144,7 +144,7 @@ window.BasicManager = class BasicManager extends App {
         this.exit();
         break;
       default:
-        BasicUI.writeln("SYNTAX ERROR");
+        this.ui.writeln("SYNTAX ERROR");
         break;
     }
   }
@@ -159,27 +159,25 @@ window.BasicManager = class BasicManager extends App {
   }
 
   _listProgram() {
-    const { BasicUI } = this.dependencies;
     const sortedLines = Array.from(this.programBuffer.keys()).sort(
         (a, b) => a - b
     );
     sortedLines.forEach((lineNum) => {
-      BasicUI.writeln(`${lineNum} ${this.programBuffer.get(lineNum)}`);
+      this.ui.writeln(`${lineNum} ${this.programBuffer.get(lineNum)}`);
     });
-    BasicUI.writeln("OK");
+    this.ui.writeln("OK");
   }
 
   async _runProgram() {
-    const { BasicUI } = this.dependencies;
     const programText = this._getProgramText();
     if (programText.length === 0) {
-      BasicUI.writeln("OK");
+      this.ui.writeln("OK");
       return;
     }
     try {
       await this.interpreter.run(programText, {
         outputCallback: (text, withNewline = true) => {
-          withNewline ? BasicUI.writeln(text) : BasicUI.write(text);
+          withNewline ? this.ui.writeln(text) : this.ui.write(text);
         },
         inputCallback: async () =>
             new Promise((resolve) => {
@@ -190,18 +188,18 @@ window.BasicManager = class BasicManager extends App {
         },
       });
     } catch (error) {
-      BasicUI.writeln(`\nRUNTIME ERROR: ${error.message}`);
+      this.ui.writeln(`\nRUNTIME ERROR: ${error.message}`);
     }
-    BasicUI.writeln("");
+    this.ui.writeln("");
   }
 
   async _saveProgram(filePathArg) {
-    const { BasicUI, FileSystemManager, UserManager } = this.dependencies;
+    const { FileSystemManager, UserManager } = this.dependencies;
     let savePath = filePathArg
         ? filePathArg.replace(/["']/g, "")
         : this.loadOptions.path;
     if (!savePath) {
-      BasicUI.writeln("?NO FILENAME SPECIFIED");
+      this.ui.writeln("?NO FILENAME SPECIFIED");
       return;
     }
     if (!savePath.endsWith(".bas")) savePath += ".bas";
@@ -218,18 +216,18 @@ window.BasicManager = class BasicManager extends App {
 
     if (saveResult.success && (await FileSystemManager.save())) {
       this.loadOptions.path = savePath;
-      BasicUI.writeln("OK");
+      this.ui.writeln("OK");
     } else {
-      BasicUI.writeln(
+      this.ui.writeln(
           `?ERROR SAVING FILE: ${saveResult.error || "Filesystem error"}`
       );
     }
   }
 
   async _loadProgram(filePathArg) {
-    const { BasicUI, FileSystemManager } = this.dependencies;
+    const { FileSystemManager } = this.dependencies;
     if (!filePathArg) {
-      BasicUI.writeln("?FILENAME REQUIRED");
+      this.ui.writeln("?FILENAME REQUIRED");
       return;
     }
     const path = filePathArg.replace(/["']/g, "");
@@ -237,12 +235,12 @@ window.BasicManager = class BasicManager extends App {
       expectedType: "file",
       permissions: ["read"],
     });
-    if (pathValidation.error) {
-      BasicUI.writeln(`?ERROR: ${pathValidation.error}`);
+    if (!pathValidation.success) {
+      this.ui.writeln(`?ERROR: ${pathValidation.error}`);
       return;
     }
-    this._loadContentIntoBuffer(pathValidation.node.content);
-    this.loadOptions = { path: path, content: pathValidation.node.content };
-    BasicUI.writeln("OK");
+    this._loadContentIntoBuffer(pathValidation.data.node.content);
+    this.loadOptions = { path: path, content: pathValidation.data.node.content };
+    this.ui.writeln("OK");
   }
 }

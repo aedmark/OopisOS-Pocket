@@ -1,22 +1,25 @@
-// scripts/apps/paint/paint_ui.js
+window.PaintUI = class PaintUI {
+  constructor(initialState, callbacks, dependencies) {
+    this.elements = {};
+    this.managerCallbacks = callbacks;
+    this.dependencies = dependencies;
+    this._globalMouseUpHandler = null;
 
-window.PaintUI = (() => {
-  "use strict";
+    this._buildAndShow(initialState);
+  }
 
-  let elements = {};
-  let managerCallbacks = {};
-  let _globalMouseUpHandler = null;
+  getContainer() {
+    return this.elements.container;
+  }
 
-  function buildAndShow(initialState, callbacks) {
-    managerCallbacks = callbacks;
+  _buildAndShow(initialState) {
+    const { Utils } = this.dependencies;
 
-    // --- Create Main Structure ---
-    elements.container = Utils.createElement("div", {
+    this.elements.container = Utils.createElement("div", {
       id: "paint-container",
       className: "paint-container",
     });
 
-    // --- Toolbar ---
     const createToolBtn = (name, key, label) =>
         Utils.createElement("button", {
           id: `paint-tool-${name}`,
@@ -26,20 +29,19 @@ window.PaintUI = (() => {
         });
 
     const toolGroup = Utils.createElement(
-        "div",
-        { className: "paint-tool-group" },
+        "div", { className: "paint-tool-group" },
         [
-          (elements.pencilBtn = createToolBtn("pencil", "p", "✏️")),
-          (elements.eraserBtn = createToolBtn("eraser", "e", "🧼")),
-          (elements.lineBtn = createToolBtn("line", "l", "—")),
-          (elements.rectBtn = createToolBtn("rect", "r", "▢")),
-          (elements.circleBtn = createToolBtn("circle", "c", "◯")),
-          (elements.fillBtn = createToolBtn("fill", "f", "🪣")),
-          (elements.selectBtn = createToolBtn("select", "s", "⬚")),
+          (this.elements.pencilBtn = createToolBtn("pencil", "p", "✏️")),
+          (this.elements.eraserBtn = createToolBtn("eraser", "e", "🧼")),
+          (this.elements.lineBtn = createToolBtn("line", "l", "—")),
+          (this.elements.rectBtn = createToolBtn("rect", "r", "▢")),
+          (this.elements.circleBtn = createToolBtn("circle", "c", "◯")),
+          (this.elements.fillBtn = createToolBtn("fill", "f", "🪣")),
+          (this.elements.selectBtn = createToolBtn("select", "s", "⬚")),
         ]
     );
 
-    elements.colorPicker = Utils.createElement("input", {
+    this.elements.colorPicker = Utils.createElement("input", {
       type: "color",
       id: "paint-color-picker",
       className: "paint-color-picker",
@@ -47,96 +49,56 @@ window.PaintUI = (() => {
       value: initialState.currentColor,
     });
     const colorGroup = Utils.createElement(
-        "div",
-        { className: "paint-tool-group" },
-        [elements.colorPicker]
+        "div", { className: "paint-tool-group" },
+        [this.elements.colorPicker]
     );
 
-    elements.brushSizeInput = Utils.createElement("input", {
+    this.elements.brushSizeInput = Utils.createElement("input", {
       type: "number",
       className: "paint-brush-size",
       value: initialState.brushSize,
       min: 1,
       max: 5,
     });
-    const brushSizeUp = Utils.createElement("button", {
-      className: "btn",
-      textContent: "+",
-    });
-    const brushSizeDown = Utils.createElement("button", {
-      className: "btn",
-      textContent: "-",
-    });
+    const brushSizeUp = Utils.createElement("button", { className: "btn", textContent: "+" });
+    const brushSizeDown = Utils.createElement("button", { className: "btn", textContent: "-" });
     const brushGroup = Utils.createElement(
-        "div",
-        { className: "paint-brush-controls" },
-        [brushSizeDown, elements.brushSizeInput, brushSizeUp]
+        "div", { className: "paint-brush-controls" },
+        [brushSizeDown, this.elements.brushSizeInput, brushSizeUp]
     );
 
-    elements.charInput = Utils.createElement("input", {
+    this.elements.charInput = Utils.createElement("input", {
       type: "text",
       className: "paint-char-selector",
       value: initialState.currentCharacter,
       maxLength: 1,
     });
 
-    elements.undoBtn = Utils.createElement("button", {
-      className: "btn",
-      textContent: "↩",
-    });
-    elements.redoBtn = Utils.createElement("button", {
-      className: "btn",
-      textContent: "↪",
-    });
-    elements.gridBtn = Utils.createElement("button", {
-      className: "btn",
-      textContent: "🪟",
-    });
+    this.elements.undoBtn = Utils.createElement("button", { className: "btn", textContent: "↩" });
+    this.elements.redoBtn = Utils.createElement("button", { className: "btn", textContent: "↪" });
+    this.elements.gridBtn = Utils.createElement("button", { className: "btn", textContent: "🪟" });
     const historyGroup = Utils.createElement(
-        "div",
-        { className: "paint-tool-group" },
-        [elements.undoBtn, elements.redoBtn, elements.gridBtn]
+        "div", { className: "paint-tool-group" },
+        [this.elements.undoBtn, this.elements.redoBtn, this.elements.gridBtn]
     );
 
-    elements.cutBtn = Utils.createElement("button", {
-      className: "btn",
-      textContent: "✂️",
-      title: "Cut (Ctrl+X)",
-    });
-    elements.copyBtn = Utils.createElement("button", {
-      className: "btn",
-      textContent: "🖨️",
-      title: "Copy (Ctrl+C)",
-    });
-    elements.pasteBtn = Utils.createElement("button", {
-      className: "btn",
-      textContent: "🧩",
-      title: "Paste (Ctrl+V)",
-    });
+    this.elements.cutBtn = Utils.createElement("button", { className: "btn", textContent: "✂️", title: "Cut (Ctrl+X)" });
+    this.elements.copyBtn = Utils.createElement("button", { className: "btn", textContent: "🖨️", title: "Copy (Ctrl+C)" });
+    this.elements.pasteBtn = Utils.createElement("button", { className: "btn", textContent: "🧩", title: "Paste (Ctrl+V)" });
     const clipboardGroup = Utils.createElement(
-        "div",
-        { className: "paint-tool-group" },
-        [elements.cutBtn, elements.copyBtn, elements.pasteBtn]
+        "div", { className: "paint-tool-group" },
+        [this.elements.cutBtn, this.elements.copyBtn, this.elements.pasteBtn]
     );
 
-    elements.zoomInBtn = Utils.createElement("button", {
-      className: "btn",
-      textContent: "➕",
-    });
-    elements.zoomOutBtn = Utils.createElement("button", {
-      className: "btn",
-      textContent: "➖",
-    });
+    this.elements.zoomInBtn = Utils.createElement("button", { className: "btn", textContent: "➕" });
+    this.elements.zoomOutBtn = Utils.createElement("button", { className: "btn", textContent: "➖" });
     const zoomGroup = Utils.createElement(
-        "div",
-        { className: "paint-tool-group" },
-        [elements.zoomOutBtn, elements.zoomInBtn]
+        "div", { className: "paint-tool-group" },
+        [this.elements.zoomOutBtn, this.elements.zoomInBtn]
     );
 
-    const toolbarSpacer = Utils.createElement("div", {
-      style: "flex-grow: 1;",
-    });
-    elements.exitBtn = Utils.createElement("button", {
+    const toolbarSpacer = Utils.createElement("div", { style: "flex-grow: 1;" });
+    this.elements.exitBtn = Utils.createElement("button", {
       id: "paint-exit-btn",
       className: "btn",
       textContent: "✕",
@@ -144,94 +106,77 @@ window.PaintUI = (() => {
     });
 
     const toolbar = Utils.createElement(
-        "header",
-        { className: "paint-toolbar" },
+        "header", { className: "paint-toolbar" },
         [
           toolGroup,
           colorGroup,
           brushGroup,
-          elements.charInput,
+          this.elements.charInput,
           historyGroup,
           clipboardGroup,
           zoomGroup,
           toolbarSpacer,
-          elements.exitBtn,
+          this.elements.exitBtn,
         ]
     );
 
-    // --- Canvas ---
-    elements.canvas = Utils.createElement("div", {
-      className: "paint-canvas",
-      id: "paint-canvas",
-    });
-    elements.previewCanvas = Utils.createElement("div", {
-      className: "paint-preview-canvas",
-      id: "paint-preview-canvas",
-    });
-    elements.selectionRect = Utils.createElement("div", {
-      className: "paint-selection-rect hidden",
-    });
+    this.elements.canvas = Utils.createElement("div", { className: "paint-canvas", id: "paint-canvas" });
+    this.elements.previewCanvas = Utils.createElement("div", { className: "paint-preview-canvas", id: "paint-preview-canvas" });
+    this.elements.selectionRect = Utils.createElement("div", { className: "paint-selection-rect hidden" });
     const canvasContainer = Utils.createElement(
-        "div",
-        { className: "paint-canvas-container" },
-        [elements.canvas, elements.previewCanvas, elements.selectionRect]
+        "div", { className: "paint-canvas-container" },
+        [this.elements.canvas, this.elements.previewCanvas, this.elements.selectionRect]
     );
-    const mainArea = Utils.createElement("main", { className: "paint-main" }, [
-      canvasContainer,
-    ]);
+    const mainArea = Utils.createElement("main", { className: "paint-main" }, [canvasContainer]);
 
-    // --- Status Bar ---
-    elements.statusTool = Utils.createElement("span");
-    elements.statusChar = Utils.createElement("span");
-    elements.statusBrush = Utils.createElement("span");
-    elements.statusCoords = Utils.createElement("span");
-    elements.statusZoom = Utils.createElement("span");
-    elements.statusBar = Utils.createElement(
-        "footer",
-        { className: "paint-statusbar" },
+    this.elements.statusTool = Utils.createElement("span");
+    this.elements.statusChar = Utils.createElement("span");
+    this.elements.statusBrush = Utils.createElement("span");
+    this.elements.statusCoords = Utils.createElement("span");
+    this.elements.statusZoom = Utils.createElement("span");
+    this.elements.statusBar = Utils.createElement(
+        "footer", { className: "paint-statusbar" },
         [
-          elements.statusTool,
-          elements.statusChar,
-          elements.statusBrush,
-          elements.statusCoords,
-          elements.statusZoom,
+          this.elements.statusTool,
+          this.elements.statusChar,
+          this.elements.statusBrush,
+          this.elements.statusCoords,
+          this.elements.statusZoom,
         ]
     );
 
-    // --- Assemble ---
-    elements.container.append(toolbar, mainArea, elements.statusBar);
+    this.elements.container.append(toolbar, mainArea, this.elements.statusBar);
 
-    renderInitialCanvas(initialState.canvasData, initialState.canvasDimensions);
-    updateToolbar(initialState);
-    updateStatusBar(initialState);
-    updateZoom(initialState.zoomLevel);
-    _addEventListeners();
-
-    return elements.container;
+    this.renderInitialCanvas(initialState.canvasData, initialState.canvasDimensions);
+    this.updateToolbar(initialState);
+    this.updateStatusBar(initialState);
+    this.updateZoom(initialState.zoomLevel);
+    this._addEventListeners();
   }
 
-  function hideAndReset() {
-    if (_globalMouseUpHandler) {
-      document.removeEventListener("mouseup", _globalMouseUpHandler);
-      _globalMouseUpHandler = null;
+  hideAndReset() {
+    if (this._globalMouseUpHandler) {
+      document.removeEventListener("mouseup", this._globalMouseUpHandler);
+      this._globalMouseUpHandler = null;
     }
 
-    if (elements.container) {
-      elements.container.remove();
+    if (this.elements.container) {
+      this.elements.container.remove();
     }
-    elements = {};
-    managerCallbacks = {};
+    this.elements = {};
+    this.managerCallbacks = {};
   }
 
-  function renderInitialCanvas(canvasData, dimensions) {
-    if (!elements.canvas || !elements.previewCanvas) return;
-    elements.canvas.innerHTML = "";
-    elements.previewCanvas.innerHTML = "";
+  renderInitialCanvas(canvasData, dimensions) {
+    if (!this.elements.canvas || !this.elements.previewCanvas) return;
+    const { Utils } = this.dependencies;
+    this.elements.canvas.innerHTML = "";
+    this.elements.previewCanvas.innerHTML = "";
 
-    elements.canvas.style.gridTemplateColumns = `repeat(${dimensions.width}, 1ch)`;
-    elements.canvas.style.gridTemplateRows = `repeat(${dimensions.height}, 1em)`;
-    elements.previewCanvas.style.gridTemplateColumns = `repeat(${dimensions.width}, 1ch)`;
-    elements.previewCanvas.style.gridTemplateRows = `repeat(${dimensions.height}, 1em)`;
+    this.elements.canvas.style.gridTemplateColumns = `repeat(${dimensions.width}, 1ch)`;
+    this.elements.canvas.style.gridTemplateRows = `repeat(${dimensions.height}, 1em)`;
+    this.elements.previewCanvas.style.gridTemplateColumns = `repeat(${dimensions.width}, 1ch)`;
+    this.elements.previewCanvas.style.gridTemplateRows = `repeat(${dimensions.height}, 1em)`;
 
     for (let y = 0; y < dimensions.height; y++) {
       for (let x = 0; x < dimensions.width; x++) {
@@ -242,18 +187,18 @@ window.PaintUI = (() => {
           textContent: dataCell.char,
           style: { color: dataCell.color },
         });
-        elements.canvas.appendChild(cell);
+        this.elements.canvas.appendChild(cell);
 
         const previewCell = Utils.createElement("span", {
           id: `preview-cell-${x}-${y}`,
           className: "paint-canvas-cell",
         });
-        elements.previewCanvas.appendChild(previewCell);
+        this.elements.previewCanvas.appendChild(previewCell);
       }
     }
   }
 
-  function updateCanvas(cellsToUpdate) {
+  updateCanvas(cellsToUpdate) {
     cellsToUpdate.forEach((data) => {
       const cell = document.getElementById(`cell-${data.x}-${data.y}`);
       if (cell) {
@@ -263,8 +208,8 @@ window.PaintUI = (() => {
     });
   }
 
-  function updatePreviewCanvas(cellsToUpdate) {
-    Array.from(elements.previewCanvas.children).forEach((child) => {
+  updatePreviewCanvas(cellsToUpdate) {
+    Array.from(this.elements.previewCanvas.children).forEach((child) => {
       if (child.textContent !== " ") {
         child.textContent = " ";
         child.style.color = "transparent";
@@ -280,175 +225,161 @@ window.PaintUI = (() => {
     });
   }
 
-  function updateToolbar(state) {
-    if (!elements.pencilBtn) return;
+  updateToolbar(state) {
+    if (!this.elements.pencilBtn) return;
     ["pencil", "eraser", "line", "rect", "circle", "fill", "select"].forEach(
         (tool) => {
-          elements[`${tool}Btn`].classList.toggle(
+          this.elements[`${tool}Btn`].classList.toggle(
               "active",
               state.currentTool === tool
           );
         }
     );
-    elements.colorPicker.value = state.currentColor;
-    elements.brushSizeInput.value = state.brushSize;
-    elements.charInput.value = state.currentCharacter;
-    elements.undoBtn.disabled = state.undoStack.length <= 1;
-    elements.redoBtn.disabled = state.redoStack.length === 0;
+    this.elements.colorPicker.value = state.currentColor;
+    this.elements.brushSizeInput.value = state.brushSize;
+    this.elements.charInput.value = state.currentCharacter;
+    this.elements.undoBtn.disabled = state.undoStack.length <= 1;
+    this.elements.redoBtn.disabled = state.redoStack.length === 0;
   }
 
-  function updateStatusBar(state, coords = null) {
-    if (!elements.statusTool) return;
-    elements.statusTool.textContent = `Tool: ${state.currentTool}`;
-    elements.statusChar.textContent = `Char: ${state.currentCharacter}`;
-    elements.statusBrush.textContent = `Brush: ${state.brushSize}`;
-    elements.statusCoords.textContent = coords
+  updateStatusBar(state, coords = null) {
+    if (!this.elements.statusTool) return;
+    this.elements.statusTool.textContent = `Tool: ${state.currentTool}`;
+    this.elements.statusChar.textContent = `Char: ${state.currentCharacter}`;
+    this.elements.statusBrush.textContent = `Brush: ${state.brushSize}`;
+    this.elements.statusCoords.textContent = coords
         ? `Coords: ${coords.x}, ${coords.y}`
         : "";
-    elements.statusZoom.textContent = `Zoom: ${state.zoomLevel}%`;
+    this.elements.statusZoom.textContent = `Zoom: ${state.zoomLevel}%`;
   }
 
-  function toggleGrid(visible) {
-    elements.canvas.classList.toggle("grid-visible", visible);
+  toggleGrid(visible) {
+    this.elements.canvas.classList.toggle("grid-visible", visible);
   }
 
-  function updateZoom(zoomLevel) {
+  updateZoom(zoomLevel) {
     const baseFontSize = 20;
     const newSize = baseFontSize * (zoomLevel / 100);
     const gridShouldBeVisible =
-        zoomLevel >= 70 && managerCallbacks.isGridVisible
-            ? managerCallbacks.isGridVisible()
+        zoomLevel >= 70 && this.managerCallbacks.isGridVisible
+            ? this.managerCallbacks.isGridVisible()
             : false;
 
-    if (elements.canvas) {
-      elements.canvas.style.fontSize = `${newSize}px`;
-      elements.canvas.classList.toggle("grid-visible", gridShouldBeVisible);
+    if (this.elements.canvas) {
+      this.elements.canvas.style.fontSize = `${newSize}px`;
+      this.elements.canvas.classList.toggle("grid-visible", gridShouldBeVisible);
     }
-    if (elements.previewCanvas) {
-      elements.previewCanvas.style.fontSize = `${newSize}px`;
-    }
-  }
-
-  function showSelectionRect(rect) {
-    if (!elements.selectionRect || !elements.canvas.firstChild) return;
-    const charWidth = elements.canvas.firstChild.offsetWidth;
-    const charHeight = elements.canvas.firstChild.offsetHeight;
-
-    elements.selectionRect.style.left = `${rect.x * charWidth}px`;
-    elements.selectionRect.style.top = `${rect.y * charHeight}px`;
-    elements.selectionRect.style.width = `${rect.width * charWidth}px`;
-    elements.selectionRect.style.height = `${rect.height * charHeight}px`;
-    elements.selectionRect.classList.remove("hidden");
-  }
-
-  function hideSelectionRect() {
-    if (elements.selectionRect) {
-      elements.selectionRect.classList.add("hidden");
+    if (this.elements.previewCanvas) {
+      this.elements.previewCanvas.style.fontSize = `${newSize}px`;
     }
   }
 
-  function _getCoordsFromEvent(e) {
-    if (!elements.canvas || !elements.canvas.firstChild) return null;
-    const rect = elements.canvas.getBoundingClientRect();
-    const charWidth = elements.canvas.firstChild.offsetWidth;
-    const charHeight = elements.canvas.firstChild.offsetHeight;
+  showSelectionRect(rect) {
+    if (!this.elements.selectionRect || !this.elements.canvas.firstChild) return;
+    const charWidth = this.elements.canvas.firstChild.offsetWidth;
+    const charHeight = this.elements.canvas.firstChild.offsetHeight;
+
+    this.elements.selectionRect.style.left = `${rect.x * charWidth}px`;
+    this.elements.selectionRect.style.top = `${rect.y * charHeight}px`;
+    this.elements.selectionRect.style.width = `${rect.width * charWidth}px`;
+    this.elements.selectionRect.style.height = `${rect.height * charHeight}px`;
+    this.elements.selectionRect.classList.remove("hidden");
+  }
+
+  hideSelectionRect() {
+    if (this.elements.selectionRect) {
+      this.elements.selectionRect.classList.add("hidden");
+    }
+  }
+
+  _getCoordsFromEvent(e) {
+    if (!this.elements.canvas || !this.elements.canvas.firstChild) return null;
+    const rect = this.elements.canvas.getBoundingClientRect();
+    const charWidth = this.elements.canvas.firstChild.offsetWidth;
+    const charHeight = this.elements.canvas.firstChild.offsetHeight;
     if (charWidth === 0 || charHeight === 0) return null;
     const x = Math.floor((e.clientX - rect.left) / charWidth);
     const y = Math.floor((e.clientY - rect.top) / charHeight);
     return { x, y };
   }
 
-  function _addEventListeners() {
-    elements.pencilBtn.addEventListener("click", () =>
-        managerCallbacks.onToolSelect("pencil")
+  _addEventListeners() {
+    this.elements.pencilBtn.addEventListener("click", () =>
+        this.managerCallbacks.onToolSelect("pencil")
     );
-    elements.eraserBtn.addEventListener("click", () =>
-        managerCallbacks.onToolSelect("eraser")
+    this.elements.eraserBtn.addEventListener("click", () =>
+        this.managerCallbacks.onToolSelect("eraser")
     );
-    elements.lineBtn.addEventListener("click", () =>
-        managerCallbacks.onToolSelect("line")
+    this.elements.lineBtn.addEventListener("click", () =>
+        this.managerCallbacks.onToolSelect("line")
     );
-    elements.rectBtn.addEventListener("click", () =>
-        managerCallbacks.onToolSelect("rect")
+    this.elements.rectBtn.addEventListener("click", () =>
+        this.managerCallbacks.onToolSelect("rect")
     );
-    elements.circleBtn.addEventListener("click", () =>
-        managerCallbacks.onToolSelect("circle")
+    this.elements.circleBtn.addEventListener("click", () =>
+        this.managerCallbacks.onToolSelect("circle")
     );
-    elements.fillBtn.addEventListener("click", () =>
-        managerCallbacks.onToolSelect("fill")
+    this.elements.fillBtn.addEventListener("click", () =>
+        this.managerCallbacks.onToolSelect("fill")
     );
-    elements.selectBtn.addEventListener("click", () =>
-        managerCallbacks.onToolSelect("select")
+    this.elements.selectBtn.addEventListener("click", () =>
+        this.managerCallbacks.onToolSelect("select")
     );
-    elements.colorPicker.addEventListener("input", (e) =>
-        managerCallbacks.onColorSelect(e.target.value)
+    this.elements.colorPicker.addEventListener("input", (e) =>
+        this.managerCallbacks.onColorSelect(e.target.value)
     );
-    elements.brushSizeInput.addEventListener("change", (e) =>
-        managerCallbacks.onBrushSizeChange(parseInt(e.target.value, 10))
+    this.elements.brushSizeInput.addEventListener("change", (e) =>
+        this.managerCallbacks.onBrushSizeChange(parseInt(e.target.value, 10))
     );
-    elements.container
+    this.elements.container
         .querySelector(".paint-brush-controls .btn:nth-child(1)")
         .addEventListener("click", () =>
-            managerCallbacks.onBrushSizeChange(
-                parseInt(elements.brushSizeInput.value, 10) - 1
+            this.managerCallbacks.onBrushSizeChange(
+                parseInt(this.elements.brushSizeInput.value, 10) - 1
             )
         );
-    elements.container
+    this.elements.container
         .querySelector(".paint-brush-controls .btn:nth-child(3)")
         .addEventListener("click", () =>
-            managerCallbacks.onBrushSizeChange(
-                parseInt(elements.brushSizeInput.value, 10) + 1
+            this.managerCallbacks.onBrushSizeChange(
+                parseInt(this.elements.brushSizeInput.value, 10) + 1
             )
         );
-    elements.charInput.addEventListener("input", (e) =>
-        managerCallbacks.onCharChange(e.target.value)
+    this.elements.charInput.addEventListener("input", (e) =>
+        this.managerCallbacks.onCharChange(e.target.value)
     );
-    elements.undoBtn.addEventListener("click", () => managerCallbacks.onUndo());
-    elements.redoBtn.addEventListener("click", () => managerCallbacks.onRedo());
-    elements.gridBtn.addEventListener("click", () =>
-        managerCallbacks.onToggleGrid()
+    this.elements.undoBtn.addEventListener("click", () => this.managerCallbacks.onUndo());
+    this.elements.redoBtn.addEventListener("click", () => this.managerCallbacks.onRedo());
+    this.elements.gridBtn.addEventListener("click", () =>
+        this.managerCallbacks.onToggleGrid()
     );
-    elements.cutBtn.addEventListener("click", () => managerCallbacks.onCut());
-    elements.copyBtn.addEventListener("click", () => managerCallbacks.onCopy());
-    elements.pasteBtn.addEventListener("click", () =>
-        managerCallbacks.onPaste()
+    this.elements.cutBtn.addEventListener("click", () => this.managerCallbacks.onCut());
+    this.elements.copyBtn.addEventListener("click", () => this.managerCallbacks.onCopy());
+    this.elements.pasteBtn.addEventListener("click", () =>
+        this.managerCallbacks.onPaste()
     );
-    elements.zoomInBtn.addEventListener("click", () =>
-        managerCallbacks.onZoomIn()
+    this.elements.zoomInBtn.addEventListener("click", () =>
+        this.managerCallbacks.onZoomIn()
     );
-    elements.zoomOutBtn.addEventListener("click", () =>
-        managerCallbacks.onZoomOut()
+    this.elements.zoomOutBtn.addEventListener("click", () =>
+        this.managerCallbacks.onZoomOut()
     );
-    elements.exitBtn.addEventListener("click", () =>
-        managerCallbacks.onExitRequest()
+    this.elements.exitBtn.addEventListener("click", () =>
+        this.managerCallbacks.onExitRequest()
     );
-    elements.canvas.addEventListener("mousedown", (e) => {
-      const coords = _getCoordsFromEvent(e);
-      if (coords) managerCallbacks.onCanvasMouseDown(coords);
+    this.elements.canvas.addEventListener("mousedown", (e) => {
+      const coords = this._getCoordsFromEvent(e);
+      if (coords) this.managerCallbacks.onCanvasMouseDown(coords);
     });
-    elements.canvas.addEventListener("mousemove", (e) => {
-      const coords = _getCoordsFromEvent(e);
-      if (coords) managerCallbacks.onCanvasMouseMove(coords);
+    this.elements.canvas.addEventListener("mousemove", (e) => {
+      const coords = this._getCoordsFromEvent(e);
+      if (coords) this.managerCallbacks.onCanvasMouseMove(coords);
     });
-    _globalMouseUpHandler = () => managerCallbacks.onCanvasMouseUp();
-    document.addEventListener("mouseup", _globalMouseUpHandler);
-    elements.canvas.addEventListener("mouseleave", () =>
-        updateStatusBar(managerCallbacks.onGetState(), null)
+    this._globalMouseUpHandler = () => this.managerCallbacks.onCanvasMouseUp();
+    document.addEventListener("mouseup", this._globalMouseUpHandler);
+    this.elements.canvas.addEventListener("mouseleave", () =>
+        this.updateStatusBar(this.managerCallbacks.onGetState(), null)
     );
-    elements.container.setAttribute("tabindex", "-1");
+    this.elements.container.setAttribute("tabindex", "-1");
   }
-
-  return {
-    buildAndShow,
-    hideAndReset,
-    updateCanvas,
-    updatePreviewCanvas,
-    updateToolbar,
-    updateStatusBar,
-    toggleGrid,
-    updateZoom,
-    renderCanvas: renderInitialCanvas,
-    showSelectionRect,
-    hideSelectionRect,
-  };
-})();
+}

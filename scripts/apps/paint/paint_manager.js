@@ -1,17 +1,15 @@
-// scripts/apps/paint/paint_manager.js
-
 window.PaintManager = class PaintManager extends App {
   constructor() {
     super();
     this.state = {};
     this.dependencies = {};
     this.callbacks = {};
+    this.ui = null;
   }
 
-  // --- Core Lifecycle ---
   enter(appLayer, options = {}) {
     if (this.isActive) return;
-    this.dependencies = options.dependencies; // Dependency injection
+    this.dependencies = options.dependencies;
     this.callbacks = this._createCallbacks();
 
     this.state = this._createInitialState(
@@ -20,19 +18,23 @@ window.PaintManager = class PaintManager extends App {
     );
     this.isActive = true;
 
-    this.container = this.dependencies.PaintUI.buildAndShow(this.state, this.callbacks);
+    this.ui = new this.dependencies.PaintUI(this.state, this.callbacks, this.dependencies);
+    this.container = this.ui.getContainer();
     appLayer.appendChild(this.container);
     this.container.focus();
   }
 
   exit() {
     if (!this.isActive) return;
-    const { PaintUI, AppLayerManager, ModalManager } = this.dependencies;
+    const { AppLayerManager, ModalManager } = this.dependencies;
     const performExit = () => {
-      PaintUI.hideAndReset();
+      if (this.ui) {
+        this.ui.hideAndReset();
+      }
       AppLayerManager.hide(this);
       this.isActive = false;
       this.state = {};
+      this.ui = null;
     };
 
     if (this.state.isDirty) {
@@ -42,7 +44,7 @@ window.PaintManager = class PaintManager extends App {
         confirmText: "Discard Changes",
         cancelText: "Cancel",
         onConfirm: performExit,
-        onCancel: () => {},
+        onCancel: () => { },
       });
     } else {
       performExit();
@@ -112,67 +114,59 @@ window.PaintManager = class PaintManager extends App {
   _createCallbacks() {
     return {
       onToolSelect: (tool) => {
-        const { PaintUI } = this.dependencies;
         if (this.state.isLocked) return;
         if (this.state.currentTool === "select" && tool !== "select") {
           this.state.selection = null;
-          PaintUI.hideSelectionRect();
+          this.ui.hideSelectionRect();
         }
         this.state.currentTool = tool;
-        PaintUI.updateToolbar(this.state);
-        PaintUI.updateStatusBar(this.state);
+        this.ui.updateToolbar(this.state);
+        this.ui.updateStatusBar(this.state);
       },
       onColorSelect: (color) => {
-        const { PaintUI } = this.dependencies;
         this.state.currentColor = color;
-        PaintUI.updateToolbar(this.state);
+        this.ui.updateToolbar(this.state);
       },
       onCharChange: (char) => {
-        const { PaintUI } = this.dependencies;
         if (char.length > 0) this.state.currentCharacter = char.slice(0, 1);
-        PaintUI.updateStatusBar(this.state);
+        this.ui.updateStatusBar(this.state);
       },
       onBrushSizeChange: (newSize) => {
-        const { PaintUI } = this.dependencies;
         this.state.brushSize = Math.max(1, Math.min(5, newSize || 1));
-        PaintUI.updateToolbar(this.state);
-        PaintUI.updateStatusBar(this.state);
+        this.ui.updateToolbar(this.state);
+        this.ui.updateStatusBar(this.state);
       },
       onUndo: () => {
-        const { PaintUI } = this.dependencies;
         if (this.state.undoStack.length <= 1) return;
         const currentCanvasState = this.state.undoStack.pop();
         this.state.redoStack.push(currentCanvasState);
         this.state.canvasData = JSON.parse(
             this.state.undoStack[this.state.undoStack.length - 1]
         );
-        PaintUI.renderCanvas(
+        this.ui.renderCanvas(
             this.state.canvasData,
             this.state.canvasDimensions
         );
         this.state.isDirty = this.state.undoStack.length > 1;
-        PaintUI.updateToolbar(this.state);
+        this.ui.updateToolbar(this.state);
       },
       onRedo: () => {
-        const { PaintUI } = this.dependencies;
         if (this.state.redoStack.length === 0) return;
         const nextCanvasState = this.state.redoStack.pop();
         this.state.undoStack.push(nextCanvasState);
         this.state.canvasData = JSON.parse(nextCanvasState);
-        PaintUI.renderCanvas(
+        this.ui.renderCanvas(
             this.state.canvasData,
             this.state.canvasDimensions
         );
         this.state.isDirty = true;
-        PaintUI.updateToolbar(this.state);
+        this.ui.updateToolbar(this.state);
       },
       onToggleGrid: () => {
-        const { PaintUI } = this.dependencies;
         this.state.gridVisible = !this.state.gridVisible;
-        PaintUI.toggleGrid(this.state.gridVisible);
+        this.ui.toggleGrid(this.state.gridVisible);
       },
       onCanvasMouseDown: (coords) => {
-        const { PaintUI } = this.dependencies;
         if (this.state.isLocked) return;
         this.state.isLocked = true;
 
@@ -187,7 +181,7 @@ window.PaintManager = class PaintManager extends App {
           );
           if (fillCells.length > 0) {
             this._applyCellsToData(fillCells);
-            PaintUI.updateCanvas(fillCells);
+            this.ui.updateCanvas(fillCells);
           }
           this.state.isLocked = false;
           return;
@@ -197,7 +191,6 @@ window.PaintManager = class PaintManager extends App {
         this.state.lastCoords = coords;
       },
       onCanvasMouseMove: (coords) => {
-        const { PaintUI } = this.dependencies;
         this.state.lastCoords = coords;
         const char =
             this.state.currentTool === "eraser"
@@ -216,7 +209,7 @@ window.PaintManager = class PaintManager extends App {
                   this.state.startCoords,
                   coords
               );
-              PaintUI.showSelectionRect({ x, y, width, height });
+              this.ui.showSelectionRect({ x, y, width, height });
               break;
             case "line":
               previewCells = this._getCellsForLine(
@@ -261,7 +254,7 @@ window.PaintManager = class PaintManager extends App {
                   color
               );
               this._applyCellsToData(cells);
-              PaintUI.updateCanvas(cells);
+              this.ui.updateCanvas(cells);
               this.state.startCoords = coords;
               break;
           }
@@ -269,16 +262,15 @@ window.PaintManager = class PaintManager extends App {
           previewCells = this._getCellsInBrush(coords.x, coords.y, char, color);
         }
 
-        PaintUI.updatePreviewCanvas(previewCells);
-        PaintUI.updateStatusBar(this.state, coords);
+        this.ui.updatePreviewCanvas(previewCells);
+        this.ui.updateStatusBar(this.state, coords);
       },
       onCanvasMouseUp: () => {
-        const { PaintUI } = this.dependencies;
         if (!this.state.isDrawing) return;
 
         const endCoords = this.state.lastCoords;
         this.state.isDrawing = false;
-        PaintUI.updatePreviewCanvas([]);
+        this.ui.updatePreviewCanvas([]);
 
         if (this.state.currentTool === "select" && this.state.startCoords) {
           this.state.selection = this._getSelectionRect(
@@ -337,7 +329,7 @@ window.PaintManager = class PaintManager extends App {
 
           if (finalCells.length > 0) {
             this._applyCellsToData(finalCells);
-            PaintUI.updateCanvas(finalCells);
+            this.ui.updateCanvas(finalCells);
           }
         }
 
@@ -346,7 +338,6 @@ window.PaintManager = class PaintManager extends App {
         this.state.isLocked = false;
       },
       onCut: () => {
-        const { PaintUI } = this.dependencies;
         if (!this.state.selection) return;
         this._copySelectionToClipboard();
         const { x, y, width, height } = this.state.selection;
@@ -362,19 +353,17 @@ window.PaintManager = class PaintManager extends App {
           }
         }
         this._applyCellsToData(erasedCells);
-        PaintUI.updateCanvas(erasedCells);
+        this.ui.updateCanvas(erasedCells);
         this.state.selection = null;
-        PaintUI.hideSelectionRect();
+        this.ui.hideSelectionRect();
       },
       onCopy: () => {
-        const { PaintUI } = this.dependencies;
         if (!this.state.selection) return;
         this._copySelectionToClipboard();
         this.state.selection = null;
-        PaintUI.hideSelectionRect();
+        this.ui.hideSelectionRect();
       },
       onPaste: () => {
-        const { PaintUI } = this.dependencies;
         if (!this.state.clipboard || !this.state.lastCoords) return;
         const pasteX = this.state.lastCoords.x;
         const pasteY = this.state.lastCoords.y;
@@ -389,33 +378,29 @@ window.PaintManager = class PaintManager extends App {
           }
         }
         this._applyCellsToData(pastedCells);
-        PaintUI.updateCanvas(pastedCells);
+        this.ui.updateCanvas(pastedCells);
       },
       onSaveRequest: this._saveContent.bind(this),
       onExitRequest: this.exit.bind(this),
       onZoomIn: () => {
-        const { PaintUI } = this.dependencies;
         this.state.zoomLevel = Math.min(
             this.state.ZOOM_MAX,
             this.state.zoomLevel + this.state.ZOOM_STEP
         );
-        PaintUI.updateZoom(this.state.zoomLevel);
-        PaintUI.updateStatusBar(this.state);
+        this.ui.updateZoom(this.state.zoomLevel);
+        this.ui.updateStatusBar(this.state);
       },
       onZoomOut: () => {
-        const { PaintUI } = this.dependencies;
         this.state.zoomLevel = Math.max(
             this.state.ZOOM_MIN,
             this.state.zoomLevel - this.state.ZOOM_STEP
         );
-        PaintUI.updateZoom(this.state.zoomLevel);
-        PaintUI.updateStatusBar(this.state);
+        this.ui.updateZoom(this.state.zoomLevel);
+        this.ui.updateStatusBar(this.state);
       },
       onGetState: () => this.state,
     };
   }
-
-  // ... (rest of the PaintManager class is unchanged)
 
   _getSelectionRect(startCoords, endCoords) {
     const x = Math.min(startCoords.x, endCoords.x);
@@ -440,7 +425,6 @@ window.PaintManager = class PaintManager extends App {
   }
 
   _applyCellsToData(cells) {
-    const { PaintUI } = this.dependencies;
     cells.forEach((cell) => {
       if (
           cell.y >= 0 &&
@@ -458,19 +442,18 @@ window.PaintManager = class PaintManager extends App {
   }
 
   _pushToUndoStack() {
-    const { PaintUI } = this.dependencies;
     this.state.undoStack.push(JSON.stringify(this.state.canvasData));
     if (this.state.undoStack.length > 50) {
       this.state.undoStack.shift();
     }
     this.state.redoStack = [];
     this.state.isDirty = true;
-    PaintUI.updateToolbar(this.state);
+    this.ui.updateToolbar(this.state);
   }
 
   async _saveContent() {
     if (!this.isActive) return;
-    const { FileSystemManager, UserManager, PaintUI } = this.dependencies;
+    const { FileSystemManager, UserManager } = this.dependencies;
 
     const dataToSave = {
       format: "oopis-paint-v1",
@@ -489,12 +472,12 @@ window.PaintManager = class PaintManager extends App {
     if (saveResult.success && (await FileSystemManager.save())) {
       this.state.isDirty = false;
     } else {
-      PaintUI.updateStatusBar({
+      this.ui.updateStatusBar({
         ...this.state,
         statusMessage: `Error: ${saveResult.error || "Failed to save to filesystem."}`,
       });
     }
-    PaintUI.updateToolbar(this.state);
+    this.ui.updateToolbar(this.state);
   }
   _getCellsInBrush(x, y, char, color) {
     const affectedCells = [];
@@ -525,7 +508,7 @@ window.PaintManager = class PaintManager extends App {
     let err = dx + dy,
         e2;
 
-    for (;;) {
+    for (; ;) {
       affectedCells.push(...this._getCellsInBrush(x0, y0, char, color));
       if (x0 === x1 && y0 === y1) break;
       e2 = 2 * err;

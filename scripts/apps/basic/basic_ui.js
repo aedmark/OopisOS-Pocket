@@ -1,19 +1,22 @@
-// scripts/apps/basic/basic_ui.js
+window.BasicUI = class BasicUI {
+  constructor(callbacks, dependencies) {
+    this.elements = {};
+    this.callbacks = callbacks;
+    this.dependencies = dependencies;
+    this._buildLayout();
+  }
 
-window.BasicUI = (() => {
-  "use strict";
-  let elements = {};
-  let callbacks = {}; // To store callbacks from the manager
+  getContainer() {
+    return this.elements.container;
+  }
 
-  function buildLayout(cb) {
-    callbacks = cb; // Store the manager's callbacks
-
-    // --- Create DOM elements ---
-    elements.output = Utils.createElement("div", {
+  _buildLayout() {
+    const { Utils } = this.dependencies;
+    this.elements.output = Utils.createElement("div", {
       id: "basic-app-output",
       className: "basic-app__output",
     });
-    elements.input = Utils.createElement("input", {
+    this.elements.input = Utils.createElement("input", {
       id: "basic-app-input",
       className: "basic-app__input",
       type: "text",
@@ -24,9 +27,9 @@ window.BasicUI = (() => {
         "div",
         { className: "basic-app__input-line" },
         Utils.createElement("span", { textContent: ">" }),
-        elements.input
+        this.elements.input
     );
-    elements.exitBtn = Utils.createElement("button", {
+    this.elements.exitBtn = Utils.createElement("button", {
       className: "basic-app__exit-btn",
       textContent: "×",
       title: "Exit BASIC (EXIT)",
@@ -38,55 +41,50 @@ window.BasicUI = (() => {
           className: "basic-app__title",
           textContent: "Oopis BASIC v1.0",
         }),
-        elements.exitBtn
+        this.elements.exitBtn
     );
-    elements.container = Utils.createElement(
+    this.elements.container = Utils.createElement(
         "div",
         { id: "basic-app-container", className: "basic-app__container" },
         header,
-        elements.output,
+        this.elements.output,
         inputContainer
     );
 
-    // --- Add Event Listeners ---
-    elements.input.addEventListener("keydown", (e) => {
+    this.elements.input.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
         e.preventDefault();
-        const command = elements.input.value;
-        elements.input.value = "";
-        callbacks.onInput(command); // Use callback
+        const command = this.elements.input.value;
+        this.elements.input.value = "";
+        this.callbacks.onInput(command);
       }
     });
-    elements.exitBtn.addEventListener("click", () => callbacks.onExit()); // Use callback
-
-    return elements.container; // Return the created container
+    this.elements.exitBtn.addEventListener("click", () => this.callbacks.onExit());
   }
 
-  function write(text) {
-    if (elements.output) {
-      elements.output.textContent += text;
-      elements.output.scrollTop = elements.output.scrollHeight;
+  write(text) {
+    if (this.elements.output) {
+      this.elements.output.textContent += text;
+      this.elements.output.scrollTop = this.elements.output.scrollHeight;
     }
   }
 
-  function writeln(text) {
-    if (elements.output) {
-      elements.output.textContent += text + "\n";
-      elements.output.scrollTop = elements.output.scrollHeight;
+  writeln(text) {
+    if (this.elements.output) {
+      this.elements.output.textContent += text + "\n";
+      this.elements.output.scrollTop = this.elements.output.scrollHeight;
     }
   }
 
-  function focusInput() {
-    if (elements.input) {
-      elements.input.focus();
+  focusInput() {
+    if (this.elements.input) {
+      this.elements.input.focus();
     }
   }
 
-  function reset() {
-    // Clear references to allow garbage collection
-    elements = {};
-    callbacks = {};
+  reset() {
+    this.elements = {};
+    this.callbacks = {};
+    this.dependencies = {};
   }
-
-  return { buildLayout, write, writeln, focusInput, reset };
-})();
+}
