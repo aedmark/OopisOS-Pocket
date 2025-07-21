@@ -1,37 +1,40 @@
-// scripts/apps/chidi/chidi_manager.js
-
 window.ChidiManager = class ChidiManager extends App {
   constructor() {
     super();
     this.state = {};
-    this.dependencies = {}; // To be populated on enter
-    this.callbacks = {}; // FIX: Initialize as empty
+    this.dependencies = {};
+    this.callbacks = {};
+    this.ui = null;
   }
 
   enter(appLayer, options = {}) {
     if (this.isActive) return;
 
-    this.dependencies = options.dependencies; // Dependency injection
-    this.callbacks = this._createCallbacks(); // FIX: Create callbacks now
+    this.dependencies = options.dependencies;
+    this.callbacks = this._createCallbacks();
 
     this._initializeState(options.initialFiles, options.launchOptions);
     this.isActive = true;
 
-    this.container = this.dependencies.ChidiUI.buildAndShow(this.state, this.callbacks);
+    this.ui = new this.dependencies.ChidiUI(this.state, this.callbacks, this.dependencies);
+    this.container = this.ui.getContainer();
     appLayer.appendChild(this.container);
 
     const initialMessage = this.state.isNewSession
         ? `New session started. Analyzing ${this.state.loadedFiles.length} files.`
         : `Chidi.md initialized. Analyzing ${this.state.loadedFiles.length} files.`;
-    this.dependencies.ChidiUI.showMessage(initialMessage, true);
+    this.ui.showMessage(initialMessage, true);
   }
 
   exit() {
     if (!this.isActive) return;
-    this.dependencies.ChidiUI.hideAndReset();
+    if (this.ui) {
+      this.ui.hideAndReset();
+    }
     this.dependencies.AppLayerManager.hide(this);
     this.isActive = false;
     this.state = {};
+    this.ui = null;
   }
 
   _initializeState(initialFiles, launchOptions) {
@@ -93,22 +96,21 @@ window.ChidiManager = class ChidiManager extends App {
   }
 
   _createCallbacks() {
-    const self = this; // Capture 'this' context
     return {
       onPrevFile: () => {
-        if (self.state.currentIndex > 0) {
-          self.state.currentIndex--;
-          self.dependencies.ChidiUI.update(self.state);
+        if (this.state.currentIndex > 0) {
+          this.state.currentIndex--;
+          this.ui.update(this.state);
         }
       },
       onNextFile: () => {
-        if (self.state.currentIndex < self.state.loadedFiles.length - 1) {
-          self.state.currentIndex++;
-          self.dependencies.ChidiUI.update(self.state);
+        if (this.state.currentIndex < this.state.loadedFiles.length - 1) {
+          this.state.currentIndex++;
+          this.ui.update(this.state);
         }
       },
       onAsk: async () => {
-        const { ModalManager, ChidiUI } = self.dependencies;
+        const { ModalManager } = this.dependencies;
         const userQuestion = await new Promise((resolve) => {
           ModalManager.request({
             context: "graphical",
@@ -121,47 +123,47 @@ window.ChidiManager = class ChidiManager extends App {
 
         if (!userQuestion || !userQuestion.trim()) return;
 
-        ChidiUI.toggleLoader(true);
-        ChidiUI.showMessage("Analyzing...");
+        this.ui.toggleLoader(true);
+        this.ui.showMessage("Analyzing...");
 
-        self.state.conversationHistory.push({
+        this.state.conversationHistory.push({
           role: "user",
           parts: [{ text: userQuestion }],
         });
 
-        const systemPromptWithContext = self.state.CHIDI_SYSTEM_PROMPT.replace(
+        const systemPromptWithContext = this.state.CHIDI_SYSTEM_PROMPT.replace(
             "{{documentContext}}",
-            self.state.sessionContext
+            this.state.sessionContext
         );
-        const result = await self._callLlmApi(
-            self.state.conversationHistory,
+        const result = await this._callLlmApi(
+            this.state.conversationHistory,
             systemPromptWithContext
         );
 
-        ChidiUI.toggleLoader(false);
+        this.ui.toggleLoader(false);
         if (result.success) {
-          self.state.conversationHistory.push({
+          this.state.conversationHistory.push({
             role: "model",
             parts: [{ text: result.answer }],
           });
-          ChidiUI.appendAiOutput(`Answer for "${userQuestion}"`, result.answer);
-          ChidiUI.showMessage("Response received.", true);
+          this.ui.appendAiOutput(`Answer for "${userQuestion}"`, result.answer);
+          this.ui.showMessage("Response received.", true);
         } else {
-          self.state.conversationHistory.pop(); // Remove the user question if the API call failed
-          ChidiUI.appendAiOutput(
+          this.state.conversationHistory.pop();
+          this.ui.appendAiOutput(
               "API Error",
               `Failed to get a response. Details: ${result.error}`
           );
-          ChidiUI.showMessage(`Error: ${result.error}`, true);
+          this.ui.showMessage(`Error: ${result.error}`, true);
         }
       },
       onSummarize: async () => {
-        const { ChidiUI, Utils } = self.dependencies;
-        const currentFile = self.state.loadedFiles[self.state.currentIndex];
+        const { Utils } = this.dependencies;
+        const currentFile = this.state.loadedFiles[this.state.currentIndex];
         if (!currentFile) return;
-        ChidiUI.toggleLoader(true);
-        ChidiUI.showMessage(`Contacting ${self.state.provider} API...`);
-        let contentToSummarize = currentFile.content; // Default to full content
+        this.ui.toggleLoader(true);
+        this.ui.showMessage(`Contacting ${this.state.provider} API...`);
+        let contentToSummarize = currentFile.content;
         if (currentFile.isCode) {
           const comments = Utils.extractComments(
               currentFile.content,
@@ -173,28 +175,28 @@ window.ChidiManager = class ChidiManager extends App {
         }
         const prompt = `Please provide a concise summary of the following document:\n\n---\n\n${contentToSummarize}`;
 
-        const result = await self._callLlmApi([
+        const result = await this._callLlmApi([
           { role: "user", parts: [{ text: prompt }] },
         ]);
 
-        ChidiUI.toggleLoader(false);
+        this.ui.toggleLoader(false);
         if (result.success) {
-          ChidiUI.appendAiOutput("Summary", result.answer);
-          ChidiUI.showMessage("Summary received.", true);
+          this.ui.appendAiOutput("Summary", result.answer);
+          this.ui.showMessage("Summary received.", true);
         } else {
-          ChidiUI.appendAiOutput(
+          this.ui.appendAiOutput(
               "API Error",
               `Failed to get a summary. Details: ${result.error}`
           );
-          ChidiUI.showMessage(`Error: ${result.error}`, true);
+          this.ui.showMessage(`Error: ${result.error}`, true);
         }
       },
       onStudy: async () => {
-        const { ChidiUI, Utils } = self.dependencies;
-        const currentFile = self.state.loadedFiles[self.state.currentIndex];
+        const { Utils } = this.dependencies;
+        const currentFile = this.state.loadedFiles[this.state.currentIndex];
         if (!currentFile) return;
-        ChidiUI.toggleLoader(true);
-        ChidiUI.showMessage(`Contacting ${self.state.provider} API...`);
+        this.ui.toggleLoader(true);
+        this.ui.showMessage(`Contacting ${this.state.provider} API...`);
         let contentForQuestions = currentFile.content;
         if (currentFile.isCode) {
           const comments = Utils.extractComments(
@@ -207,24 +209,24 @@ window.ChidiManager = class ChidiManager extends App {
         }
         const prompt = `Based on the following document, what are some insightful questions a user might ask?\n\n---\n\n${contentForQuestions}`;
 
-        const result = await self._callLlmApi([
+        const result = await this._callLlmApi([
           { role: "user", parts: [{ text: prompt }] },
         ]);
 
-        ChidiUI.toggleLoader(false);
+        this.ui.toggleLoader(false);
         if (result.success) {
-          ChidiUI.appendAiOutput("Suggested Questions", result.answer);
-          ChidiUI.showMessage("Suggestions received.", true);
+          this.ui.appendAiOutput("Suggested Questions", result.answer);
+          this.ui.showMessage("Suggestions received.", true);
         } else {
-          ChidiUI.appendAiOutput(
+          this.ui.appendAiOutput(
               "API Error",
               `Failed to get suggestions. Details: ${result.error}`
           );
-          ChidiUI.showMessage(`Error: ${result.error}`, true);
+          this.ui.showMessage(`Error: ${result.error}`, true);
         }
       },
       onSaveSession: async () => {
-        const { ModalManager, ChidiUI, FileSystemManager, UserManager } = self.dependencies;
+        const { ModalManager, FileSystemManager, UserManager } = this.dependencies;
         const filename = await new Promise((resolve) => {
           ModalManager.request({
             context: "graphical",
@@ -237,7 +239,7 @@ window.ChidiManager = class ChidiManager extends App {
         });
         if (!filename) return;
 
-        const htmlContent = ChidiUI.packageSessionAsHTML(self.state);
+        const htmlContent = this.ui.packageSessionAsHTML(this.state);
         const absPath = FileSystemManager.getAbsolutePath(filename);
         const saveResult = await FileSystemManager.createOrUpdateFile(
             absPath,
@@ -250,18 +252,18 @@ window.ChidiManager = class ChidiManager extends App {
             }
         );
         if (saveResult.success && (await FileSystemManager.save())) {
-          ChidiUI.showMessage(`Session saved to '${filename}'.`, true);
+          this.ui.showMessage(`Session saved to '${filename}'.`, true);
         } else {
-          ChidiUI.showMessage(
+          this.ui.showMessage(
               `Error: ${saveResult.error || "Failed to save file system."}`,
               true
           );
         }
       },
       onExport: () => {
-        const { ChidiUI, Utils } = self.dependencies;
-        const htmlContent = ChidiUI.packageSessionAsHTML(self.state);
-        const currentFile = self.state.loadedFiles[self.state.currentIndex];
+        const { Utils } = this.dependencies;
+        const htmlContent = this.ui.packageSessionAsHTML(this.state);
+        const currentFile = this.state.loadedFiles[this.state.currentIndex];
         const blob = new Blob([htmlContent], { type: "text/html" });
         const url = URL.createObjectURL(blob);
         const a = Utils.createElement("a", {
@@ -272,9 +274,9 @@ window.ChidiManager = class ChidiManager extends App {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        ChidiUI.showMessage(`Exported session for ${currentFile.name}.`, true);
+        this.ui.showMessage(`Exported session for ${currentFile.name}.`, true);
       },
-      onClose: self.exit.bind(self),
+      onClose: this.exit.bind(this),
     };
   }
 }

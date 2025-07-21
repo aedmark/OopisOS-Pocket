@@ -1,90 +1,94 @@
-// scripts/apps/log/log_ui.js
+window.LogUI = class LogUI {
+  constructor(callbacks, dependencies) {
+    this.elements = {};
+    this.callbacks = callbacks;
+    this.dependencies = dependencies;
+    this._buildLayout();
+  }
 
-window.LogUI = (() => {
-  "use strict";
-  let elements = {};
-  let callbacks = {};
+  getContainer() {
+    return this.elements.container;
+  }
 
-  function buildLayout(cb) {
-    callbacks = cb;
-    elements.entryList = Utils.createElement("div", {
+  _buildLayout() {
+    const { Utils } = this.dependencies;
+    this.elements.entryList = Utils.createElement("div", {
       id: "log-entry-list",
       className: "log-app__list-pane",
     });
 
-    elements.contentView = Utils.createElement("textarea", {
+    this.elements.contentView = Utils.createElement("textarea", {
       id: "log-content-view",
-      className: "log-app__content-pane log-app__content-pane--editable",
+      className: "log-app__content-pane",
       placeholder: "Select an entry to view or edit...",
     });
 
-    elements.searchBar = Utils.createElement("input", {
+    this.elements.searchBar = Utils.createElement("input", {
       id: "log-search-bar",
       type: "text",
       placeholder: "Search entries...",
       className: "log-app__search",
     });
-    elements.newBtn = Utils.createElement("button", {
+    this.elements.newBtn = Utils.createElement("button", {
       id: "log-new-btn",
       textContent: "New Entry",
       className: "log-app__btn",
     });
-    elements.saveBtn = Utils.createElement("button", {
+    this.elements.saveBtn = Utils.createElement("button", {
       id: "log-save-btn",
       textContent: "Save Changes",
       className: "log-app__btn hidden",
     });
-    elements.exitBtn = Utils.createElement("button", {
+    this.elements.exitBtn = Utils.createElement("button", {
       id: "log-exit-btn",
       textContent: "Exit",
       className: "log-app__btn log-app__btn--exit",
     });
 
-    elements.searchBar.addEventListener("input", () =>
-        callbacks.onSearch(elements.searchBar.value)
+    this.elements.searchBar.addEventListener("input", () =>
+        this.callbacks.onSearch(this.elements.searchBar.value)
     );
-    elements.newBtn.addEventListener("click", () => callbacks.onNew());
-    elements.saveBtn.addEventListener("click", () => callbacks.onSave());
-    elements.exitBtn.addEventListener("click", () => callbacks.onExit());
-    elements.contentView.addEventListener("input", () =>
-        callbacks.onContentChange(elements.contentView.value)
+    this.elements.newBtn.addEventListener("click", () => this.callbacks.onNew());
+    this.elements.saveBtn.addEventListener("click", () => this.callbacks.onSave());
+    this.elements.exitBtn.addEventListener("click", () => this.callbacks.onExit());
+    this.elements.contentView.addEventListener("input", () =>
+        this.callbacks.onContentChange(this.elements.contentView.value)
     );
 
     const header = Utils.createElement(
         "header",
         { className: "log-app__header" },
         Utils.createElement("h2", { textContent: "Captain's Log" }),
-        elements.searchBar,
+        this.elements.searchBar,
         Utils.createElement(
             "div",
             { className: "log-app__actions" },
-            elements.newBtn,
-            elements.saveBtn,
-            elements.exitBtn
+            this.elements.newBtn,
+            this.elements.saveBtn,
+            this.elements.exitBtn
         )
     );
 
     const main = Utils.createElement(
         "main",
         { className: "log-app__main" },
-        elements.entryList,
-        elements.contentView
+        this.elements.entryList,
+        this.elements.contentView
     );
-    elements.container = Utils.createElement(
+    this.elements.container = Utils.createElement(
         "div",
         { id: "log-app-container", className: "log-app__container" },
         header,
         main
     );
-
-    return elements.container;
   }
 
-  function renderEntries(entries, selectedPath) {
-    if (!elements.entryList) return;
-    elements.entryList.innerHTML = "";
+  renderEntries(entries, selectedPath) {
+    if (!this.elements.entryList) return;
+    const { Utils } = this.dependencies;
+    this.elements.entryList.innerHTML = "";
     if (entries.length === 0) {
-      elements.entryList.textContent = "No entries found.";
+      this.elements.entryList.textContent = "No entries found.";
       return;
     }
     entries.forEach((entry) => {
@@ -108,43 +112,35 @@ window.LogUI = (() => {
       if (entry.path === selectedPath) {
         item.classList.add("selected");
       }
-      item.addEventListener("click", () => callbacks.onSelect(entry.path));
-      elements.entryList.appendChild(item);
+      item.addEventListener("click", () => this.callbacks.onSelect(entry.path));
+      this.elements.entryList.appendChild(item);
     });
   }
 
-  function renderContent(entry) {
-    if (!elements.contentView) return;
+  renderContent(entry) {
+    if (!this.elements.contentView) return;
     if (!entry) {
-      elements.contentView.value = "";
-      elements.contentView.placeholder = "Select an entry to view or edit...";
-      elements.saveBtn.classList.add("hidden");
+      this.elements.contentView.value = "";
+      this.elements.contentView.placeholder = "Select an entry to view or edit...";
+      this.elements.saveBtn.classList.add("hidden");
       return;
     }
-    elements.contentView.value = entry.content;
+    this.elements.contentView.value = entry.content;
   }
 
-  function updateSaveButton(isDirty) {
-    if (elements.saveBtn) {
-      elements.saveBtn.classList.toggle("hidden", !isDirty);
+  updateSaveButton(isDirty) {
+    if (this.elements.saveBtn) {
+      this.elements.saveBtn.classList.toggle("hidden", !isDirty);
     }
   }
 
-  function getContent() {
-    return elements.contentView ? elements.contentView.value : "";
+  getContent() {
+    return this.elements.contentView ? this.elements.contentView.value : "";
   }
 
-  function reset() {
-    elements = {};
-    callbacks = {};
+  reset() {
+    this.elements = {};
+    this.callbacks = {};
+    this.dependencies = {};
   }
-
-  return {
-    buildLayout,
-    renderEntries,
-    renderContent,
-    reset,
-    getContent,
-    updateSaveButton,
-  };
-})();
+}

@@ -1,59 +1,62 @@
-// scripts/apps/chidi/chidi_ui.js
+window.ChidiUI = class ChidiUI {
+  constructor(initialState, callbacks, dependencies) {
+    this.elements = {};
+    this.callbacks = callbacks;
+    this.dependencies = dependencies;
 
-window.ChidiUI = (() => {
-  "use strict";
+    this._buildAndShow(initialState);
+  }
 
-  let elements = {};
-  let callbacks = {};
+  getContainer() {
+    return this.elements.container;
+  }
 
-  function buildAndShow(initialState, cb) {
-    callbacks = cb;
+  _buildAndShow(initialState) {
+    const { Utils } = this.dependencies;
 
     const header = Utils.createElement(
         "header",
         { className: "chidi-console-header" },
-        // --- MODIFICATION START: Replaced dropdown with Prev/Next buttons ---
         Utils.createElement(
             "div",
             { id: "chidi-nav-controls", className: "chidi-control-group" },
-            Utils.createElement("button", {
+            (this.elements.prevBtn = Utils.createElement("button", {
               id: "chidi-prevBtn",
               className: "chidi-btn",
               textContent: "< Prev",
-            }),
-            Utils.createElement("button", {
+            })),
+            (this.elements.nextBtn = Utils.createElement("button", {
               id: "chidi-nextBtn",
               className: "chidi-btn",
               textContent: "Next >",
-            })
+            }))
         ),
-        // --- MODIFICATION END ---
-        Utils.createElement("h1", {
+        (this.elements.mainTitle = Utils.createElement("h1", {
           id: "chidi-mainTitle",
           textContent: "chidi.md",
-        }),
+        })),
         Utils.createElement(
             "div",
             { className: "chidi-control-group" },
-            Utils.createElement("button", {
+            (this.elements.summarizeBtn = Utils.createElement("button", {
               id: "chidi-summarizeBtn",
               className: "chidi-btn",
               textContent: "Summarize",
-            }),
-            Utils.createElement("button", {
+            })),
+            (this.elements.studyBtn = Utils.createElement("button", {
               id: "chidi-suggestQuestionsBtn",
               className: "chidi-btn",
               textContent: "Study",
-            }),
-            Utils.createElement("button", {
+            })),
+            (this.elements.askBtn = Utils.createElement("button", {
               id: "chidi-askAllFilesBtn",
               className: "chidi-btn",
               textContent: "Ask",
-            })
+            }))
         )
     );
 
-    const mainContent = Utils.createElement("main", {
+    this.elements.markdownDisplay = Utils.createElement("main", {
       id: "chidi-markdownDisplay",
       className: "chidi-markdown-content",
     });
@@ -61,190 +64,147 @@ window.ChidiUI = (() => {
     const footer = Utils.createElement(
         "footer",
         { className: "chidi-status-readout" },
-        Utils.createElement("div", {
+        (this.elements.fileCountDisplay = Utils.createElement("div", {
           id: "chidi-fileCountDisplay",
           className: "chidi-status-item",
-        }),
-        Utils.createElement("div", {
+        })),
+        (this.elements.messageBox = Utils.createElement("div", {
           id: "chidi-messageBox",
           className: "chidi-status-message",
-        }),
+        })),
         Utils.createElement(
             "div",
             { className: "chidi-control-group" },
-            Utils.createElement("div", {
+            (this.elements.loader = Utils.createElement("div", {
               id: "chidi-loader",
               className: "chidi-loader chidi-hidden",
-            }),
-            Utils.createElement("button", {
+            })),
+            (this.elements.saveSessionBtn = Utils.createElement("button", {
               id: "chidi-saveSessionBtn",
               className: "chidi-btn",
               textContent: "Save",
-            }),
-            Utils.createElement("button", {
+            })),
+            (this.elements.exportBtn = Utils.createElement("button", {
               id: "chidi-exportBtn",
               className: "chidi-btn",
               textContent: "Export",
-            }),
-            Utils.createElement("button", {
+            })),
+            (this.elements.closeBtn = Utils.createElement("button", {
               id: "chidi-closeBtn",
               className: "chidi-btn chidi-exit-btn",
               textContent: "Exit",
-            })
+            }))
         )
     );
 
-    const appContainer = Utils.createElement(
+    this.elements.container = Utils.createElement(
         "div",
         { id: "chidi-console-panel" },
         header,
-        mainContent,
+        this.elements.markdownDisplay,
         footer
     );
 
-    _cacheDOMElements(appContainer);
-    _setupEventListeners();
-    update(initialState);
-
-    return appContainer;
+    this._setupEventListeners();
+    this.update(initialState);
   }
 
-  function hideAndReset() {
-    if (elements.container) {
-      elements.container.remove();
-    }
-    elements = {};
-    callbacks = {};
+  hideAndReset() {
+    this.elements = {};
+    this.callbacks = {};
+    this.dependencies = {};
   }
 
-  function update(state) {
-    if (!elements.container) return;
+  update(state) {
+    if (!this.elements.container) return;
+    const { Utils } = this.dependencies;
 
     const hasFiles = state.loadedFiles.length > 0;
     const currentFile = hasFiles ? state.loadedFiles[state.currentIndex] : null;
 
-    elements.fileCountDisplay.textContent = `File ${state.currentIndex + 1} of ${state.loadedFiles.length}`;
-
-    // --- MODIFICATION START: Update Prev/Next button states ---
-    elements.prevBtn.disabled = !hasFiles || state.currentIndex === 0;
-    elements.nextBtn.disabled =
+    this.elements.fileCountDisplay.textContent = `File ${state.currentIndex + 1} of ${state.loadedFiles.length}`;
+    this.elements.prevBtn.disabled = !hasFiles || state.currentIndex === 0;
+    this.elements.nextBtn.disabled =
         !hasFiles || state.currentIndex >= state.loadedFiles.length - 1;
-    // --- MODIFICATION END ---
 
-    elements.exportBtn.disabled = !hasFiles;
-    elements.saveSessionBtn.disabled = !hasFiles;
-    elements.summarizeBtn.disabled = !hasFiles;
-    elements.studyBtn.disabled = !hasFiles;
-    elements.askBtn.disabled = !hasFiles;
+    this.elements.exportBtn.disabled = !hasFiles;
+    this.elements.saveSessionBtn.disabled = !hasFiles;
+    this.elements.summarizeBtn.disabled = !hasFiles;
+    this.elements.studyBtn.disabled = !hasFiles;
+    this.elements.askBtn.disabled = !hasFiles;
 
     if (currentFile) {
-      elements.mainTitle.textContent = currentFile.name.replace(
+      this.elements.mainTitle.textContent = currentFile.name.replace(
           /\.(md|txt|js|sh)$/i,
           ""
       );
-      elements.markdownDisplay.className = "chidi-markdown-content";
+      this.elements.markdownDisplay.className = "chidi-markdown-content";
       if (
           currentFile.isCode ||
           Utils.getFileExtension(currentFile.name) === "txt"
       ) {
-        elements.markdownDisplay.innerHTML = `<pre>${currentFile.content || ""}</pre>`;
+        this.elements.markdownDisplay.innerHTML = `<pre>${currentFile.content || ""}</pre>`;
       } else {
-        elements.markdownDisplay.innerHTML = DOMPurify.sanitize(
+        this.elements.markdownDisplay.innerHTML = DOMPurify.sanitize(
             marked.parse(currentFile.content)
         );
       }
     } else {
-      elements.mainTitle.textContent = "chidi.md";
-      elements.markdownDisplay.innerHTML = `<p>No files loaded.</p>`;
+      this.elements.mainTitle.textContent = "chidi.md";
+      this.elements.markdownDisplay.innerHTML = `<p>No files loaded.</p>`;
     }
   }
 
-  function _cacheDOMElements(container) {
-    elements.container = container;
-    const get = (id) => container.querySelector(`#${id}`);
-    elements = {
-      ...elements,
-      // --- MODIFICATION START: Cache new buttons ---
-      prevBtn: get("chidi-prevBtn"),
-      nextBtn: get("chidi-nextBtn"),
-      // --- MODIFICATION END ---
-      mainTitle: get("chidi-mainTitle"),
-      markdownDisplay: get("chidi-markdownDisplay"),
-      fileCountDisplay: get("chidi-fileCountDisplay"),
-      messageBox: get("chidi-messageBox"),
-      loader: get("chidi-loader"),
-      summarizeBtn: get("chidi-summarizeBtn"),
-      studyBtn: get("chidi-suggestQuestionsBtn"),
-      askBtn: get("chidi-askAllFilesBtn"),
-      saveSessionBtn: get("chidi-saveSessionBtn"),
-      exportBtn: get("chidi-exportBtn"),
-      closeBtn: get("chidi-closeBtn"),
-    };
-  }
-
-  function _setupEventListeners() {
-    elements.closeBtn.addEventListener("click", callbacks.onClose);
-    elements.exportBtn.addEventListener("click", callbacks.onExport);
-    // --- MODIFICATION START: Add listeners for new buttons ---
-    elements.prevBtn.addEventListener("click", callbacks.onPrevFile);
-    elements.nextBtn.addEventListener("click", callbacks.onNextFile);
-    // --- MODIFICATION END ---
-    elements.askBtn.addEventListener("click", callbacks.onAsk);
-    elements.summarizeBtn.addEventListener("click", callbacks.onSummarize);
-    elements.studyBtn.addEventListener("click", callbacks.onStudy);
-    elements.saveSessionBtn.addEventListener("click", callbacks.onSaveSession);
+  _setupEventListeners() {
+    this.elements.closeBtn.addEventListener("click", this.callbacks.onClose);
+    this.elements.exportBtn.addEventListener("click", this.callbacks.onExport);
+    this.elements.prevBtn.addEventListener("click", this.callbacks.onPrevFile);
+    this.elements.nextBtn.addEventListener("click", this.callbacks.onNextFile);
+    this.elements.askBtn.addEventListener("click", this.callbacks.onAsk);
+    this.elements.summarizeBtn.addEventListener("click", this.callbacks.onSummarize);
+    this.elements.studyBtn.addEventListener("click", this.callbacks.onStudy);
+    this.elements.saveSessionBtn.addEventListener("click", this.callbacks.onSaveSession);
 
     document.addEventListener(
         "keydown",
         (e) => {
-          if (!elements.container?.isConnected) return;
+          if (!this.elements.container?.isConnected) return;
           if (e.key === "Escape") {
-            callbacks.onClose();
+            this.callbacks.onClose();
           }
         },
         true
     );
   }
 
-  // --- MODIFICATION: The dropdown functions are no longer needed ---
-
-  function showMessage(msg) {
-    if (elements.messageBox) elements.messageBox.textContent = `֎ ${msg}`;
+  showMessage(msg) {
+    if (this.elements.messageBox) this.elements.messageBox.textContent = `֎ ${msg}`;
   }
 
-  function appendAiOutput(title, content) {
-    const outputBlock = Utils.createElement("div", {
+  appendAiOutput(title, content) {
+    const outputBlock = this.dependencies.Utils.createElement("div", {
       className: "chidi-ai-output",
     });
     outputBlock.innerHTML = DOMPurify.sanitize(
         marked.parse(`### ${title}\n\n${content}`)
     );
-    elements.markdownDisplay.appendChild(outputBlock);
+    this.elements.markdownDisplay.appendChild(outputBlock);
     outputBlock.scrollIntoView({ behavior: "smooth", block: "start" });
-    showMessage(`AI Response received for "${title}".`);
+    this.showMessage(`AI Response received for "${title}".`);
   }
 
-  function toggleLoader(show) {
-    if (elements.loader)
-      elements.loader.classList.toggle("chidi-hidden", !show);
+  toggleLoader(show) {
+    if (this.elements.loader)
+      this.elements.loader.classList.toggle("chidi-hidden", !show);
   }
 
-  function packageSessionAsHTML(state) {
+  packageSessionAsHTML(state) {
+    const { Utils } = this.dependencies;
     const currentFile = state.loadedFiles[state.currentIndex];
-    const content = elements.markdownDisplay.innerHTML;
+    const content = this.elements.markdownDisplay.innerHTML;
     const title = `Chidi Session: ${currentFile?.name || "Untitled"}`;
     const styles =
         "body{background-color:#0d0d0d;color:#e4e4e7;font-family:'VT323',monospace;line-height:1.6;padding:2rem}h1,h2,h3{border-bottom:1px solid #444;padding-bottom:.3rem;color:#60a5fa}a{color:#34d399}pre{white-space:pre-wrap;background-color:#000;padding:1rem;border-radius:4px}.chidi-ai-output{border-top:2px dashed #60a5fa;margin-top:2rem;padding-top:1rem}";
     return `<!DOCTYPE html><html lang="en"><head><title>${title}</title><style>${styles}</style></head><body><h1>${title}</h1>${content}</body></html>`;
   }
-
-  return {
-    buildAndShow,
-    hideAndReset,
-    update,
-    showMessage,
-    appendAiOutput,
-    toggleLoader,
-    packageSessionAsHTML,
-  };
-})();
+}

@@ -1,18 +1,17 @@
-// scripts/apps/log/log_manager.js
-
 window.LogManager = class LogManager extends App {
   constructor() {
     super();
     this.state = {};
-    this.dependencies = {}; // To be populated on enter
-    this.callbacks = {}; // FIX: Initialize as empty
+    this.dependencies = {};
+    this.callbacks = {};
+    this.ui = null;
     this.LOG_DIR = "/home/Guest/.journal";
   }
 
   async enter(appLayer, options = {}) {
     if (this.isActive) return;
-    this.dependencies = options.dependencies; // Dependency injection
-    this.callbacks = this._createCallbacks(); // FIX: Create callbacks now
+    this.dependencies = options.dependencies;
+    this.callbacks = this._createCallbacks();
 
     this.isActive = true;
     this.state = {
@@ -22,24 +21,28 @@ window.LogManager = class LogManager extends App {
       isDirty: false,
     };
 
-    this.container = this.dependencies.LogUI.buildLayout(this.callbacks);
+    this.ui = new this.dependencies.LogUI(this.callbacks, this.dependencies);
+    this.container = this.ui.getContainer();
     appLayer.appendChild(this.container);
 
     await this._ensureLogDir();
     await this._loadEntries();
 
-    this.dependencies.LogUI.renderEntries(this.state.filteredEntries, null);
-    this.dependencies.LogUI.renderContent(null);
+    this.ui.renderEntries(this.state.filteredEntries, null);
+    this.ui.renderContent(null);
   }
 
   exit() {
     if (!this.isActive) return;
-    const { LogUI, AppLayerManager, ModalManager } = this.dependencies;
+    const { AppLayerManager, ModalManager } = this.dependencies;
     const performExit = () => {
-      LogUI.reset();
+      if (this.ui) {
+        this.ui.reset();
+      }
       AppLayerManager.hide(this);
       this.isActive = false;
       this.state = {};
+      this.ui = null;
     };
 
     if (this.state.isDirty) {
@@ -51,7 +54,7 @@ window.LogManager = class LogManager extends App {
           "Exit without saving?",
         ],
         onConfirm: performExit,
-        onCancel: () => {},
+        onCancel: () => { },
       });
     } else {
       performExit();
@@ -99,17 +102,16 @@ window.LogManager = class LogManager extends App {
     return {
       onExit: this.exit.bind(this),
       onSearch: (query) => {
-        const { LogUI } = this.dependencies;
         this.state.filteredEntries = this.state.allEntries.filter((e) =>
             e.content.toLowerCase().includes(query.toLowerCase())
         );
-        LogUI.renderEntries(
+        this.ui.renderEntries(
             this.state.filteredEntries,
             this.state.selectedPath
         );
       },
       onSelect: async (path) => {
-        const { ModalManager, LogUI } = this.dependencies;
+        const { ModalManager } = this.dependencies;
         if (this.state.isDirty) {
           const confirmed = await new Promise((r) =>
               ModalManager.request({
@@ -126,13 +128,13 @@ window.LogManager = class LogManager extends App {
         const selectedEntry = this.state.allEntries.find(
             (e) => e.path === path
         );
-        LogUI.renderContent(selectedEntry);
-        LogUI.renderEntries(
+        this.ui.renderContent(selectedEntry);
+        this.ui.renderEntries(
             this.state.filteredEntries,
             this.state.selectedPath
         );
         this.state.isDirty = false;
-        LogUI.updateSaveButton(false);
+        this.ui.updateSaveButton(false);
       },
       onNew: async () => {
         const { ModalManager, UserManager } = this.dependencies;
@@ -159,9 +161,8 @@ window.LogManager = class LogManager extends App {
         }
       },
       onSave: async () => {
-        const { LogUI } = this.dependencies;
         if (!this.state.selectedPath || !this.state.isDirty) return;
-        const newContent = LogUI.getContent();
+        const newContent = this.ui.getContent();
         const result = await this._saveEntry(
             this.state.selectedPath,
             newContent
@@ -174,19 +175,19 @@ window.LogManager = class LogManager extends App {
             this.state.allEntries[entryIndex].content = newContent;
           }
           this.state.isDirty = false;
-          LogUI.updateSaveButton(false);
+          this.ui.updateSaveButton(false);
         } else {
           alert(`Error saving: ${result.error}`);
         }
       },
-      onContentChange: (newContent) => {
-        const { LogUI } = this.dependencies;
+      onContentChange: () => {
         const selectedEntry = this.state.allEntries.find(
             (e) => e.path === this.state.selectedPath
         );
         if (!selectedEntry) return;
+        const newContent = this.ui.getContent();
         this.state.isDirty = newContent !== selectedEntry.content;
-        LogUI.updateSaveButton(this.state.isDirty);
+        this.ui.updateSaveButton(this.state.isDirty);
       },
     };
   }
@@ -208,7 +209,7 @@ window.LogManager = class LogManager extends App {
     const pathInfo = FileSystemManager.validatePath(this.LOG_DIR, {
       allowMissing: true,
     });
-    if (!pathInfo.node) {
+    if (!pathInfo.data.node) {
       await CommandExecutor.processSingleCommand(`mkdir -p ${this.LOG_DIR}`, {
         isInteractive: false,
       });
