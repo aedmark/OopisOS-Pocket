@@ -8,6 +8,51 @@ class Command {
         this.commandName = definition.commandName;
     }
 
+    async *_generateInputContent(context, firstFileArgIndex = 0) {
+        const { args, options, currentUser } = context;
+        const { FileSystemManager } = context.dependencies;
+
+        if (options.stdinContent !== null && options.stdinContent !== undefined) {
+            yield {
+                success: true,
+                content: options.stdinContent,
+                sourceName: "stdin",
+            };
+            return;
+        }
+
+        const fileArgs = args.slice(firstFileArgIndex);
+        if (fileArgs.length === 0) {
+            return;
+        }
+
+        for (const pathArg of fileArgs) {
+            const pathValidationResult = FileSystemManager.validatePath(pathArg, {
+                expectedType: "file",
+            });
+            if (!pathValidationResult.success) {
+                yield {
+                    success: false,
+                    error: pathValidationResult.error,
+                    sourceName: pathArg,
+                };
+                continue;
+            }
+            const { node } = pathValidationResult.data;
+
+            if (!FileSystemManager.hasPermission(node, currentUser, "read")) {
+                yield {
+                    success: false,
+                    error: `Permission denied: ${pathArg}`,
+                    sourceName: pathArg,
+                };
+                continue;
+            }
+
+            yield { success: true, content: node.content || "", sourceName: pathArg };
+        }
+    }
+
     /**
      * The main execution method called by the CommandExecutor.
      * It orchestrates parsing, validation, and execution.
@@ -57,8 +102,37 @@ class Command {
 
         // Handle input streams for commands like cat, grep, etc.
         if (this.definition.isInputStream) {
-            // This logic will be moved from the CommandExecutor into here
-            // For now, we assume it's pre-processed and passed in options.
+            const inputParts = [];
+            let hadError = false;
+            let fileCount = 0;
+            let firstSourceName = null;
+
+            const firstFileArgIndex = this.definition.firstFileArgIndex || 0;
+
+            for await (const item of this._generateInputContent(
+                context,
+                firstFileArgIndex
+            )) {
+                fileCount++;
+                if (firstSourceName === null) firstSourceName = item.sourceName;
+
+                if (!item.success) {
+                    await dependencies.OutputManager.appendToOutput(item.error, {
+                        typeClass: dependencies.Config.CSS_CLASSES.ERROR_MSG,
+                    });
+                    hadError = true;
+                } else {
+                    inputParts.push({
+                        content: item.content,
+                        sourceName: item.sourceName,
+                    });
+                }
+            }
+
+            context.inputItems = inputParts;
+            context.inputError = hadError;
+            context.inputFileCount = fileCount;
+            context.firstSourceName = firstSourceName;
         }
 
         return this.definition.coreLogic(context);

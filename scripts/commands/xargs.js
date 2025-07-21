@@ -74,7 +74,7 @@ EXAMPLES
             if (rawLine === "") continue;
 
             const commandParts = baseCommandArgs.map((part) =>
-                part.replace(new RegExp(replaceStr, "g"), rawLine)
+                part.replace(new RegExp(replaceStr, "g"), `"${rawLine.replace(/"/g, '\\"')}"`)
             );
             const commandToExecute = commandParts.join(" ");
 
@@ -97,7 +97,9 @@ EXAMPLES
             }
           }
         } else {
-          const commandToExecute = [...baseCommandArgs, ...lines].join(" ");
+          // Default mode: append all lines as arguments
+          const quotedLines = lines.map(line => `"${line.replace(/"/g, '\\"')}"`);
+          const commandToExecute = [...baseCommandArgs, ...quotedLines].join(" ");
           lastResult = await CommandExecutor.processSingleCommand(
               commandToExecute,
               { isInteractive: false, }
