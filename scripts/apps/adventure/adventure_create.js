@@ -11,7 +11,6 @@ window.Adventure_create = (() => {
     editContext: null,
   };
 
-  // --- DEPENDENCIES TO BE INJECTED ---
   let dependencies = {};
 
   function enter(filename, initialData, commandContext) {
