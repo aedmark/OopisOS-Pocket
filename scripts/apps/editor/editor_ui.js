@@ -1,123 +1,121 @@
-window.EditorUI = (() => {
-  "use strict";
+window.EditorUI = class EditorUI {
+  constructor(initialState, callbacks, deps) {
+    this.elements = {};
+    this.managerCallbacks = callbacks;
+    this.dependencies = deps;
+    this.buildAndShow(initialState);
+  }
 
-  let elements = {};
-  let managerCallbacks = {};
-  let dependencies = {};
+  buildAndShow(initialState) {
+    const { Utils, UIComponents } = this.dependencies;
 
-  function buildAndShow(initialState, callbacks, deps) {
-    managerCallbacks = callbacks;
-    dependencies = deps;
-
-    elements.container = dependencies.Utils.createElement("div", {
+    this.elements.container = Utils.createElement("div", {
       id: "editor-container",
       className: "editor-container",
     });
-    elements.titleInput = dependencies.Utils.createElement("input", {
+    this.elements.titleInput = Utils.createElement("input", {
       id: "editor-title",
       className: "editor-title-input",
       type: "text",
       value: initialState.currentFilePath || "Untitled",
     });
-    const header = dependencies.Utils.createElement(
+    const header = Utils.createElement(
         "header",
         { className: "editor-header" },
-        [elements.titleInput]
+        [this.elements.titleInput]
     );
 
-    elements.saveBtn = dependencies.UIComponents.createButton("💾 Save", {
-      onClick: () => managerCallbacks.onSaveRequest(),
+    this.elements.saveBtn = UIComponents.createButton("💾 Save", {
+      onClick: () => this.managerCallbacks.onSaveRequest(),
     });
-    elements.exitBtn = dependencies.UIComponents.createButton("Exit", {
-      onClick: () => managerCallbacks.onExitRequest(),
+    this.elements.exitBtn = UIComponents.createButton("Exit", {
+      onClick: () => this.managerCallbacks.onExitRequest(),
     });
-    elements.previewBtn = dependencies.UIComponents.createButton("👁️ View", {
-      onClick: () => managerCallbacks.onTogglePreview(),
+    this.elements.previewBtn = UIComponents.createButton("👁️ View", {
+      onClick: () => this.managerCallbacks.onTogglePreview(),
     });
-    elements.undoBtn = dependencies.UIComponents.createButton("↩ Undo", {
-      onClick: () => managerCallbacks.onUndo(),
+    this.elements.undoBtn = UIComponents.createButton("↩ Undo", {
+      onClick: () => this.managerCallbacks.onUndo(),
     });
-    elements.redoBtn = dependencies.UIComponents.createButton("↪ Redo", {
-      onClick: () => managerCallbacks.onRedo(),
+    this.elements.redoBtn = UIComponents.createButton("↪ Redo", {
+      onClick: () => this.managerCallbacks.onRedo(),
     });
-    elements.wordWrapBtn = dependencies.UIComponents.createButton("Wrap", {
-      onClick: () => managerCallbacks.onWordWrapToggle(),
+    this.elements.wordWrapBtn = UIComponents.createButton("Wrap", {
+      onClick: () => this.managerCallbacks.onWordWrapToggle(),
     });
 
-    const toolbarGroup = dependencies.Utils.createElement(
+    const toolbarGroup = Utils.createElement(
         "div",
         { className: "editor-toolbar-group" },
         [
-          elements.previewBtn,
-          elements.wordWrapBtn,
-          elements.undoBtn,
-          elements.redoBtn,
-          elements.saveBtn,
-          elements.exitBtn,
+          this.elements.previewBtn,
+          this.elements.wordWrapBtn,
+          this.elements.undoBtn,
+          this.elements.redoBtn,
+          this.elements.saveBtn,
+          this.elements.exitBtn,
         ]
     );
-    const toolbar = dependencies.Utils.createElement(
+    const toolbar = Utils.createElement(
         "div",
         { className: "editor-toolbar" },
         [toolbarGroup]
     );
 
-    elements.textarea = dependencies.Utils.createElement("textarea", {
+    this.elements.textarea = Utils.createElement("textarea", {
       id: "editor-textarea",
       className: "editor-textarea",
       textContent: initialState.currentContent,
     });
-    elements.preview = dependencies.Utils.createElement("div", {
+    this.elements.preview = Utils.createElement("div", {
       id: "editor-preview",
       className: "editor-preview",
     });
-    elements.main = dependencies.Utils.createElement("main", { className: "editor-main" }, [
-      elements.textarea,
-      elements.preview,
+    this.elements.main = Utils.createElement("main", { className: "editor-main" }, [
+      this.elements.textarea,
+      this.elements.preview,
     ]);
 
-    elements.dirtyStatus = dependencies.Utils.createElement("span", {
+    this.elements.dirtyStatus = Utils.createElement("span", {
       id: "editor-dirty-status",
     });
-    elements.statusMessage = dependencies.Utils.createElement("span", {
+    this.elements.statusMessage = Utils.createElement("span", {
       id: "editor-status-message",
     });
-    const footer = dependencies.Utils.createElement(
+    const footer = Utils.createElement(
         "footer",
         { className: "editor-footer" },
-        [elements.dirtyStatus, elements.statusMessage]
+        [this.elements.dirtyStatus, this.elements.statusMessage]
     );
 
-    elements.container.append(header, toolbar, elements.main, footer);
+    this.elements.container.append(header, toolbar, this.elements.main, footer);
 
-    _addEventListeners();
-    updateDirtyStatus(initialState.isDirty);
-    updateWindowTitle(initialState.currentFilePath);
-    setWordWrap(initialState.wordWrap);
-    setViewMode(
+    this._addEventListeners();
+    this.updateDirtyStatus(initialState.isDirty);
+    this.updateWindowTitle(initialState.currentFilePath);
+    this.setWordWrap(initialState.wordWrap);
+    this.setViewMode(
         initialState.viewMode,
         initialState.fileMode,
         initialState.currentContent
     );
 
-    elements.textarea.focus();
-
-    return elements.container;
+    this.elements.textarea.focus();
   }
 
-  function renderPreview(content, mode) {
-    if (!elements.preview) return;
+  renderPreview(content, mode) {
+    if (!this.elements.preview) return;
 
     if (mode === "markdown") {
-      elements.preview.innerHTML = DOMPurify.sanitize(marked.parse(content));
+      this.elements.preview.innerHTML = DOMPurify.sanitize(marked.parse(content));
     } else if (mode === "html") {
-      let iframe = elements.preview.querySelector("iframe");
+      let iframe = this.elements.preview.querySelector("iframe");
       if (!iframe) {
-        iframe = dependencies.Utils.createElement("iframe", {
+        iframe = this.dependencies.Utils.createElement("iframe", {
           style: "width: 100%; height: 100%; border: none;",
         });
-        elements.preview.innerHTML = ""; // Clear any previous content
-        elements.preview.appendChild(iframe);
+        this.elements.preview.innerHTML = ""; // Clear any previous content
+        this.elements.preview.appendChild(iframe);
       }
 
       const iframeDoc = iframe.contentWindow.document;
@@ -127,114 +125,100 @@ window.EditorUI = (() => {
     }
   }
 
-  function setViewMode(viewMode, fileMode, content) {
-    if (!elements.preview || !elements.textarea || !elements.main) return;
+  setViewMode(viewMode, fileMode, content) {
+    if (!this.elements.preview || !this.elements.textarea || !this.elements.main) return;
 
-    elements.previewBtn.disabled = fileMode === "text";
+    this.elements.previewBtn.disabled = fileMode === "text";
 
     if (fileMode === "text") {
       viewMode = "edit"; // Force editor-only mode for plain text
     }
 
-    elements.main.classList.remove("editor-main--split", "editor-main--full");
-    elements.textarea.classList.remove("hidden");
-    elements.preview.classList.remove("hidden");
-
+    this.elements.main.classList.remove("editor-main--split", "editor-main--full");
+    this.elements.textarea.classList.remove("hidden");
+    this.elements.preview.classList.remove("hidden");
 
     switch (viewMode) {
       case "edit":
-        elements.main.classList.add("editor-main--full");
-        elements.preview.classList.add("hidden");
+        this.elements.main.classList.add("editor-main--full");
+        this.elements.preview.classList.add("hidden");
         break;
       case "preview":
-        elements.main.classList.add("editor-main--full");
-        elements.textarea.classList.add("hidden");
-        renderPreview(content, fileMode);
+        this.elements.main.classList.add("editor-main--full");
+        this.elements.textarea.classList.add("hidden");
+        this.renderPreview(content, fileMode);
         break;
       case "split":
       default:
-        elements.main.classList.add("editor-main--split");
-        renderPreview(content, fileMode);
+        this.elements.main.classList.add("editor-main--split");
+        this.renderPreview(content, fileMode);
         break;
     }
   }
 
-
-  function hideAndReset() {
-    elements = {};
-    managerCallbacks = {};
+  hideAndReset() {
+    this.elements = {};
+    this.managerCallbacks = {};
   }
 
-  function updateDirtyStatus(isDirty) {
-    if (elements.dirtyStatus) {
-      elements.dirtyStatus.textContent = isDirty ? "UNSAVED" : "SAVED";
-      elements.dirtyStatus.style.color = isDirty
+  updateDirtyStatus(isDirty) {
+    if (this.elements.dirtyStatus) {
+      this.elements.dirtyStatus.textContent = isDirty ? "UNSAVED" : "SAVED";
+      this.elements.dirtyStatus.style.color = isDirty
           ? "var(--color-warning)"
           : "var(--color-success)";
     }
   }
 
-  function updateWindowTitle(filePath) {
-    if (elements.titleInput) {
-      elements.titleInput.value = filePath || "Untitled";
+  updateWindowTitle(filePath) {
+    if (this.elements.titleInput) {
+      this.elements.titleInput.value = filePath || "Untitled";
     }
   }
 
-  function updateStatusMessage(message) {
-    if (elements.statusMessage) {
-      elements.statusMessage.textContent = message;
+  updateStatusMessage(message) {
+    if (this.elements.statusMessage) {
+      this.elements.statusMessage.textContent = message;
       setTimeout(() => {
-        if (elements.statusMessage) elements.statusMessage.textContent = "";
+        if (this.elements.statusMessage) this.elements.statusMessage.textContent = "";
       }, 3000);
     }
   }
 
-  function setContent(content) {
-    if (elements.textarea) {
-      elements.textarea.value = content;
+  setContent(content) {
+    if (this.elements.textarea) {
+      this.elements.textarea.value = content;
     }
   }
 
-  function setWordWrap(enabled) {
-    if (elements.textarea) {
-      elements.textarea.style.whiteSpace = enabled ? "pre-wrap" : "pre";
-      elements.textarea.style.wordBreak = enabled ? "break-all" : "normal";
-      if (elements.wordWrapBtn) {
-        elements.wordWrapBtn.classList.toggle("active", enabled);
+  setWordWrap(enabled) {
+    if (this.elements.textarea) {
+      this.elements.textarea.style.whiteSpace = enabled ? "pre-wrap" : "pre";
+      this.elements.textarea.style.wordBreak = enabled ? "break-all" : "normal";
+      if (this.elements.wordWrapBtn) {
+        this.elements.wordWrapBtn.classList.toggle("active", enabled);
       }
     }
   }
 
-  function _addEventListeners() {
-    elements.textarea.addEventListener("input", () => {
-      managerCallbacks.onContentChange(elements.textarea.value);
+  _addEventListeners() {
+    this.elements.textarea.addEventListener("input", () => {
+      this.managerCallbacks.onContentChange(this.elements.textarea.value);
     });
 
-    elements.saveBtn.addEventListener("click", () =>
-        managerCallbacks.onSaveRequest()
+    this.elements.saveBtn.addEventListener("click", () =>
+        this.managerCallbacks.onSaveRequest()
     );
-    elements.exitBtn.addEventListener("click", () =>
-        managerCallbacks.onExitRequest()
+    this.elements.exitBtn.addEventListener("click", () =>
+        this.managerCallbacks.onExitRequest()
     );
-    elements.previewBtn.addEventListener("click", () =>
-        managerCallbacks.onTogglePreview()
+    this.elements.previewBtn.addEventListener("click", () =>
+        this.managerCallbacks.onTogglePreview()
     );
-    elements.undoBtn.addEventListener("click", () => managerCallbacks.onUndo());
-    elements.redoBtn.addEventListener("click", () => managerCallbacks.onRedo());
-    elements.wordWrapBtn.addEventListener("click", () =>
-        managerCallbacks.onWordWrapToggle()
+    this.elements.undoBtn.addEventListener("click", () => this.managerCallbacks.onUndo());
+    this.elements.redoBtn.addEventListener("click", () => this.managerCallbacks.onRedo());
+    this.elements.wordWrapBtn.addEventListener("click", () =>
+        this.managerCallbacks.onWordWrapToggle()
     );
   }
-
-  return {
-    buildAndShow,
-    hideAndReset,
-    updateDirtyStatus,
-    updateStatusMessage,
-    updateWindowTitle,
-    setViewMode,
-    renderPreview,
-    setContent,
-    setWordWrap,
-  };
-})();
+}

@@ -138,9 +138,6 @@ function initializeTerminalEventListeners(domElements, commandExecutor) {
   }
 }
 
-// Global scope for manager instances will now be implicitly created
-// by the assignments in window.onload
-
 window.onload = async () => {
   const domElements = {
     terminalBezel: document.getElementById("terminal-bezel"),
@@ -153,7 +150,6 @@ window.onload = async () => {
     appLayer: document.getElementById("app-layer"),
   };
 
-  // --- Phase 1: Instantiate All Managers ---
   const configManager = new ConfigManager();
   const storageManager = new StorageManager();
   const indexedDBManager = new IndexedDBManager();
@@ -164,10 +160,8 @@ window.onload = async () => {
   const sudoManager = new SudoManager();
   const environmentManager = new EnvironmentManager();
   const commandExecutor = new CommandExecutor();
-  // CORRECTED: Instantiate the MessageBusManager
   const messageBusManager = MessageBusManager;
 
-  // --- Phase 2: Create a Centralized Dependencies Object ---
   const dependencies = {
     Config: configManager,
     StorageManager: storageManager,
@@ -195,11 +189,10 @@ window.onload = async () => {
     DiffUtils: DiffUtils,
     PatchUtils: PatchUtils,
     AIManager: AIManager,
-    // CORRECTED: Add the MessageBusManager to the dependencies object
     MessageBusManager: messageBusManager,
+    UIComponents: UIComponents,
   };
 
-  // --- Phase 3: Inject Dependencies into All Managers ---
   configManager.setDependencies(dependencies);
   storageManager.setDependencies(dependencies);
   indexedDBManager.setDependencies(dependencies);
@@ -210,8 +203,8 @@ window.onload = async () => {
   environmentManager.setDependencies(userManager, fsManager, configManager);
   commandExecutor.setDependencies(dependencies);
   groupManager.setDependencies(dependencies);
+  PagerManager.setDependencies(dependencies);
 
-  // Inject dependencies into UI singletons
   OutputManager.initialize(domElements);
   OutputManager.setDependencies(dependencies);
   TerminalUI.initialize(domElements);
@@ -224,8 +217,6 @@ window.onload = async () => {
   HistoryManager.setDependencies(dependencies);
   TabCompletionManager.setDependencies(dependencies);
 
-
-  // --- Phase 4: Execute Initialization Logic ---
   try {
     await indexedDBManager.init();
     AliasManager.initialize();
@@ -247,7 +238,6 @@ window.onload = async () => {
       );
     }
 
-    // Phase 5: Initialize Event Listeners
     initializeTerminalEventListeners(domElements, commandExecutor);
 
     TerminalUI.updatePrompt();
