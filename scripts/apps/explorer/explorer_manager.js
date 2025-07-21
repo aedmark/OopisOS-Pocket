@@ -1,5 +1,3 @@
-// In scripts/apps/explorer/explorer_manager.js
-
 window.ExplorerManager = class ExplorerManager extends App {
   constructor() {
     super(); // Call the App constructor
@@ -11,13 +9,14 @@ window.ExplorerManager = class ExplorerManager extends App {
     };
     this.dependencies = {}; // To be populated on enter
     this.callbacks = {};
+    this.ui = null; // To hold the UI instance
   }
 
   async enter(appLayer, options = {}) {
     this.dependencies = options.dependencies; // Dependency injection
     this.callbacks = this._createCallbacks();
 
-    const { FileSystemManager, OutputManager } = this.dependencies;
+    const { FileSystemManager, OutputManager, ExplorerUI } = this.dependencies;
     const startPath = options.startPath || FileSystemManager.getCurrentPath();
     const pathValidation = FileSystemManager.validatePath(startPath, {
       allowMissing: false,
@@ -47,8 +46,8 @@ window.ExplorerManager = class ExplorerManager extends App {
           (parent.includes("/") ? "/" : null);
     }
 
-    // --- FIX: Pass 'this.dependencies' to the UI builder ---
-    this.container = this.dependencies.ExplorerUI.buildLayout(this.callbacks, this.dependencies);
+    this.ui = new ExplorerUI(this.callbacks, this.dependencies);
+    this.container = this.ui.getContainer();
     this.container.setAttribute("tabindex", "-1");
     appLayer.appendChild(this.container);
 
@@ -57,13 +56,17 @@ window.ExplorerManager = class ExplorerManager extends App {
 
   exit() {
     if (!this.isActive) return;
-    const { ExplorerUI, AppLayerManager } = this.dependencies;
+    const { AppLayerManager } = this.dependencies;
     if (this.moveOperation.active) {
       this._resetMoveOperation();
     }
 
-    ExplorerUI.reset();
+    if (this.ui) {
+      this.ui.reset();
+    }
     AppLayerManager.hide(this);
+    this.isActive = false;
+    this.ui = null;
   }
 
   handleKeyDown(event) {
@@ -132,7 +135,7 @@ window.ExplorerManager = class ExplorerManager extends App {
               }
             }
           },
-          onCancel: () => {},
+          onCancel: () => { },
         });
       },
       onCreateDirectory: (path) => {
@@ -151,7 +154,7 @@ window.ExplorerManager = class ExplorerManager extends App {
               this._updateView(this.currentPath);
             }
           },
-          onCancel: () => {},
+          onCancel: () => { },
         });
       },
       onRename: (path, oldName) => {
@@ -171,7 +174,7 @@ window.ExplorerManager = class ExplorerManager extends App {
               this._updateView(this.currentPath);
             }
           },
-          onCancel: () => {},
+          onCancel: () => { },
         });
       },
       onDelete: (path, name) => {
@@ -189,16 +192,16 @@ window.ExplorerManager = class ExplorerManager extends App {
             });
             this._updateView(this.currentPath);
           },
-          onCancel: () => {},
+          onCancel: () => { },
         });
       },
       onMove: (sourcePath, destPath) => {
-        const { CommandExecutor, ExplorerUI } = this.dependencies;
+        const { CommandExecutor } = this.dependencies;
         if (!this.moveOperation.active) {
           this.moveOperation.active = true;
           this.moveOperation.sourcePath = sourcePath;
-          ExplorerUI.setMoveCursor(true);
-          ExplorerUI.highlightItem(sourcePath, true);
+          this.ui.setMoveCursor(true);
+          this.ui.highlightItem(sourcePath, true);
           return;
         }
         CommandExecutor.processSingleCommand(
@@ -219,14 +222,16 @@ window.ExplorerManager = class ExplorerManager extends App {
   }
 
   _resetMoveOperation() {
-    const { ExplorerUI } = this.dependencies;
     this.moveOperation.active = false;
     this.moveOperation.sourcePath = null;
-    ExplorerUI.setMoveCursor(false);
+    if (this.ui) {
+      this.ui.setMoveCursor(false);
+    }
   }
 
   _updateView(path) {
-    const { UserManager, FileSystemManager, ExplorerUI } = this.dependencies;
+    if (!this.ui) return;
+    const { UserManager, FileSystemManager } = this.dependencies;
     this.currentPath = path;
     const currentUser = UserManager.getCurrentUser().name;
     const rootNode = FileSystemManager.getNodeByPath("/");
@@ -236,7 +241,7 @@ window.ExplorerManager = class ExplorerManager extends App {
       return;
     }
 
-    ExplorerUI.renderTree(rootNode, this.currentPath, this.expandedPaths);
+    this.ui.renderTree(rootNode, this.currentPath, this.expandedPaths);
 
     const mainNode = FileSystemManager.getNodeByPath(this.currentPath);
     if (
@@ -263,11 +268,11 @@ window.ExplorerManager = class ExplorerManager extends App {
               size: FileSystemManager.calculateNodeSize(childNode),
             };
           });
-      ExplorerUI.renderMainPane(items, this.currentPath);
-      ExplorerUI.updateStatusBar(this.currentPath, items.length);
+      this.ui.renderMainPane(items, this.currentPath);
+      this.ui.updateStatusBar(this.currentPath, items.length);
     } else {
-      ExplorerUI.renderMainPane([], this.currentPath);
-      ExplorerUI.updateStatusBar(this.currentPath, "Permission Denied");
+      this.ui.renderMainPane([], this.currentPath);
+      this.ui.updateStatusBar(this.currentPath, "Permission Denied");
     }
   }
 }

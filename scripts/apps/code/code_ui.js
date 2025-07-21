@@ -1,11 +1,19 @@
-// scripts/apps/code/code_ui.js
-window.CodeUI = (() => {
-  "use strict";
+window.CodeUI = class CodeUI {
+  constructor(initialState, callbacks, dependencies) {
+    this.elements = {};
+    this.callbacks = callbacks;
+    this.dependencies = dependencies;
+    this._buildAndShow(initialState);
+  }
 
-  let elements = {};
+  getContainer() {
+    return this.elements.container;
+  }
 
-  function buildAndShow(initialState, callbacks) {
-    elements.titleInput = Utils.createElement("input", {
+  _buildAndShow(initialState) {
+    const { Utils, UIComponents } = this.dependencies;
+
+    this.elements.titleInput = Utils.createElement("input", {
       id: "code-editor-title",
       className: "code-editor-title-input",
       type: "text",
@@ -15,18 +23,18 @@ window.CodeUI = (() => {
     const saveBtn = UIComponents.createButton("Save & Exit", {
       classes: ["btn--confirm"],
       onClick: () =>
-          callbacks.onSave(elements.titleInput.value, elements.textarea.value),
+          this.callbacks.onSave(this.elements.titleInput.value, this.elements.textarea.value),
     });
     const exitBtn = UIComponents.createButton("Exit", {
       classes: ["btn--cancel"],
-      onClick: () => callbacks.onExit(),
+      onClick: () => this.callbacks.onExit(),
     });
 
     const header = Utils.createElement(
         "header",
         { className: "code-editor-header" },
         [
-          elements.titleInput,
+          this.elements.titleInput,
           Utils.createElement("div", { className: "editor-toolbar-group" }, [
             saveBtn,
             exitBtn,
@@ -34,7 +42,7 @@ window.CodeUI = (() => {
         ]
     );
 
-    elements.textarea = Utils.createElement("textarea", {
+    this.elements.textarea = Utils.createElement("textarea", {
       id: "code-editor-textarea",
       className: "code-editor-textarea",
       spellcheck: "false",
@@ -42,7 +50,7 @@ window.CodeUI = (() => {
       textContent: initialState.fileContent || "",
     });
 
-    elements.highlighter = Utils.createElement("pre", {
+    this.elements.highlighter = Utils.createElement("pre", {
       id: "code-editor-highlighter",
       className: "code-editor-highlighter",
       "aria-hidden": "true",
@@ -53,7 +61,7 @@ window.CodeUI = (() => {
         {
           className: "code-editor-wrapper",
         },
-        [elements.highlighter, elements.textarea]
+        [this.elements.highlighter, this.elements.textarea]
     );
 
     const main = Utils.createElement(
@@ -61,7 +69,7 @@ window.CodeUI = (() => {
         { className: "code-editor-main" },
         editorWrapper
     );
-    elements.container = Utils.createElement(
+    this.elements.container = Utils.createElement(
         "div",
         {
           id: "code-editor-container",
@@ -70,42 +78,46 @@ window.CodeUI = (() => {
         [header, main]
     );
 
-    _addEventListeners(callbacks);
+    this._addEventListeners();
 
-    elements.textarea.focus();
-
-    return elements.container;
+    this.elements.textarea.focus();
   }
 
-  function hideAndReset() {
-    elements = {};
+  hideAndReset() {
+    this.elements = {};
+    this.callbacks = {};
+    this.dependencies = {};
   }
 
-  function _addEventListeners(callbacks) {
-    elements.textarea.addEventListener("keydown", (e) => {
+  _addEventListeners() {
+    this.elements.textarea.addEventListener("keydown", (e) => {
       if (e.key === "Tab") {
         e.preventDefault();
-        callbacks.onTab(e.target);
+        this.callbacks.onTab(e.target);
       }
     });
 
-    elements.textarea.addEventListener("input", (e) => {
-      callbacks.onInput(e.target.value);
+    this.elements.textarea.addEventListener("input", (e) => {
+      this.callbacks.onInput(e.target.value);
     });
 
-    elements.textarea.addEventListener("scroll", () => {
-      elements.highlighter.scrollTop = elements.textarea.scrollTop;
-      elements.highlighter.scrollLeft = elements.textarea.scrollLeft;
+    this.elements.textarea.addEventListener("scroll", () => {
+      this.elements.highlighter.scrollTop = this.elements.textarea.scrollTop;
+      this.elements.highlighter.scrollLeft = this.elements.textarea.scrollLeft;
     });
 
-    elements.textarea.addEventListener("paste", (e) => {
+    this.elements.textarea.addEventListener("paste", (e) => {
       e.preventDefault();
       const pastedText = (e.clipboardData || window.clipboardData).getData(
           "text/plain"
       );
-      callbacks.onPaste(e.target, pastedText);
+      this.callbacks.onPaste(e.target, pastedText);
     });
   }
 
-  return { buildAndShow, hideAndReset };
-})();
+  highlight(content) {
+    if (this.elements.highlighter) {
+      this.elements.highlighter.innerHTML = content;
+    }
+  }
+}

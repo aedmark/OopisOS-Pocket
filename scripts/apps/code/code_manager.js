@@ -1,16 +1,13 @@
-// scripts/apps/code/code_manager.js
-
 window.CodeManager = class CodeManager extends App {
   constructor() {
     super();
     this.state = {};
-    this.uiElements = {};
     this.dependencies = {};
-    this.debouncedHighlight = null; // Will be created with Utils
-    this.callbacks = {}; // FIX: Initialize as empty
+    this.debouncedHighlight = null;
+    this.callbacks = {};
+    this.ui = null;
   }
 
-  // Highlighter logic, now part of the class
   _jsHighlighter(text) {
     const escapedText = text
         .replace(/&/g, "&amp;")
@@ -27,8 +24,9 @@ window.CodeManager = class CodeManager extends App {
   }
 
   _highlight(content) {
-    if (this.uiElements.highlighter) {
-      this.uiElements.highlighter.innerHTML = this._jsHighlighter(content);
+    if (this.ui) {
+      const highlighted = this._jsHighlighter(content);
+      this.ui.highlight(highlighted);
     }
   }
 
@@ -45,16 +43,13 @@ window.CodeManager = class CodeManager extends App {
       originalContent: options.fileContent || "",
     };
 
-    this.container = this.dependencies.CodeUI.buildAndShow(
-        {
-          filePath: options.filePath,
-          fileContent: options.fileContent || "",
-        },
-        this.callbacks
-    );
+    const initialStateForUI = {
+      filePath: options.filePath,
+      fileContent: options.fileContent || "",
+    };
 
-    this.uiElements.textarea = this.container.querySelector('#code-editor-textarea');
-    this.uiElements.highlighter = this.container.querySelector('#code-editor-highlighter');
+    this.ui = new this.dependencies.CodeUI(initialStateForUI, this.callbacks, this.dependencies);
+    this.container = this.ui.getContainer();
 
     this.callbacks.onInput(options.fileContent || "");
 
@@ -68,12 +63,14 @@ window.CodeManager = class CodeManager extends App {
   }
 
   _performExit() {
-    const { CodeUI, AppLayerManager } = this.dependencies;
-    CodeUI.hideAndReset();
+    const { AppLayerManager } = this.dependencies;
+    if (this.ui) {
+      this.ui.hideAndReset();
+    }
     AppLayerManager.hide(this);
     this.isActive = false;
     this.state = {};
-    this.uiElements = {};
+    this.ui = null;
   }
 
   _createCallbacks() {

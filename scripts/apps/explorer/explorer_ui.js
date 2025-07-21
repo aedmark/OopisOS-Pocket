@@ -1,33 +1,39 @@
-window.ExplorerUI = (() => {
-  "use strict";
-  let elements = {};
-  let callbacks = {};
-  let activeContextMenu = null;
-  let dependencies = {}; // Module-level variable to store dependencies
+window.ExplorerUI = class ExplorerUI {
+  constructor(callbacks, dependencies) {
+    this.callbacks = callbacks;
+    this.dependencies = dependencies;
+    this.elements = {};
+    this.activeContextMenu = null;
 
-  // --- FIX: Accept 'deps' and store them ---
-  function buildLayout(cb, deps) {
-    callbacks = cb;
-    dependencies = deps; // Store dependencies for use in other functions
-    elements.treePane = Utils.createElement("div", {
+    this._buildLayout();
+  }
+
+  getContainer() {
+    return this.elements.container;
+  }
+
+  _buildLayout() {
+    const { Utils } = this.dependencies;
+
+    this.elements.treePane = Utils.createElement("div", {
       id: "explorer-tree-pane",
       className: "explorer__tree-pane",
     });
-    elements.mainPane = Utils.createElement("div", {
+    this.elements.mainPane = Utils.createElement("div", {
       id: "explorer-main-pane",
       className: "explorer__main-pane",
     });
-    elements.statusBar = Utils.createElement("div", {
+    this.elements.statusBar = Utils.createElement("div", {
       id: "explorer-status-bar",
       className: "explorer__status-bar",
     });
 
-    elements.exitBtn = Utils.createElement("button", {
+    this.elements.exitBtn = Utils.createElement("button", {
       id: "explorer-exit-btn",
       className: "explorer__exit-btn",
       textContent: "×",
       title: "Close Explorer (Esc)",
-      eventListeners: { click: () => callbacks.onExit() },
+      eventListeners: { click: () => this.callbacks.onExit() },
     });
 
     const header = Utils.createElement(
@@ -37,17 +43,17 @@ window.ExplorerUI = (() => {
           className: "explorer__title",
           textContent: "OopisOS File Explorer",
         }),
-        elements.exitBtn
+        this.elements.exitBtn
     );
 
     const mainContainer = Utils.createElement(
         "div",
         { id: "explorer-main-container", className: "explorer__main" },
-        elements.treePane,
-        elements.mainPane
+        this.elements.treePane,
+        this.elements.mainPane
     );
 
-    elements.container = Utils.createElement(
+    this.elements.container = Utils.createElement(
         "div",
         {
           id: "explorer-container",
@@ -55,10 +61,10 @@ window.ExplorerUI = (() => {
         },
         header,
         mainContainer,
-        elements.statusBar
+        this.elements.statusBar
     );
 
-    elements.mainPane.addEventListener("contextmenu", (e) => {
+    this.elements.mainPane.addEventListener("contextmenu", (e) => {
       e.preventDefault();
 
       const listItem = e.target.closest("li[data-path]");
@@ -69,52 +75,51 @@ window.ExplorerUI = (() => {
         const menuItems = [
           {
             label: "Rename...",
-            callback: () => callbacks.onRename(path, name),
+            callback: () => this.callbacks.onRename(path, name),
           },
-          { label: "Delete", callback: () => callbacks.onDelete(path, name) },
-          { label: "Move", callback: () => callbacks.onMove(path, null) },
+          { label: "Delete", callback: () => this.callbacks.onDelete(path, name) },
+          { label: "Move", callback: () => this.callbacks.onMove(path, null) },
         ];
-        _createContextMenu(menuItems, e.clientX, e.clientY);
+        this._createContextMenu(menuItems, e.clientX, e.clientY);
       } else {
-        const currentPath = elements.statusBar.textContent
+        const currentPath = this.elements.statusBar.textContent
             .split("  |")[0]
             .replace("Path: ", "");
         const menuItems = [
           {
             label: "New File...",
-            callback: () => callbacks.onCreateFile(currentPath),
+            callback: () => this.callbacks.onCreateFile(currentPath),
           },
           {
             label: "New Directory...",
-            callback: () => callbacks.onCreateDirectory(currentPath),
+            callback: () => this.callbacks.onCreateDirectory(currentPath),
           },
         ];
-        _createContextMenu(menuItems, e.clientX, e.clientY);
+        this._createContextMenu(menuItems, e.clientX, e.clientY);
       }
     });
 
     document.addEventListener(
         "click",
         (e) => {
-          if (activeContextMenu && !activeContextMenu.contains(e.target)) {
-            _removeContextMenu();
+          if (this.activeContextMenu && !this.activeContextMenu.contains(e.target)) {
+            this._removeContextMenu();
           }
         },
         true
     );
-
-    return elements.container;
   }
 
-  function _removeContextMenu() {
-    if (activeContextMenu) {
-      activeContextMenu.remove();
-      activeContextMenu = null;
+  _removeContextMenu() {
+    if (this.activeContextMenu) {
+      this.activeContextMenu.remove();
+      this.activeContextMenu = null;
     }
   }
 
-  function _createContextMenu(items, x, y) {
-    _removeContextMenu();
+  _createContextMenu(items, x, y) {
+    this._removeContextMenu();
+    const { Utils } = this.dependencies;
 
     const menu = Utils.createElement("div", { className: "context-menu" });
     menu.style.left = `${x}px`;
@@ -135,28 +140,29 @@ window.ExplorerUI = (() => {
       });
       menuItem.addEventListener("click", () => {
         item.callback();
-        _removeContextMenu();
+        this._removeContextMenu();
       });
       menu.appendChild(menuItem);
     });
 
     document.body.appendChild(menu);
-    activeContextMenu = menu;
+    this.activeContextMenu = menu;
   }
 
-  function renderTree(treeData, selectedPath, expandedPaths) {
-    if (!elements.treePane) return;
+  renderTree(treeData, selectedPath, expandedPaths) {
+    if (!this.elements.treePane) return;
+    const { Utils, FileSystemManager, UserManager } = this.dependencies;
     const treeRoot = Utils.createElement("ul", { className: "explorer-tree" });
 
-    function createTreeItem(node, path, name) {
+    const createTreeItem = (node, path, name) => {
       const hasChildren =
           node.children &&
           Object.keys(node.children).filter(
               (childName) => node.children[childName].type === "directory"
           ).length > 0;
-      const canRead = dependencies.FileSystemManager.hasPermission(
+      const canRead = FileSystemManager.hasPermission(
           node,
-          dependencies.UserManager.getCurrentUser().name,
+          UserManager.getCurrentUser().name,
           "read"
       );
 
@@ -203,7 +209,7 @@ window.ExplorerUI = (() => {
       summary.addEventListener("click", (e) => {
         e.preventDefault();
         if (canRead) {
-          callbacks.onTreeItemSelect(path);
+          this.callbacks.onTreeItemSelect(path);
         }
       });
 
@@ -215,32 +221,33 @@ window.ExplorerUI = (() => {
     }
 
     treeRoot.appendChild(createTreeItem(treeData, "/", "/"));
-    elements.treePane.innerHTML = "";
-    elements.treePane.appendChild(treeRoot);
+    this.elements.treePane.innerHTML = "";
+    this.elements.treePane.appendChild(treeRoot);
   }
 
-  function renderMainPane(items, currentPath) {
-    if (!elements.mainPane) return;
-    elements.mainPane.innerHTML = "";
+  renderMainPane(items, currentPath) {
+    if (!this.elements.mainPane) return;
+    const { Utils, FileSystemManager } = this.dependencies;
+    this.elements.mainPane.innerHTML = "";
 
-    elements.mainPane.addEventListener("contextmenu", (e) => {
+    this.elements.mainPane.addEventListener("contextmenu", (e) => {
       e.preventDefault();
       e.stopPropagation();
       const menuItems = [
         {
           label: "New File...",
-          callback: () => callbacks.onCreateFile(currentPath),
+          callback: () => this.callbacks.onCreateFile(currentPath),
         },
         {
           label: "New Directory...",
-          callback: () => callbacks.onCreateDirectory(currentPath),
+          callback: () => this.callbacks.onCreateDirectory(currentPath),
         },
       ];
-      _createContextMenu(menuItems, e.clientX, e.clientY);
+      this._createContextMenu(menuItems, e.clientX, e.clientY);
     });
 
     if (items.length === 0) {
-      elements.mainPane.appendChild(
+      this.elements.mainPane.appendChild(
           Utils.createElement("div", {
             className: "p-4 text-zinc-500",
             textContent: "(Directory is empty)",
@@ -261,7 +268,7 @@ window.ExplorerUI = (() => {
       });
       const perms = Utils.createElement("span", {
         className: "explorer-item-perms",
-        textContent: dependencies.FileSystemManager.formatModeToString(item.node),
+        textContent: FileSystemManager.formatModeToString(item.node),
       });
       const size = Utils.createElement("span", {
         className: "explorer-item-size",
@@ -281,7 +288,7 @@ window.ExplorerUI = (() => {
       );
 
       li.addEventListener("dblclick", () =>
-          callbacks.onMainItemActivate(item.path, item.type)
+          this.callbacks.onMainItemActivate(item.path, item.type)
       );
 
       li.addEventListener("contextmenu", (e) => {
@@ -290,42 +297,42 @@ window.ExplorerUI = (() => {
         const menuItems = [
           {
             label: "Rename...",
-            callback: () => callbacks.onRename(item.path, item.name),
+            callback: () => this.callbacks.onRename(item.path, item.name),
           },
           {
             label: "Delete",
-            callback: () => callbacks.onDelete(item.path, item.name),
+            callback: () => this.callbacks.onDelete(item.path, item.name),
           },
-          { label: "Move", callback: () => callbacks.onMove(item.path, null) },
+          { label: "Move", callback: () => this.callbacks.onMove(item.path, null) },
         ];
-        _createContextMenu(menuItems, e.clientX, e.clientY);
+        this._createContextMenu(menuItems, e.clientX, e.clientY);
       });
 
       list.appendChild(li);
     });
-    elements.mainPane.appendChild(list);
+    this.elements.mainPane.appendChild(list);
   }
 
-  function updateStatusBar(path, itemCount) {
-    if (!elements.statusBar) return;
-    elements.statusBar.textContent = `Path: ${path}  |  Items: ${itemCount}`;
+  updateStatusBar(path, itemCount) {
+    if (!this.elements.statusBar) return;
+    this.elements.statusBar.textContent = `Path: ${path}  |  Items: ${itemCount}`;
   }
 
-  function setMoveCursor(isMoving) {
-    if (elements.container) {
-      elements.container.style.cursor = isMoving ? "move" : "default";
+  setMoveCursor(isMoving) {
+    if (this.elements.container) {
+      this.elements.container.style.cursor = isMoving ? "move" : "default";
     }
   }
 
-  function highlightItem(path, isHighlighted) {
-    const allItems = elements.mainPane.querySelectorAll("li");
+  highlightItem(path, isHighlighted) {
+    const allItems = this.elements.mainPane.querySelectorAll("li");
     allItems.forEach((li) => {
       li.style.backgroundColor = "";
       li.style.color = "";
     });
 
     if (isHighlighted) {
-      const itemElement = elements.mainPane.querySelector(
+      const itemElement = this.elements.mainPane.querySelector(
           `[data-path="${path}"]`
       );
       if (itemElement) {
@@ -335,19 +342,9 @@ window.ExplorerUI = (() => {
     }
   }
 
-  function reset() {
-    _removeContextMenu();
-    elements = {};
-    callbacks = {};
+  reset() {
+    this._removeContextMenu();
+    this.elements = {};
+    this.callbacks = {};
   }
-
-  return {
-    buildLayout,
-    renderTree,
-    renderMainPane,
-    updateStatusBar,
-    setMoveCursor,
-    highlightItem,
-    reset,
-  };
-})();
+}
