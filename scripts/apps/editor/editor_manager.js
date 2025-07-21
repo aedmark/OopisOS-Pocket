@@ -1,5 +1,3 @@
-// scripts/apps/editor/editor_manager.js
-
 window.EditorManager = class EditorManager extends App {
   constructor() {
     super();
@@ -7,6 +5,7 @@ window.EditorManager = class EditorManager extends App {
     this.dependencies = {}; // To be populated on enter
     this._debouncedPushUndo = null;
     this.callbacks = {};
+    this.ui = null; // To hold the UI instance
   }
 
   enter(appLayer, options = {}) {
@@ -43,7 +42,8 @@ window.EditorManager = class EditorManager extends App {
     };
 
     this.isActive = true;
-    this.container = this.dependencies.EditorUI.buildAndShow(this.state, this.callbacks, this.dependencies);
+    this.ui = new this.dependencies.EditorUI(this.state, this.callbacks, this.dependencies);
+    this.container = this.ui.elements.container;
     appLayer.appendChild(this.container);
     this.container.focus();
   }
@@ -52,7 +52,6 @@ window.EditorManager = class EditorManager extends App {
     if (!this.isActive) return;
 
     if (this.state.isDirty) {
-      // This promise now correctly waits for a definitive action.
       await new Promise((resolve) => {
         this.dependencies.ModalManager.request({
           context: "graphical",
@@ -64,11 +63,9 @@ window.EditorManager = class EditorManager extends App {
           confirmText: "Discard Changes",
           cancelText: "Cancel",
           onConfirm: () => {
-            // Only perform the exit on confirmation.
             this._performExit();
             resolve();
           },
-          // The cancel callback simply resolves the promise, stopping the exit.
           onCancel: () => resolve(),
         });
       });
@@ -78,7 +75,7 @@ window.EditorManager = class EditorManager extends App {
   }
 
   _performExit() {
-    this.dependencies.EditorUI.hideAndReset();
+    this.ui.hideAndReset();
     this.dependencies.AppLayerManager.hide(this);
     this.isActive = false;
     this.state = {};
@@ -128,21 +125,20 @@ window.EditorManager = class EditorManager extends App {
   _createCallbacks() {
     return {
       onContentChange: (newContent) => {
-        const { EditorUI } = this.dependencies;
         this.state.currentContent = newContent;
         this.state.isDirty =
             this.state.currentContent !== this.state.originalContent;
-        EditorUI.updateDirtyStatus(this.state.isDirty);
+        this.ui.updateDirtyStatus(this.state.isDirty);
         this._debouncedPushUndo(newContent);
         if (this.state.viewMode !== "edit") {
-          EditorUI.renderPreview(
+          this.ui.renderPreview(
               this.state.currentContent,
               this.state.fileMode
           );
         }
       },
       onSaveRequest: async () => {
-        const { ModalManager, EditorUI, FileSystemManager, UserManager } = this.dependencies;
+        const { ModalManager, FileSystemManager, UserManager } = this.dependencies;
         let savePath = this.state.currentFilePath;
         if (!savePath) {
           savePath = await new Promise((resolve) => {
@@ -156,12 +152,12 @@ window.EditorManager = class EditorManager extends App {
             });
           });
           if (!savePath) {
-            EditorUI.updateStatusMessage("Save cancelled.");
+            this.ui.updateStatusMessage("Save cancelled.");
             return;
           }
           this.state.currentFilePath = savePath;
           this.state.fileMode = this._getFileMode(savePath);
-          EditorUI.updateWindowTitle(savePath);
+          this.ui.updateWindowTitle(savePath);
         }
         const saveResult = await FileSystemManager.createOrUpdateFile(
             savePath,
@@ -176,57 +172,54 @@ window.EditorManager = class EditorManager extends App {
         if (saveResult.success && (await FileSystemManager.save())) {
           this.state.originalContent = this.state.currentContent;
           this.state.isDirty = false;
-          EditorUI.updateDirtyStatus(false);
-          EditorUI.updateStatusMessage(`File saved to ${savePath}`);
+          this.ui.updateDirtyStatus(false);
+          this.ui.updateStatusMessage(`File saved to ${savePath}`);
           if (typeof this.state.onSaveCallback === "function") {
             await this.state.onSaveCallback(savePath);
           }
         } else {
-          EditorUI.updateStatusMessage(
+          this.ui.updateStatusMessage(
               `Error: ${saveResult.error || "Failed to save file system."}`
           );
         }
       },
       onExitRequest: this.exit.bind(this),
       onTogglePreview: () => {
-        const { EditorUI } = this.dependencies;
         const modes = ["split", "edit", "preview"];
         this.state.viewMode =
             this.state.fileMode === "text"
                 ? "edit"
                 : modes[(modes.indexOf(this.state.viewMode) + 1) % modes.length];
-        EditorUI.setViewMode(
+        this.ui.setViewMode(
             this.state.viewMode,
             this.state.fileMode,
             this.state.currentContent
         );
       },
       onUndo: () => {
-        const { EditorUI } = this.dependencies;
         if (this.state.undoStack.length > 1) {
           this.state.redoStack.push(this.state.undoStack.pop());
           this.state.currentContent =
               this.state.undoStack[this.state.undoStack.length - 1];
-          EditorUI.setContent(this.state.currentContent);
+          this.ui.setContent(this.state.currentContent);
         }
       },
       onRedo: () => {
-        const { EditorUI } = this.dependencies;
         if (this.state.redoStack.length > 0) {
           const nextState = this.state.redoStack.pop();
           this.state.undoStack.push(nextState);
           this.state.currentContent = nextState;
-          EditorUI.setContent(this.state.currentContent);
+          this.ui.setContent(this.state.currentContent);
         }
       },
       onWordWrapToggle: () => {
-        const { StorageManager, Config, EditorUI } = this.dependencies;
+        const { StorageManager, Config } = this.dependencies;
         this.state.wordWrap = !this.state.wordWrap;
         StorageManager.saveItem(
             Config.STORAGE_KEYS.EDITOR_WORD_WRAP_ENABLED,
             this.state.wordWrap
         );
-        EditorUI.setWordWrap(this.state.wordWrap);
+        this.ui.setWordWrap(this.state.wordWrap);
       },
     };
   }
