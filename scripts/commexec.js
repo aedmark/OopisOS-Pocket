@@ -183,14 +183,12 @@ class CommandExecutor {
     return this.activeJobs;
   }
 
-  async killJob(jobId) {
+  killJob(jobId) {
     const { MessageBusManager, ErrorHandler } = this.dependencies;
     const job = this.activeJobs[jobId];
     if (job && job.abortController) {
       job.abortController.abort("Killed by user command.");
-      if (job.promise) {
-        await job.promise.catch(() => {});
-      }
+      job.promise.catch(() => {});
       MessageBusManager.unregisterJob(jobId);
       delete this.activeJobs[jobId];
       return ErrorHandler.createSuccess(
