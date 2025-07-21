@@ -73,9 +73,14 @@ EXAMPLES
             const rawLine = line.trim();
             if (rawLine === "") continue;
 
-            const commandParts = baseCommandArgs.map((part) =>
-                part.replace(new RegExp(replaceStr, "g"), `"${rawLine.replace(/"/g, '\\"')}"`)
-            );
+            const commandParts = baseCommandArgs.map((part) => {
+              if (part.includes(replaceStr)) {
+                const newPart = part.replace(new RegExp(replaceStr, "g"), rawLine);
+                return `"${newPart.replace(/"/g, '\\"')}"`;
+              }
+              return part;
+            });
+
             const commandToExecute = commandParts.join(" ");
 
             lastResult = await CommandExecutor.processSingleCommand(
