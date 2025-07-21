@@ -4,15 +4,12 @@ var ModalManager = (() => {
   let isAwaitingTerminalInput = false;
   let activeModalContext = null;
   let cachedTerminalBezel = null;
-
-  // --- DEPENDENCIES TO BE INJECTED ---
-  let dependencies = {}; // Switched to a single dependencies object
+  let dependencies = {};
 
   function initialize(dom) {
     cachedTerminalBezel = dom.terminalBezel;
   }
 
-  // --- THIS IS THE CORRECTED METHOD ---
   function setDependencies(injectedDependencies) {
     dependencies = injectedDependencies;
   }
@@ -139,12 +136,12 @@ var ModalManager = (() => {
     activeModalContext = { onConfirm, onCancel, data, type, obscured };
     messageLines.forEach(
         (line) =>
-            void OutputManager.appendToOutput(line, { typeClass: "text-warning" })
+            void OutputManager.appendToOutput(line, { typeClass: Config.CSS_CLASSES.WARNING_MSG })
     );
 
     if (type === "confirm") {
       void OutputManager.appendToOutput(Config.MESSAGES.CONFIRMATION_PROMPT, {
-        typeClass: "text-subtle",
+        typeClass: Config.CSS_CLASSES.CONSOLE_LOG_MSG,
       });
     }
 
@@ -191,13 +188,13 @@ var ModalManager = (() => {
         finalOptions.messageLines.forEach(
             (line) =>
                 void OutputManager.appendToOutput(line, {
-                  typeClass: "text-warning",
+                  typeClass: Config.CSS_CLASSES.WARNING_MSG,
                 })
         );
         if (type === "confirm") {
           void OutputManager.appendToOutput(
               Config.MESSAGES.CONFIRMATION_PROMPT,
-              { typeClass: "text-subtle" }
+              { typeClass: Config.CSS_CLASSES.CONSOLE_LOG_MSG }
           );
         }
         const promptEcho = `${TerminalUI.getPromptText()}`;
@@ -257,7 +254,7 @@ var ModalManager = (() => {
         } else {
           await OutputManager.appendToOutput(
               Config.MESSAGES.OPERATION_CANCELLED,
-              { typeClass: "text-subtle" }
+              { typeClass: Config.CSS_CLASSES.CONSOLE_LOG_MSG }
           );
         }
       }

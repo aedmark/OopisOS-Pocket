@@ -2,25 +2,22 @@
 class EnvironmentManager {
   constructor() {
     this.envStack = [{}];
-    // --- DEPENDENCY INJECTION ---
     this.userManager = null;
     this.fsManager = null;
     this.config = null; // Add config dependency
   }
 
-  setDependencies(userManager, fsManager, config) { // Add config
+  setDependencies(userManager, fsManager, config) {
     this.userManager = userManager;
     this.fsManager = fsManager;
-    this.config = config; // Store config
+    this.config = config;
   }
-  // --- END DEPENDENCY INJECTION ---
 
   _getActiveEnv() {
     return this.envStack[this.envStack.length - 1];
   }
 
   push() {
-    // Push a clone of the current environment to create a new scope
     this.envStack.push(JSON.parse(JSON.stringify(this._getActiveEnv())));
   }
 
@@ -81,13 +78,13 @@ const HistoryManager = (() => {
   "use strict";
   let commandHistory = [];
   let historyIndex = 0;
-  let dependencies = {}; // To hold injected dependencies
-  let config = null; // Store config separately
+  let dependencies = {};
+  let config = null;
 
   return {
     setDependencies: (injectedDependencies) => {
       dependencies = injectedDependencies;
-      config = injectedDependencies.Config; // Explicitly get config
+      config = injectedDependencies.Config;
     },
     add: (command) => {
       const trimmedCommand = command.trim();
@@ -144,7 +141,7 @@ const HistoryManager = (() => {
 const AliasManager = (() => {
   "use strict";
   let aliases = {};
-  let dependencies = {}; // To hold injected dependencies
+  let dependencies = {};
   let config = null;
 
   function _save() {
@@ -217,35 +214,33 @@ class SessionManager {
   constructor() {
     this.userSessionStack = [];
     this.elements = {};
-    // --- DEPENDENCIES TO BE INJECTED ---
     this.config = null;
     this.fsManager = null;
     this.userManager = null;
     this.environmentManager = null;
     this.outputManager = null;
     this.terminalUI = null;
-    this.storageManager = null; // Add storageManager
+    this.storageManager = null;
   }
 
-  // --- THIS IS THE NEW METHOD ---
   setDependencies(
-      config, // Add config
+      config,
       fsManager,
       userManager,
       environmentManager,
       domElements,
       outputManager,
       terminalUI,
-      storageManager // Add storageManager
+      storageManager
   ) {
-    this.config = config; // Store config
+    this.config = config;
     this.fsManager = fsManager;
     this.userManager = userManager;
     this.environmentManager = environmentManager;
     this.elements = domElements;
     this.outputManager = outputManager;
     this.terminalUI = terminalUI;
-    this.storageManager = storageManager; // Store storageManager
+    this.storageManager = storageManager;
   }
 
   initializeStack() {
@@ -306,7 +301,7 @@ class SessionManager {
       commandHistory: HistoryManager.getFullHistory(),
       environmentVariables: this.environmentManager.getAll(),
     };
-    this.storageManager.saveItem( // Use this.storageManager
+    this.storageManager.saveItem(
         this._getAutomaticSessionStateKey(username),
         autoState,
         `Auto session for ${username}`
@@ -331,7 +326,7 @@ class SessionManager {
             this.elements.outputDiv.scrollHeight;
       return false;
     }
-    const autoState = this.storageManager.loadItem( // Use this.storageManager
+    const autoState = this.storageManager.loadItem(
         this._getAutomaticSessionStateKey(username),
         `Auto session for ${username}`
     );
@@ -417,7 +412,7 @@ class SessionManager {
 
   async loadManualState(options = {}) {
     const currentUser = this.userManager.getCurrentUser();
-    const manualStateData = this.storageManager.loadItem( // Use this.storageManager
+    const manualStateData = this.storageManager.loadItem(
         this._getManualUserTerminalStateKey(currentUser),
         `Manual save for ${currentUser.name}`
     );
@@ -517,16 +512,16 @@ class SessionManager {
       return false;
     }
     try {
-      this.storageManager.removeItem(this._getAutomaticSessionStateKey(username)); // Use this.storageManager
-      this.storageManager.removeItem(this._getManualUserTerminalStateKey(username)); // Use this.storageManager
-      const users = this.storageManager.loadItem( // Use this.storageManager
+      this.storageManager.removeItem(this._getAutomaticSessionStateKey(username));
+      this.storageManager.removeItem(this._getManualUserTerminalStateKey(username));
+      const users = this.storageManager.loadItem(
           this.config.STORAGE_KEYS.USER_CREDENTIALS,
           "User list",
           {}
       );
       if (users.hasOwnProperty(username)) {
         delete users[username];
-        this.storageManager.saveItem( // Use this.storageManager
+        this.storageManager.saveItem(
             this.config.STORAGE_KEYS.USER_CREDENTIALS,
             users,
             "User list"
@@ -542,13 +537,13 @@ class SessionManager {
   async performFullReset() {
     this.outputManager.clearOutput();
     this.terminalUI.clearInput();
-    const allKeys = this.storageManager.getAllLocalStorageKeys(); // Use this.storageManager
+    const allKeys = this.storageManager.getAllLocalStorageKeys();
 
     const OS_KEY_PREFIX = "oopisOs";
 
     allKeys.forEach((key) => {
       if (key.startsWith(OS_KEY_PREFIX)) {
-        this.storageManager.removeItem(key); // Use this.storageManager
+        this.storageManager.removeItem(key);
       }
     });
 

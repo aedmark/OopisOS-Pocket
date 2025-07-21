@@ -6,7 +6,6 @@ const OutputManager = (() => {
   let cachedOutputDiv = null;
   let cachedInputLineContainerDiv = null;
 
-  // --- DEPENDENCIES TO BE INJECTED ---
   let dependencies = {};
 
   const originalConsoleLog = console.log;
@@ -18,7 +17,6 @@ const OutputManager = (() => {
     cachedInputLineContainerDiv = dom.inputLineContainerDiv;
   }
 
-  // --- NEW METHOD TO INJECT DEPENDENCIES ---
   function setDependencies(injectedDependencies) {
     dependencies = injectedDependencies;
   }
