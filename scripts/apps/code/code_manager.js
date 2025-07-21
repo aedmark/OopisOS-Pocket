@@ -1,3 +1,4 @@
+// scripts/apps/code/code_manager.js
 window.CodeManager = class CodeManager extends App {
   constructor() {
     super();
@@ -78,16 +79,17 @@ window.CodeManager = class CodeManager extends App {
       onSave: async (filePath, content) => {
         const { OutputManager, UserManager, FileSystemManager } = this.dependencies;
         if (!filePath || !filePath.trim()) {
-          await OutputManager.appendToOutput(
-              "Error: Filename cannot be empty.",
-              { typeClass: "text-error" }
-          );
+          // This case should be handled by the UI, but as a fallback:
+          alert("Error: Filename cannot be empty.");
           return;
         }
+
+        const absPath = FileSystemManager.getAbsolutePath(filePath);
         const currentUser = UserManager.getCurrentUser().name;
         const primaryGroup = UserManager.getPrimaryGroupForUser(currentUser);
+
         const saveResult = await FileSystemManager.createOrUpdateFile(
-            filePath,
+            absPath,
             content,
             {
               currentUser,
@@ -97,11 +99,13 @@ window.CodeManager = class CodeManager extends App {
 
         if (saveResult.success && (await FileSystemManager.save())) {
           this._performExit();
-        } else {
           await OutputManager.appendToOutput(
-              `Error saving file: ${saveResult.error || "Filesystem error"}`,
-              { typeClass: "text-error" }
+              `File saved to '${absPath}'.`,
+              { typeClass: "text-success" }
           );
+        } else {
+          // Use a graphical alert for errors within a graphical app
+          alert(`Error saving file: ${saveResult.error || "Filesystem error"}`);
         }
       },
       onExit: this.exit.bind(this),

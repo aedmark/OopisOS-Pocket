@@ -23,16 +23,19 @@ DESCRIPTION
       max: 1,
       error: "Usage: code [filepath]",
     },
-    pathValidation: {
-      argIndex: 0,
-      options: { allowMissing: true, expectedType: "file" },
-      permissions: ["read"],
-      required: false,
+    validations: {
+      paths: [
+        {
+          argIndex: 0,
+          options: { allowMissing: true, expectedType: "file" },
+          permissions: ["read"],
+          required: false,
+        },
+      ],
     },
     coreLogic: async (context) => {
-      const { options, resolvedPath, node, args, dependencies } = context;
+      const { args, options, validatedPaths, dependencies } = context;
       const { ErrorHandler, Utils, CommandExecutor, AppLayerManager, CodeManager, CodeUI, App } = dependencies;
-      const filePath = args[0];
 
       try {
         if (!options.isInteractive) {
@@ -40,6 +43,10 @@ DESCRIPTION
               "code: Can only be run in interactive mode."
           );
         }
+
+        const hasFileArgument = args.length > 0 && validatedPaths.length > 0;
+        const filePath = hasFileArgument ? validatedPaths[0].resolvedPath : null;
+        const node = hasFileArgument ? validatedPaths[0].node : null;
 
         const extension = Utils.getFileExtension(filePath);
         const documentExtensions = ["md", "html"];
@@ -62,7 +69,11 @@ DESCRIPTION
         }
 
         const fileContent = node ? node.content || "" : "";
-        AppLayerManager.show(new CodeManager(), { filePath: resolvedPath, fileContent, dependencies });
+        AppLayerManager.show(new CodeManager(), {
+          filePath: filePath,
+          fileContent,
+          dependencies
+        });
 
         return ErrorHandler.createSuccess("");
       } catch (e) {
