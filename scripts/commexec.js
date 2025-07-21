@@ -69,51 +69,6 @@ class CommandExecutor {
     }
   }
 
-  async *_generateInputContent(context, firstFileArgIndex = 0) {
-    const { args, options, currentUser } = context;
-    const { FileSystemManager } = this.dependencies;
-
-    if (options.stdinContent !== null && options.stdinContent !== undefined) {
-      yield {
-        success: true,
-        content: options.stdinContent,
-        sourceName: "stdin",
-      };
-      return;
-    }
-
-    const fileArgs = args.slice(firstFileArgIndex);
-    if (fileArgs.length === 0) {
-      return;
-    }
-
-    for (const pathArg of fileArgs) {
-      const pathValidationResult = FileSystemManager.validatePath(pathArg, {
-        expectedType: "file",
-      });
-      if (!pathValidationResult.success) {
-        yield {
-          success: false,
-          error: pathValidationResult.error,
-          sourceName: pathArg,
-        };
-        continue;
-      }
-      const { node } = pathValidationResult.data;
-
-      if (!FileSystemManager.hasPermission(node, currentUser, "read")) {
-        yield {
-          success: false,
-          error: `Permission denied: ${pathArg}`,
-          sourceName: pathArg,
-        };
-        continue;
-      }
-
-      yield { success: true, content: node.content || "", sourceName: pathArg };
-    }
-  }
-
   _createCommandHandler(definition) {
     const handler = async (args, options) => {
       const { Utils, ErrorHandler, FileSystemManager, UserManager } = this.dependencies;
