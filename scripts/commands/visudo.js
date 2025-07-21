@@ -5,6 +5,8 @@
   const visudoCommandDefinition = {
     commandName: "visudo",
     description: "Safely edits the /etc/sudoers file.",
+    dependencies: ["apps/editor/editor_ui.js", "apps/editor/editor_manager.js"],
+    applicationModules: ["EditorManager", "EditorUI", "App"],
     helpText: `Usage: visudo
 
 Edit the sudoers file with a lock to prevent simultaneous edits.
@@ -48,7 +50,7 @@ PERMISSIONS
     },
     coreLogic: async (context) => {
       const { currentUser, options, dependencies } = context;
-      const { ErrorHandler, Config, FileSystemManager, UserManager, SudoManager, AppLayerManager, Editor, OutputManager } = dependencies;
+      const { ErrorHandler, Config, FileSystemManager, UserManager, SudoManager, AppLayerManager, EditorManager, OutputManager } = dependencies;
 
       try {
         if (currentUser !== "root") {
@@ -109,7 +111,7 @@ PERMISSIONS
           }
         };
 
-        AppLayerManager.show(Editor, {
+        AppLayerManager.show(new EditorManager(), {
           filePath: sudoersPath,
           fileContent: sudoersNode.content,
           onSaveCallback: onSudoersSave,

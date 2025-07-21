@@ -44,12 +44,7 @@ KEYBOARD SHORTCUTS
     },
     coreLogic: async (context) => {
       const { args, options, validatedPaths, dependencies } = context;
-      const { ErrorHandler, Utils, CommandExecutor, AppLayerManager, EditorManager, EditorUI, App } = dependencies;
-
-      // Correctly determine if a file was provided and get its data from the now-populated validatedPaths array
-      const hasFileArgument = args.length > 0 && validatedPaths.length > 0;
-      const filePath = hasFileArgument ? validatedPaths[0].resolvedPath : null;
-      const node = hasFileArgument ? validatedPaths[0].node : null;
+      const { ErrorHandler, Utils, CommandExecutor, AppLayerManager, EditorManager } = dependencies;
 
       try {
         if (!options.isInteractive) {
@@ -58,27 +53,32 @@ KEYBOARD SHORTCUTS
           );
         }
 
+        const hasFileArgument = args.length > 0 && validatedPaths.length > 0;
+        const filePath = hasFileArgument ? validatedPaths[0].resolvedPath : null;
+        const node = hasFileArgument ? validatedPaths[0].node : null;
+
         const extension = Utils.getFileExtension(filePath);
-        const codeExtensions = ["js", "sh", "css", "json", "html"];
+        const codeExtensions = ["js", "sh", "css", "json"];
 
         if (codeExtensions.includes(extension)) {
+          // It's a code file, delegate to the 'code' command/editor
           await CommandExecutor._ensureCommandLoaded("code");
-          return CommandExecutor.processSingleCommand(`code "${filePath}"`, {
+          // Use an empty string for path if it's null to avoid issues
+          return CommandExecutor.processSingleCommand(`code "${filePath || ''}"`, {
             isInteractive: true,
           });
         }
 
-        if (
-            typeof EditorManager === "undefined" ||
-            typeof EditorUI === "undefined" ||
-            typeof App === "undefined"
-        ) {
+        // Ensure Editor modules are loaded before using them
+        if (typeof EditorManager === 'undefined') {
           return ErrorHandler.createError(
               "edit: The editor application modules are not loaded."
           );
         }
 
         const fileContent = node ? node.content || "" : "";
+
+        // Launch the Editor application
         AppLayerManager.show(new EditorManager(), {
           filePath: filePath,
           fileContent,
