@@ -1,5 +1,3 @@
-// scripts/apps/adventure/adventure_manager.js
-
 window.AdventureManager = class AdventureManager extends App {
   constructor() {
     super();
@@ -7,12 +5,14 @@ window.AdventureManager = class AdventureManager extends App {
     this.dependencies = {};
     this.callbacks = {};
     this.engineLogic = null;
+    this.ui = null;
   }
 
   async enter(appLayer, options = {}) {
     if (this.isActive) return;
 
     this.dependencies = options.dependencies;
+    const { TextAdventureModal } = this.dependencies;
     this.callbacks = {
       processCommand: this._processCommand.bind(this),
       onExitRequest: this.exit.bind(this),
@@ -25,11 +25,12 @@ window.AdventureManager = class AdventureManager extends App {
         options.scriptingContext
     );
 
-    this.container = TextAdventureModal.buildLayout(
-        this.state.adventure,
+    this.ui = new TextAdventureModal(
         this.callbacks,
+        this.dependencies,
         this.state.scriptingContext
     );
+    this.container = this.ui.getContainer();
     appLayer.appendChild(this.container);
 
     this.engineLogic.displayCurrentRoom();
@@ -47,7 +48,7 @@ window.AdventureManager = class AdventureManager extends App {
         context.currentLineIndex < context.lines.length - 1 &&
         this.isActive
         ) {
-      let nextCommand = await TextAdventureModal.requestInput("");
+      let nextCommand = await this.ui.requestInput("");
       if (nextCommand === null) break;
       await this._processCommand(nextCommand);
     }
@@ -59,10 +60,13 @@ window.AdventureManager = class AdventureManager extends App {
   exit() {
     if (!this.isActive) return;
     const { AppLayerManager } = this.dependencies;
-    TextAdventureModal.hideAndReset();
+    if (this.ui) {
+      this.ui.hideAndReset();
+    }
     AppLayerManager.hide(this);
     this.isActive = false;
     this.state = {};
+    this.ui = null;
   }
 
   handleKeyDown(event) {
@@ -77,29 +81,8 @@ window.AdventureManager = class AdventureManager extends App {
 
   _createEngineLogic() {
     const defaultVerbs = {
-      look: {
-        action: "look",
-        aliases: ["l", "examine", "x", "look at", "look in", "look inside"],
-      },
-      go: {
-        action: "go",
-        aliases: [
-          "north",
-          "south",
-          "east",
-          "west",
-          "up",
-          "down",
-          "n",
-          "s",
-          "e",
-          "w",
-          "u",
-          "d",
-          "enter",
-          "exit",
-        ],
-      },
+      look: { action: "look", aliases: ["l", "examine", "x", "look at", "look in", "look inside"] },
+      go: { action: "go", aliases: ["north", "south", "east", "west", "up", "down", "n", "s", "e", "w", "u", "d", "enter", "exit"] },
       take: { action: "take", aliases: ["get", "grab", "pick up"] },
       drop: { action: "drop", aliases: [] },
       use: { action: "use", aliases: [] },
@@ -205,7 +188,7 @@ window.AdventureManager = class AdventureManager extends App {
         const room =
             this.state.adventure.rooms[this.state.player.currentLocation];
         if (!room) {
-          TextAdventureModal.appendOutput(
+          this.ui.appendOutput(
               "Error: You have fallen into the void. The game cannot continue.",
               "error"
           );
@@ -213,12 +196,12 @@ window.AdventureManager = class AdventureManager extends App {
         }
 
         if (room.isDark && !engine._hasLightSource()) {
-          TextAdventureModal.updateStatusLine(
+          this.ui.updateStatusLine(
               room.name,
               this.state.player.score,
               this.state.player.moves
           );
-          TextAdventureModal.appendOutput(
+          this.ui.appendOutput(
               "It is pitch black. You are likely to be eaten by a grue.",
               "room-desc"
           );
@@ -227,20 +210,22 @@ window.AdventureManager = class AdventureManager extends App {
 
         if (!room.visited) {
           room.visited = true;
-          const roomPoints = room.points || 5;
-          this.state.player.score += roomPoints;
-          TextAdventureModal.appendOutput(
-              `[You have gained ${roomPoints} points for entering a new area]`,
-              "system"
-          );
+          const roomPoints = room.points || 0;
+          if (roomPoints > 0) {
+            this.state.player.score += roomPoints;
+            this.ui.appendOutput(
+                `[You have gained ${roomPoints} points for entering a new area]`,
+                "system"
+            );
+          }
         }
 
-        TextAdventureModal.updateStatusLine(
+        this.ui.updateStatusLine(
             room.name,
             this.state.player.score,
             this.state.player.moves
         );
-        TextAdventureModal.appendOutput(
+        this.ui.appendOutput(
             engine._getDynamicDescription(room),
             "room-desc"
         );
@@ -250,7 +235,7 @@ window.AdventureManager = class AdventureManager extends App {
         );
         if (roomNpcs.length > 0) {
           roomNpcs.forEach((npc) => {
-            TextAdventureModal.appendOutput(
+            this.ui.appendOutput(
                 `You see ${npc.name} here.`,
                 "items"
             );
@@ -261,7 +246,7 @@ window.AdventureManager = class AdventureManager extends App {
             this.state.player.currentLocation
         );
         if (roomItems.length > 0) {
-          TextAdventureModal.appendOutput(
+          this.ui.appendOutput(
               "You see here: " +
               roomItems.map((item) => item.name).join(", ") +
               ".",
@@ -271,12 +256,12 @@ window.AdventureManager = class AdventureManager extends App {
 
         const exitNames = Object.keys(room.exits || {});
         if (exitNames.length > 0) {
-          TextAdventureModal.appendOutput(
+          this.ui.appendOutput(
               "Exits: " + exitNames.join(", ") + ".",
               "exits"
           );
         } else {
-          TextAdventureModal.appendOutput(
+          this.ui.appendOutput(
               "There are no obvious exits.",
               "exits"
           );
@@ -295,16 +280,10 @@ window.AdventureManager = class AdventureManager extends App {
 
         if (commandToProcess === "again" || commandToProcess === "g") {
           if (!this.state.lastPlayerCommand) {
-            TextAdventureModal.appendOutput(
-                "You haven't entered a command to repeat yet.",
-                "error"
-            );
+            this.ui.appendOutput("You haven't entered a command to repeat yet.","error");
             return;
           }
-          TextAdventureModal.appendOutput(
-              `(repeating: ${this.state.lastPlayerCommand})`,
-              "system"
-          );
+          this.ui.appendOutput(`(repeating: ${this.state.lastPlayerCommand})`,"system");
           commandToProcess = this.state.lastPlayerCommand;
         } else {
           this.state.lastPlayerCommand = commandToProcess;
@@ -317,7 +296,7 @@ window.AdventureManager = class AdventureManager extends App {
           if (stopProcessing) break;
 
           if (cmd.error) {
-            TextAdventureModal.appendOutput(cmd.error, "error");
+            this.ui.appendOutput(cmd.error, "error");
             break;
           }
 
@@ -327,164 +306,41 @@ window.AdventureManager = class AdventureManager extends App {
           };
 
           switch (verb.action) {
-            case "look":
-              engine._handleLook(directObject, onDisambiguation);
-              break;
-            case "go":
-              engine._handleGo(directObject);
-              break;
-            case "take":
-              engine._handleTake(directObject, onDisambiguation);
-              break;
-            case "drop":
-              engine._handleDrop(directObject, onDisambiguation);
-              break;
-            case "use":
-              engine._handleUse(directObject, indirectObject, onDisambiguation);
-              break;
-            case "open":
-              engine._handleOpen(directObject, onDisambiguation);
-              break;
-            case "close":
-              engine._handleClose(directObject, onDisambiguation);
-              break;
-            case "unlock":
-              engine._handleUnlock(
-                  directObject,
-                  indirectObject,
-                  onDisambiguation
-              );
-              break;
-            case "inventory":
-              engine._handleInventory();
-              break;
-            case "help":
-              engine._handleHelp();
-              break;
-            case "quit":
-              this.exit();
-              stopProcessing = true;
-              break;
-            case "save":
-              await engine._handleSave(directObject);
-              break;
-            case "load":
-              await engine._handleLoad(directObject);
-              break;
-            case "talk":
-              engine._handleTalk(directObject, onDisambiguation);
-              break;
-            case "ask":
-              engine._handleAsk(directObject, indirectObject, onDisambiguation);
-              break;
-            case "give":
-              engine._handleGive(
-                  directObject,
-                  indirectObject,
-                  onDisambiguation
-              );
-              break;
-            case "show":
-              engine._handleShow(
-                  directObject,
-                  indirectObject,
-                  onDisambiguation
-              );
-              break;
-            case "score":
-              engine._handleScore();
-              break;
-            case "read":
-              engine._handleRead(directObject, onDisambiguation);
-              break;
-            case "eat":
-              engine._handleEatDrink("eat", directObject, onDisambiguation);
-              break;
-            case "drink":
-              engine._handleEatDrink("drink", directObject, onDisambiguation);
-              break;
-            case "push":
-              engine._handlePushPullTurn(
-                  "push",
-                  directObject,
-                  onDisambiguation
-              );
-              break;
-            case "pull":
-              engine._handlePushPullTurn(
-                  "pull",
-                  directObject,
-                  onDisambiguation
-              );
-              break;
-            case "turn":
-              engine._handlePushPullTurn(
-                  "turn",
-                  directObject,
-                  onDisambiguation
-              );
-              break;
-            case "wear":
-              engine._handleWearRemove("wear", directObject, onDisambiguation);
-              break;
-            case "remove":
-              engine._handleWearRemove(
-                  "remove",
-                  directObject,
-                  onDisambiguation
-              );
-              break;
-            case "listen":
-              engine._handleSensoryVerb(
-                  "listen",
-                  directObject,
-                  onDisambiguation
-              );
-              break;
-            case "smell":
-              engine._handleSensoryVerb(
-                  "smell",
-                  directObject,
-                  onDisambiguation
-              );
-              break;
-            case "touch":
-              engine._handleSensoryVerb(
-                  "touch",
-                  directObject,
-                  onDisambiguation
-              );
-              break;
-            case "wait":
-              engine._handleWait();
-              break;
-            case "dance":
-              TextAdventureModal.appendOutput(
-                  "You do a little jig. You feel refreshed.",
-                  "system"
-              );
-              break;
-            case "sing":
-              TextAdventureModal.appendOutput(
-                  "You belt out a sea shanty. A nearby bird looks annoyed.",
-                  "system"
-              );
-              break;
-            case "jump":
-              TextAdventureModal.appendOutput(
-                  "You jump on the spot. Whee!",
-                  "system"
-              );
-              break;
-            case "light":
-              engine._handleLight(directObject, onDisambiguation);
-              break;
-            default:
-              TextAdventureModal.appendOutput(
-                  `I don't know how to "${verb.action}".`,
-                  "error"
-              );
-              stopProcessing = true;
+            case "look": engine._handleLook(directObject, onDisambiguation); break;
+            case "go": engine._handleGo(directObject); break;
+            case "take": engine._handleTake(directObject, onDisambiguation); break;
+            case "drop": engine._handleDrop(directObject, onDisambiguation); break;
+            case "use": engine._handleUse(directObject, indirectObject, onDisambiguation); break;
+            case "open": engine._handleOpen(directObject, onDisambiguation); break;
+            case "close": engine._handleClose(directObject, onDisambiguation); break;
+            case "unlock": engine._handleUnlock(directObject, indirectObject, onDisambiguation); break;
+            case "inventory": engine._handleInventory(); break;
+            case "help": engine._handleHelp(); break;
+            case "quit": this.exit(); stopProcessing = true; break;
+            case "save": await engine._handleSave(directObject); break;
+            case "load": await engine._handleLoad(directObject); break;
+            case "talk": engine._handleTalk(directObject, onDisambiguation); break;
+            case "ask": engine._handleAsk(directObject, indirectObject, onDisambiguation); break;
+            case "give": engine._handleGive(directObject, indirectObject, onDisambiguation); break;
+            case "show": engine._handleShow(directObject, indirectObject, onDisambiguation); break;
+            case "score": engine._handleScore(); break;
+            case "read": engine._handleRead(directObject, onDisambiguation); break;
+            case "eat": engine._handleEatDrink("eat", directObject, onDisambiguation); break;
+            case "drink": engine._handleEatDrink("drink", directObject, onDisambiguation); break;
+            case "push": engine._handlePushPullTurn("push", directObject, onDisambiguation); break;
+            case "pull": engine._handlePushPullTurn("pull", directObject, onDisambiguation); break;
+            case "turn": engine._handlePushPullTurn("turn", directObject, onDisambiguation); break;
+            case "wear": engine._handleWearRemove("wear", directObject, onDisambiguation); break;
+            case "remove": engine._handleWearRemove("remove", directObject, onDisambiguation); break;
+            case "listen": engine._handleSensoryVerb("listen", directObject, onDisambiguation); break;
+            case "smell": engine._handleSensoryVerb("smell", directObject, onDisambiguation); break;
+            case "touch": engine._handleSensoryVerb("touch", directObject, onDisambiguation); break;
+            case "wait": engine._handleWait(); break;
+            case "dance": this.ui.appendOutput("You do a little jig. You feel refreshed.", "system"); break;
+            case "sing": this.ui.appendOutput("You belt out a sea shanty. A nearby bird looks annoyed.", "system"); break;
+            case "jump": this.ui.appendOutput("You jump on the spot. Whee!", "system"); break;
+            case "light": engine._handleLight(directObject, onDisambiguation); break;
+            default: this.ui.appendOutput(`I don't know how to "${verb.action}".`, "error"); stopProcessing = true;
           }
 
           if (!stopProcessing) {
@@ -560,16 +416,7 @@ window.AdventureManager = class AdventureManager extends App {
         }
 
         const remainingWords = resolvedWords.slice(verbWordCount);
-        const prepositions = [
-          "on",
-          "in",
-          "at",
-          "with",
-          "using",
-          "to",
-          "under",
-          "about",
-        ];
+        const prepositions = ["on", "in", "at", "with", "using", "to", "under", "about"];
         let directObject;
         let indirectObject = null;
         let prepositionIndex = -1;
@@ -688,7 +535,7 @@ window.AdventureManager = class AdventureManager extends App {
         if (result.found.length === 1) {
           context.callback(result.found[0]);
         } else {
-          TextAdventureModal.appendOutput(
+          this.ui.appendOutput(
               "That's still not specific enough. Please try again.",
               "info"
           );
@@ -701,7 +548,7 @@ window.AdventureManager = class AdventureManager extends App {
         const exitId = room.exits ? room.exits[direction] : null;
 
         if (!exitId) {
-          TextAdventureModal.appendOutput("You can't go that way.", "error");
+          this.ui.appendOutput("You can't go that way.", "error");
           return;
         }
 
@@ -712,7 +559,7 @@ window.AdventureManager = class AdventureManager extends App {
                 item.blocksExit[direction]
         );
         if (exitBlocker && (!exitBlocker.isOpenable || !exitBlocker.isOpen)) {
-          TextAdventureModal.appendOutput(
+          this.ui.appendOutput(
               exitBlocker.lockedMessage ||
               `The way is blocked by the ${exitBlocker.name}.`
           );
@@ -723,7 +570,7 @@ window.AdventureManager = class AdventureManager extends App {
           this.state.player.currentLocation = exitId;
           engine.displayCurrentRoom();
         } else {
-          TextAdventureModal.appendOutput("You can't go that way.", "error");
+          this.ui.appendOutput("You can't go that way.", "error");
         }
       },
       _checkWinConditions: () => {
@@ -741,13 +588,13 @@ window.AdventureManager = class AdventureManager extends App {
             this.state.player.inventory.includes(wc.itemId)
         ) {
           won = true;
-        } else if (wc.type === "itemUsedOn" && wc.triggered) {
+        } else if (wc.type === "itemUsedOn" && wc.triggeredByUse) {
           won = true;
         }
 
         if (won) {
           wc.triggered = true;
-          TextAdventureModal.appendOutput(
+          this.ui.appendOutput(
               `\n${this.state.adventure.winMessage}`,
               "adv-success"
           );

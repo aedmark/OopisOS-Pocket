@@ -1,135 +1,106 @@
-// scripts/apps/adventure/adventure_ui.js
+window.TextAdventureModal = class TextAdventureModal {
+  constructor(callbacks, dependencies, scriptingContext) {
+    this.elements = {};
+    this.callbacks = callbacks;
+    this.dependencies = dependencies;
 
-window.TextAdventureModal = (() => {
-  "use strict";
+    this._buildLayout(scriptingContext);
+  }
 
-  let elements = {};
-  let callbacks = {}; // To store callbacks from the manager
+  getContainer() {
+    return this.elements.container;
+  }
 
-  function buildLayout(adventureData, cb, scriptingContext) {
-    callbacks = cb; // Store the manager's callbacks
-    _createElements(); // Build the DOM structure
+  _buildLayout(scriptingContext) {
+    const { Utils } = this.dependencies;
+    this._createElements();
 
-    // Set up event listeners that call the manager's callbacks
-    elements.input.addEventListener("keydown", _handleInput);
+    this.elements.input.addEventListener("keydown", (e) => this._handleInput(e));
 
     if (scriptingContext?.isScripting) {
-      elements.input.style.display = "none";
+      this.elements.input.style.display = "none";
     }
 
-    setTimeout(() => elements.input.focus(), 0);
-
-    return elements.container; // Return the built container
+    setTimeout(() => this.elements.input.focus(), 0);
   }
 
-  function hideAndReset() {
-    if (elements.input) {
-      elements.input.removeEventListener("keydown", _handleInput);
+  hideAndReset() {
+    if (this.elements.input) {
+      this.elements.input.removeEventListener("keydown", this._handleInput);
     }
-    if (elements.container) {
-      elements.container.remove();
+    if (this.elements.container) {
+      this.elements.container.remove();
     }
-    elements = {};
-    callbacks = {};
+    this.elements = {};
+    this.callbacks = {};
   }
 
-  function _createElements() {
-    const roomNameSpan = Utils.createElement("span", {
-      id: "adventure-room-name",
-    });
+  _createElements() {
+    const { Utils } = this.dependencies;
+    const roomNameSpan = Utils.createElement("span", { id: "adventure-room-name" });
     const scoreSpan = Utils.createElement("span", { id: "adventure-score" });
     const headerLeft = Utils.createElement("div", {}, roomNameSpan);
     const headerRight = Utils.createElement("div", {}, scoreSpan);
-    const header = Utils.createElement(
-        "header",
-        { id: "adventure-header" },
-        headerLeft,
-        headerRight
-    );
+    const header = Utils.createElement("header", { id: "adventure-header" }, headerLeft, headerRight);
     const output = Utils.createElement("div", { id: "adventure-output" });
-    const inputPrompt = Utils.createElement("span", {
-      id: "adventure-prompt",
-      textContent: ">",
-    });
+    const inputPrompt = Utils.createElement("span", { id: "adventure-prompt", textContent: ">" });
     const input = Utils.createElement("input", {
       id: "adventure-input",
       type: "text",
       spellcheck: "false",
       autocapitalize: "none",
     });
-    const inputContainer = Utils.createElement(
-        "div",
-        { id: "adventure-input-container" },
-        inputPrompt,
-        input
-    );
-    const container = Utils.createElement(
-        "div",
-        { id: "adventure-container" },
-        header,
-        output,
-        inputContainer
-    );
+    const inputContainer = Utils.createElement("div", { id: "adventure-input-container" }, inputPrompt, input);
+    const container = Utils.createElement("div", { id: "adventure-container" }, header, output, inputContainer);
 
-    elements = { container, header, output, input, roomNameSpan, scoreSpan };
+    this.elements = { container, header, output, input, roomNameSpan, scoreSpan };
   }
 
-  function _handleInput(e) {
-    if (e.key !== "Enter" || !callbacks.processCommand) return;
+  _handleInput(e) {
+    if (e.key !== "Enter" || !this.callbacks.processCommand) return;
     e.preventDefault();
-    const command = elements.input.value;
-    elements.input.value = "";
-    appendOutput(`> ${command}`, "system");
-    callbacks.processCommand(command);
+    const command = this.elements.input.value;
+    this.elements.input.value = "";
+    this.appendOutput(`> ${command}`, "system");
+    this.callbacks.processCommand(command);
   }
 
-  function appendOutput(text, styleClass = "") {
-    if (!elements.output) return;
+  appendOutput(text, styleClass = "") {
+    if (!this.elements.output) return;
+    const { Utils } = this.dependencies;
     const p = Utils.createElement("p", { textContent: text });
     if (styleClass) {
       p.className = `adv-${styleClass}`;
     }
-    elements.output.appendChild(p);
-    elements.output.scrollTop = elements.output.scrollHeight;
+    this.elements.output.appendChild(p);
+    this.elements.output.scrollTop = this.elements.output.scrollHeight;
   }
 
-  function updateStatusLine(roomName, score, moves) {
-    if (elements.roomNameSpan) {
-      elements.roomNameSpan.textContent = roomName;
+  updateStatusLine(roomName, score, moves) {
+    if (this.elements.roomNameSpan) {
+      this.elements.roomNameSpan.textContent = roomName;
     }
-    if (elements.scoreSpan) {
-      elements.scoreSpan.textContent = `Score: ${score}  Moves: ${moves}`;
+    if (this.elements.scoreSpan) {
+      this.elements.scoreSpan.textContent = `Score: ${score}  Moves: ${moves}`;
     }
   }
 
-  // Add requestInput function for scripting
-  function requestInput(prompt) {
+  requestInput(prompt) {
     return new Promise((resolve) => {
-      // This is a simplified version; a real implementation would
-      // likely involve the ModalManager for scripting scenarios.
-      if (callbacks.onScriptedInput) {
-        const command = callbacks.onScriptedInput();
+      if (this.callbacks.onScriptedInput) {
+        const command = this.callbacks.onScriptedInput();
         resolve(command);
       } else {
-        // Fallback for non-scripted, just in case
-        _handleInput = (e) => {
+        this._handleInput = (e) => {
           if (e.key === 'Enter') {
             e.preventDefault();
-            const command = elements.input.value;
-            elements.input.value = '';
-            appendOutput(`> ${command}`, 'system');
+            const command = this.elements.input.value;
+            this.elements.input.value = '';
+            this.appendOutput(`> ${command}`, 'system');
             resolve(command);
           }
         };
       }
     });
   }
-
-  return {
-    buildLayout,
-    hideAndReset,
-    appendOutput,
-    updateStatusLine,
-    requestInput, // Expose for scripting
-  };
-})();
+}
