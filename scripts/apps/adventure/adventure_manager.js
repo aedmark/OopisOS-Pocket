@@ -603,6 +603,83 @@ window.AdventureManager = class AdventureManager extends App {
           }
         }
       },
+
+      _handleLook: (target, onDisambiguation) => {
+        if (!target || target === "around") {
+          engine.displayCurrentRoom();
+          return;
+        }
+
+        const scope = [
+          ...engine._getItemsInLocation(this.state.player.currentLocation),
+          ...this.state.player.inventory.map(id => this.state.adventure.items[id]),
+          ...engine._getNpcsInLocation(this.state.player.currentLocation)
+        ];
+
+        const result = engine._findItem(target, scope);
+
+        if (result.found.length === 0) {
+          this.ui.appendOutput("You don't see that here.", "error");
+        } else if (result.found.length > 1) {
+          this.ui.appendOutput(`Which ${target} do you mean?`, "info");
+        } else {
+          const entity = result.found[0];
+          this.ui.appendOutput(engine._getDynamicDescription(entity));
+          if (entity.isContainer && entity.isOpen && entity.contains) {
+            if (entity.contains.length > 0) {
+              const contents = entity.contains.map(id => this.state.adventure.items[id].name).join(", ");
+              this.ui.appendOutput(`Inside, you see: ${contents}.`);
+            } else {
+              this.ui.appendOutput("It is empty.");
+            }
+          }
+        }
+      },
+
+      _handleTake: (target, onDisambiguation) => {
+        const scope = engine._getItemsInLocation(this.state.player.currentLocation);
+        const result = engine._findItem(target, scope);
+
+        if (result.found.length === 0) {
+          this.ui.appendOutput("You don't see that here.", "error");
+        } else if (result.found.length > 1) {
+          this.ui.appendOutput(`Which ${target} do you mean?`, "info");
+        } else {
+          const item = result.found[0];
+          if (!item.canTake) {
+            this.ui.appendOutput("You can't take that.", "error");
+            return;
+          }
+          item.location = "player";
+          this.state.player.inventory.push(item.id);
+          this.ui.appendOutput(`You take the ${item.name}.`);
+        }
+      },
+
+      _handleDrop: (target, onDisambiguation) => {
+        const scope = this.state.player.inventory.map(id => this.state.adventure.items[id]);
+        const result = engine._findItem(target, scope);
+
+        if (result.found.length === 0) {
+          this.ui.appendOutput("You don't have that.", "error");
+        } else if (result.found.length > 1) {
+          this.ui.appendOutput(`Which ${target} do you mean?`, "info");
+        } else {
+          const item = result.found[0];
+          item.location = this.state.player.currentLocation;
+          this.state.player.inventory = this.state.player.inventory.filter(id => id !== item.id);
+          this.ui.appendOutput(`You drop the ${item.name}.`);
+        }
+      },
+
+      _handleInventory: () => {
+        if (this.state.player.inventory.length === 0) {
+          this.ui.appendOutput("You are carrying nothing.");
+        } else {
+          const inventoryList = this.state.player.inventory.map(id => this.state.adventure.items[id].name).join("\n");
+          this.ui.appendOutput("You are carrying:\n" + inventoryList);
+        }
+      }
     };
 
     return engine;

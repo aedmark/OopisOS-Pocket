@@ -92,15 +92,19 @@ window.TextAdventureModal = class TextAdventureModal {
         const command = this.callbacks.onScriptedInput();
         resolve(command);
       } else {
-        this._handleInput = (e) => {
+        const handleOneTimeInput = (e) => {
           if (e.key === 'Enter') {
             e.preventDefault();
             const command = this.elements.input.value;
             this.elements.input.value = '';
             this.appendOutput(`> ${command}`, 'system');
+            this.elements.input.removeEventListener('keydown', handleOneTimeInput);
+            this.elements.input.addEventListener('keydown', (e) => this._handleInput(e)); // Re-attach the original listener
             resolve(command);
           }
         };
+        this.elements.input.removeEventListener('keydown', this._handleInput);
+        this.elements.input.addEventListener('keydown', handleOneTimeInput);
       }
     });
   }
