@@ -58,9 +58,7 @@ class CommandExecutor {
           await this._loadScript(dep);
         }
       }
-      this.commands[commandName] = {
-        handler: this._createCommandHandler(definition),
-      };
+      this.commands[commandName] = new Command(definition);
       return true;
     } catch (error) {
       await OutputManager.appendToOutput(
@@ -306,15 +304,15 @@ class CommandExecutor {
       return ErrorHandler.createError(`${commandName}: command not found`);
     }
 
-    const cmdData = this.commands[commandName];
+    const cmdInstance = this.commands[commandName];
 
-    if (cmdData?.handler) {
+    if (cmdInstance instanceof Command) {
       try {
-        return await cmdData.handler(segment.args, {
+        return await cmdInstance.execute(segment.args, {
           ...execCtxOpts,
           stdinContent,
           signal,
-        });
+        }, this.dependencies);
       } catch (e) {
         console.error(`Error in command handler for '${segment.command}':`, e);
         return ErrorHandler.createError(
