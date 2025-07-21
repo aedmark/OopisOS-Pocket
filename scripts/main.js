@@ -115,25 +115,7 @@ function initializeTerminalEventListeners(domElements, commandExecutor) {
           "text/plain"
       );
       const processedText = text.replace(/\r?\n|\r/g, " ");
-
-      if (ModalManager.isAwaiting() && TerminalUI.isObscured()) {
-        TerminalUI.handlePaste(processedText);
-      } else {
-        const selection = window.getSelection();
-        if (!selection || !selection.rangeCount) return;
-        const range = selection.getRangeAt(0);
-        if (
-            !domElements.editableInputDiv.contains(range.commonAncestorContainer)
-        )
-          return;
-        range.deleteContents();
-        const textNode = document.createTextNode(processedText);
-        range.insertNode(textNode);
-        range.setStartAfter(textNode);
-        range.collapse(true);
-        selection.removeAllRanges();
-        selection.addRange(range);
-      }
+      TerminalUI.handlePaste(processedText);
     });
   }
 }

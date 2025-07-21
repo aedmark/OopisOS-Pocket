@@ -1,3 +1,4 @@
+// scripts/apps/paint/paint_ui.js
 window.PaintUI = class PaintUI {
   constructor(initialState, callbacks, dependencies) {
     this.elements = {};
