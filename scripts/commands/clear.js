@@ -24,16 +24,10 @@ DESCRIPTION
     coreLogic: async (context) => {
       const { dependencies } = context;
       const { ErrorHandler } = dependencies;
-      try {
-        if (context.options.isInteractive) {
-          return ErrorHandler.createSuccess(null, { effect: "clear_screen" });
-        }
-        return ErrorHandler.createSuccess("");
-      } catch (e) {
-        return ErrorHandler.createError(
-            `clear: An unexpected error occurred: ${e.message}`
-        );
+      if (context.options.isInteractive) {
+        return ErrorHandler.createSuccess(null, { effect: "clear_screen" });
       }
+      return ErrorHandler.createSuccess("");
     },
   };
   CommandRegistry.register(clearCommandDefinition);

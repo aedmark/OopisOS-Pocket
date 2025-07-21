@@ -82,89 +82,82 @@ EXAMPLES
       const { args, options, flags, dependencies } = context;
       const { ErrorHandler, AppLayerManager, GeminiChatManager, GeminiChatUI, App, OutputManager, Config, AIManager } = dependencies;
 
-      try {
-        if (flags.chat) {
-          if (!options.isInteractive) {
-            return ErrorHandler.createError(
-                "gemini: Chat mode can only be run in interactive mode."
-            );
-          }
-          if (
-              typeof GeminiChatManager === "undefined" ||
-              typeof GeminiChatUI === "undefined" ||
-              typeof App === "undefined"
-          ) {
-            return ErrorHandler.createError(
-                "gemini: The GeminiChat application modules are not loaded."
-            );
-          }
-          AppLayerManager.show(new GeminiChatManager(), {
-            provider: flags.provider,
-            model: flags.model,
-            dependencies: dependencies
-          });
-          return ErrorHandler.createSuccess("");
-        }
-
-        if (args.length === 0) {
+      if (flags.chat) {
+        if (!options.isInteractive) {
           return ErrorHandler.createError(
-              'Insufficient arguments. Usage: gemini [-p provider] [-m model] "<prompt>"'
+              "gemini: Chat mode can only be run in interactive mode."
           );
         }
-
-        const userPrompt = args.join(" ");
-
-        if (flags.new) {
-          conversationHistory = [];
-          if (options.isInteractive) {
-            await OutputManager.appendToOutput("Starting a new conversation.", {
-              typeClass: Config.CSS_CLASSES.CONSOLE_LOG_MSG,
-            });
-          }
+        if (
+            typeof GeminiChatManager === "undefined" ||
+            typeof GeminiChatUI === "undefined" ||
+            typeof App === "undefined"
+        ) {
+          return ErrorHandler.createError(
+              "gemini: The GeminiChat application modules are not loaded."
+          );
         }
+        AppLayerManager.show(new GeminiChatManager(), {
+          provider: flags.provider,
+          model: flags.model,
+          dependencies: dependencies
+        });
+        return ErrorHandler.createSuccess("");
+      }
 
+      if (args.length === 0) {
+        return ErrorHandler.createError(
+            'Insufficient arguments. Usage: gemini [-p provider] [-m model] "<prompt>"'
+        );
+      }
+
+      const userPrompt = args.join(" ");
+
+      if (flags.new) {
+        conversationHistory = [];
         if (options.isInteractive) {
-          await OutputManager.appendToOutput("AI is thinking...", {
+          await OutputManager.appendToOutput("Starting a new conversation.", {
             typeClass: Config.CSS_CLASSES.CONSOLE_LOG_MSG,
           });
         }
+      }
 
-        const verboseCallback = flags.verbose && options.isInteractive ?
-            (message, typeClass) => {
-              OutputManager.appendToOutput(message, { typeClass });
-            } :
-            null;
+      if (options.isInteractive) {
+        await OutputManager.appendToOutput("AI is thinking...", {
+          typeClass: Config.CSS_CLASSES.CONSOLE_LOG_MSG,
+        });
+      }
 
-        const agentResult = await AIManager.performAgenticSearch(
-            userPrompt,
-            conversationHistory,
-            flags.provider || "gemini",
-            flags.model || null, {
-              ...options,
-              verboseCallback,
-              dependencies: dependencies
-            }
-        );
+      const verboseCallback = flags.verbose && options.isInteractive ?
+          (message, typeClass) => {
+            OutputManager.appendToOutput(message, { typeClass });
+          } :
+          null;
 
-        if (agentResult.success) {
-          const finalAnswer = agentResult.data;
-          conversationHistory.push({
-            role: "user",
-            parts: [{ text: userPrompt }],
-          });
-          conversationHistory.push({
-            role: "model",
-            parts: [{ text: finalAnswer }],
-          });
-          return ErrorHandler.createSuccess(finalAnswer);
-        } else {
-          return ErrorHandler.createError(`gemini: ${agentResult.error}`);
-        }
+      const agentResult = await AIManager.performAgenticSearch(
+          userPrompt,
+          conversationHistory,
+          flags.provider || "gemini",
+          flags.model || null, {
+            ...options,
+            verboseCallback,
+            dependencies: dependencies
+          }
+      );
 
-      } catch (e) {
-        return ErrorHandler.createError(
-            `gemini: An unexpected error occurred: ${e.message}`
-        );
+      if (agentResult.success) {
+        const finalAnswer = agentResult.data;
+        conversationHistory.push({
+          role: "user",
+          parts: [{ text: userPrompt }],
+        });
+        conversationHistory.push({
+          role: "model",
+          parts: [{ text: finalAnswer }],
+        });
+        return ErrorHandler.createSuccess(finalAnswer);
+      } else {
+        return ErrorHandler.createError(`gemini: ${agentResult.error}`);
       }
     },
   };

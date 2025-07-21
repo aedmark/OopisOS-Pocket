@@ -36,30 +36,24 @@ EXAMPLES
     flagDefinitions: [{ name: "enableBackslashEscapes", short: "-e" }],
     coreLogic: async (context) => {
       const { ErrorHandler } = context.dependencies;
-      try {
-        let output = context.args.join(" ");
-        let suppressNewline = false;
+      let output = context.args.join(" ");
+      let suppressNewline = false;
 
-        if (context.flags.enableBackslashEscapes) {
-          const cIndex = output.indexOf("\\c");
-          if (cIndex !== -1) {
-            output = output.substring(0, cIndex);
-            suppressNewline = true;
-          }
-
-          output = output
-              .replace(/\\n/g, "\n")
-              .replace(/\\t/g, "\t")
-              .replace(/\\\\/g, "\\");
+      if (context.flags.enableBackslashEscapes) {
+        const cIndex = output.indexOf("\\c");
+        if (cIndex !== -1) {
+          output = output.substring(0, cIndex);
+          suppressNewline = true;
         }
 
-        // The final newline is now handled by the executor, so we just return the processed string.
-        return ErrorHandler.createSuccess(output, { suppressNewline });
-      } catch (e) {
-        return ErrorHandler.createError(
-            `echo: An unexpected error occurred: ${e.message}`
-        );
+        output = output
+            .replace(/\\n/g, "\n")
+            .replace(/\\t/g, "\t")
+            .replace(/\\\\/g, "\\");
       }
+
+      // The final newline is now handled by the executor, so we just return the processed string.
+      return ErrorHandler.createSuccess(output, { suppressNewline });
     },
   };
   CommandRegistry.register(echoCommandDefinition);

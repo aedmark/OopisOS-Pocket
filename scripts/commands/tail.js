@@ -39,67 +39,61 @@ EXAMPLES
       const { flags, inputItems, inputError, dependencies } = context;
       const { ErrorHandler, Utils } = dependencies;
 
-      try {
-        if (inputError) {
-          return ErrorHandler.createError(
-              "tail: No readable input provided or permission denied."
-          );
-        }
-
-        if (!inputItems || inputItems.length === 0) {
-          return ErrorHandler.createSuccess("");
-        }
-
-        if (flags.lines && flags.bytes) {
-          return ErrorHandler.createError("tail: cannot use both -n and -c");
-        }
-
-        const input = inputItems.map((item) => item.content).join("\n");
-
-        let lineCount = 10;
-        if (flags.lines) {
-          const linesResult = Utils.parseNumericArg(flags.lines, {
-            allowFloat: false,
-            allowNegative: false,
-          });
-          if (linesResult.error) {
-            return ErrorHandler.createError(
-                `tail: invalid number of lines: '${flags.lines}'`
-            );
-          }
-          lineCount = linesResult.value;
-        }
-
-        let byteCount = null;
-        if (flags.bytes) {
-          const bytesResult = Utils.parseNumericArg(flags.bytes, {
-            allowFloat: false,
-            allowNegative: false,
-          });
-          if (bytesResult.error) {
-            return ErrorHandler.createError(
-                `tail: invalid number of bytes: '${flags.bytes}'`
-            );
-          }
-          byteCount = bytesResult.value;
-        }
-
-        let output;
-        if (byteCount !== null) {
-          output = input.substring(input.length - byteCount);
-        } else {
-          const lines = input.split("\n");
-          const relevantLines =
-              lines.at(-1) === "" ? lines.slice(0, -1) : lines;
-          output = relevantLines.slice(-lineCount).join("\n");
-        }
-
-        return ErrorHandler.createSuccess(output);
-      } catch (e) {
+      if (inputError) {
         return ErrorHandler.createError(
-            `tail: An unexpected error occurred: ${e.message}`
+            "tail: No readable input provided or permission denied."
         );
       }
+
+      if (!inputItems || inputItems.length === 0) {
+        return ErrorHandler.createSuccess("");
+      }
+
+      if (flags.lines && flags.bytes) {
+        return ErrorHandler.createError("tail: cannot use both -n and -c");
+      }
+
+      const input = inputItems.map((item) => item.content).join("\n");
+
+      let lineCount = 10;
+      if (flags.lines) {
+        const linesResult = Utils.parseNumericArg(flags.lines, {
+          allowFloat: false,
+          allowNegative: false,
+        });
+        if (linesResult.error) {
+          return ErrorHandler.createError(
+              `tail: invalid number of lines: '${flags.lines}'`
+          );
+        }
+        lineCount = linesResult.value;
+      }
+
+      let byteCount = null;
+      if (flags.bytes) {
+        const bytesResult = Utils.parseNumericArg(flags.bytes, {
+          allowFloat: false,
+          allowNegative: false,
+        });
+        if (bytesResult.error) {
+          return ErrorHandler.createError(
+              `tail: invalid number of bytes: '${flags.bytes}'`
+          );
+        }
+        byteCount = bytesResult.value;
+      }
+
+      let output;
+      if (byteCount !== null) {
+        output = input.substring(input.length - byteCount);
+      } else {
+        const lines = input.split("\n");
+        const relevantLines =
+            lines.at(-1) === "" ? lines.slice(0, -1) : lines;
+        output = relevantLines.slice(-lineCount).join("\n");
+      }
+
+      return ErrorHandler.createSuccess(output);
     },
   };
   CommandRegistry.register(tailCommandDefinition);

@@ -27,74 +27,68 @@ DESCRIPTION
       const { args, currentUser, options, dependencies } = context;
       const { ErrorHandler, CommandExecutor, SudoManager, UserManager, ModalManager } = dependencies;
 
-      try {
-        const commandToRun = args[0];
-        const fullCommandStr = args.join(" ");
+      const commandToRun = args[0];
+      const fullCommandStr = args.join(" ");
 
-        if (currentUser === "root") {
-          const result = await CommandExecutor.processSingleCommand(
-              fullCommandStr,
-              { isInteractive: options.isInteractive }
-          );
-          if (result.success) {
-            return ErrorHandler.createSuccess(result.output);
-          }
-          return ErrorHandler.createError(result.error);
+      if (currentUser === "root") {
+        const result = await CommandExecutor.processSingleCommand(
+            fullCommandStr,
+            { isInteractive: options.isInteractive }
+        );
+        if (result.success) {
+          return ErrorHandler.createSuccess(result.output);
         }
+        return ErrorHandler.createError(result.error);
+      }
 
-        if (
-            !SudoManager.canUserRunCommand(currentUser, commandToRun) &&
-            !SudoManager.canUserRunCommand(currentUser, "ALL")
-        ) {
-          return ErrorHandler.createError(
-              `sudo: Sorry, user ${currentUser} is not allowed to execute '${commandToRun}' as root on OopisOs.`
-          );
-        }
-
-        if (SudoManager.isUserTimestampValid(currentUser)) {
-          const result = await UserManager.sudoExecute(fullCommandStr, options);
-          if (result.success) {
-            return ErrorHandler.createSuccess(result.output);
-          }
-          return ErrorHandler.createError(result.error);
-        }
-
-        return new Promise((resolve) => {
-          ModalManager.request({
-            context: "terminal",
-            type: "input",
-            messageLines: [`[sudo] password for ${currentUser}:`],
-            obscured: true,
-            onConfirm: async (password) => {
-              const authResult = await UserManager.verifyPassword(
-                  currentUser,
-                  password
-              );
-
-              if (authResult.success) {
-                SudoManager.updateUserTimestamp(currentUser);
-                const execResult = await UserManager.sudoExecute(
-                    fullCommandStr,
-                    options
-                );
-                if (execResult.success) {
-                  resolve(ErrorHandler.createSuccess(execResult.output));
-                } else {
-                  resolve(ErrorHandler.createError(execResult.error));
-                }
-              } else {
-                resolve(ErrorHandler.createError("sudo: Sorry, try again."));
-              }
-            },
-            onCancel: () => resolve(ErrorHandler.createSuccess("")),
-            options,
-          });
-        });
-      } catch (e) {
+      if (
+          !SudoManager.canUserRunCommand(currentUser, commandToRun) &&
+          !SudoManager.canUserRunCommand(currentUser, "ALL")
+      ) {
         return ErrorHandler.createError(
-            `sudo: An unexpected error occurred: ${e.message}`
+            `sudo: Sorry, user ${currentUser} is not allowed to execute '${commandToRun}' as root on OopisOs.`
         );
       }
+
+      if (SudoManager.isUserTimestampValid(currentUser)) {
+        const result = await UserManager.sudoExecute(fullCommandStr, options);
+        if (result.success) {
+          return ErrorHandler.createSuccess(result.output);
+        }
+        return ErrorHandler.createError(result.error);
+      }
+
+      return new Promise((resolve) => {
+        ModalManager.request({
+          context: "terminal",
+          type: "input",
+          messageLines: [`[sudo] password for ${currentUser}:`],
+          obscured: true,
+          onConfirm: async (password) => {
+            const authResult = await UserManager.verifyPassword(
+                currentUser,
+                password
+            );
+
+            if (authResult.success) {
+              SudoManager.updateUserTimestamp(currentUser);
+              const execResult = await UserManager.sudoExecute(
+                  fullCommandStr,
+                  options
+              );
+              if (execResult.success) {
+                resolve(ErrorHandler.createSuccess(execResult.output));
+              } else {
+                resolve(ErrorHandler.createError(execResult.error));
+              }
+            } else {
+              resolve(ErrorHandler.createError("sudo: Sorry, try again."));
+            }
+          },
+          onCancel: () => resolve(ErrorHandler.createSuccess("")),
+          options,
+        });
+      });
     },
   };
   CommandRegistry.register(sudoCommandDefinition);

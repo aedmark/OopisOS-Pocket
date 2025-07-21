@@ -44,23 +44,17 @@ PERMISSIONS
       const { FileSystemManager, TerminalUI, ErrorHandler } = dependencies;
       const { resolvedPath } = validatedPaths[0];
 
-      try {
-        if (FileSystemManager.getCurrentPath() === resolvedPath) {
-          return ErrorHandler.createSuccess("");
-        }
-
-        FileSystemManager.setCurrentPath(resolvedPath);
-
-        if (options.isInteractive) {
-          TerminalUI.updatePrompt();
-        }
-
+      if (FileSystemManager.getCurrentPath() === resolvedPath) {
         return ErrorHandler.createSuccess("");
-      } catch (e) {
-        return ErrorHandler.createError(
-            `cd: An unexpected error occurred: ${e.message}`
-        );
       }
+
+      FileSystemManager.setCurrentPath(resolvedPath);
+
+      if (options.isInteractive) {
+        TerminalUI.updatePrompt();
+      }
+
+      return ErrorHandler.createSuccess("");
     },
   };
   CommandRegistry.register(cdCommandDefinition);

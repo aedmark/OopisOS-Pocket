@@ -42,54 +42,48 @@ PIPELINE SECURITY
       const { args, options, inputItems, inputError, dependencies } = context;
       const { ErrorHandler, ModalManager } = dependencies;
 
-      try {
-        if (inputError) {
-          return ErrorHandler.createError(
-              "xor: No readable input provided or permission denied."
-          );
-        }
-
-        if (!inputItems || inputItems.length === 0) {
-          return ErrorHandler.createSuccess("");
-        }
-
-        const inputData = inputItems.map((item) => item.content).join("\n");
-
-        let password = args[0];
-
-        if (password === null || password === undefined) {
-          if (!options.isInteractive) {
-            return ErrorHandler.createError(
-                "xor: password must be provided as an argument in non-interactive mode."
-            );
-          }
-          password = await new Promise((resolve) => {
-            ModalManager.request({
-              context: "terminal",
-              type: "input",
-              messageLines: ["Enter password for xor:"],
-              obscured: true,
-              onConfirm: (pw) => resolve(pw),
-              onCancel: () => resolve(null),
-            });
-          });
-
-          if (password === null) {
-            return ErrorHandler.createSuccess("Operation cancelled.");
-          }
-        }
-
-        if (!password) {
-          return ErrorHandler.createError("xor: password cannot be empty.");
-        }
-
-        const processedData = xorCipher(inputData, password);
-        return ErrorHandler.createSuccess(processedData);
-      } catch (e) {
+      if (inputError) {
         return ErrorHandler.createError(
-            `xor: An unexpected error occurred: ${e.message}`
+            "xor: No readable input provided or permission denied."
         );
       }
+
+      if (!inputItems || inputItems.length === 0) {
+        return ErrorHandler.createSuccess("");
+      }
+
+      const inputData = inputItems.map((item) => item.content).join("\n");
+
+      let password = args[0];
+
+      if (password === null || password === undefined) {
+        if (!options.isInteractive) {
+          return ErrorHandler.createError(
+              "xor: password must be provided as an argument in non-interactive mode."
+          );
+        }
+        password = await new Promise((resolve) => {
+          ModalManager.request({
+            context: "terminal",
+            type: "input",
+            messageLines: ["Enter password for xor:"],
+            obscured: true,
+            onConfirm: (pw) => resolve(pw),
+            onCancel: () => resolve(null),
+          });
+        });
+
+        if (password === null) {
+          return ErrorHandler.createSuccess("Operation cancelled.");
+        }
+      }
+
+      if (!password) {
+        return ErrorHandler.createError("xor: password cannot be empty.");
+      }
+
+      const processedData = xorCipher(inputData, password);
+      return ErrorHandler.createSuccess(processedData);
     },
   };
   CommandRegistry.register(xorCommandDefinition);

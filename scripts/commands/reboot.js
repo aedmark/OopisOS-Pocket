@@ -26,21 +26,15 @@ DESCRIPTION
     coreLogic: async (context) => {
       const { dependencies } = context;
       const { ErrorHandler, Config } = dependencies;
-      try {
-        setTimeout(() => {
-          window.location.reload();
-        }, 500);
-        return ErrorHandler.createSuccess(
-            "Rebooting OopisOS (reloading browser page)...",
-            {
-              messageType: Config.CSS_CLASSES.SUCCESS_MSG,
-            }
-        );
-      } catch (e) {
-        return ErrorHandler.createError(
-            `reboot: An unexpected error occurred: ${e.message}`
-        );
-      }
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+      return ErrorHandler.createSuccess(
+          "Rebooting OopisOS (reloading browser page)...",
+          {
+            messageType: Config.CSS_CLASSES.SUCCESS_MSG,
+          }
+      );
     },
   };
   CommandRegistry.register(rebootCommandDefinition);

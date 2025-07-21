@@ -33,28 +33,22 @@ EXAMPLES
     coreLogic: async (context) => {
       const { dependencies } = context;
       const { UserManager, ErrorHandler, Config } = dependencies;
-      try {
-        const result = await UserManager.logout();
+      const result = await UserManager.logout();
 
-        if (result.success) {
-          const resultData = result.data || {};
-          if (resultData.isLogout) {
-            return ErrorHandler.createSuccess(
-                `${Config.MESSAGES.WELCOME_PREFIX} ${resultData.newUser}${Config.MESSAGES.WELCOME_SUFFIX}`,
-                { effect: "clear_screen" }
-            );
-          }
-          if (resultData.noAction) {
-            return ErrorHandler.createSuccess(resultData.message);
-          }
-          return ErrorHandler.createSuccess(null);
-        } else {
-          return result;
+      if (result.success) {
+        const resultData = result.data || {};
+        if (resultData.isLogout) {
+          return ErrorHandler.createSuccess(
+              `${Config.MESSAGES.WELCOME_PREFIX} ${resultData.newUser}${Config.MESSAGES.WELCOME_SUFFIX}`,
+              { effect: "clear_screen" }
+          );
         }
-      } catch (e) {
-        return ErrorHandler.createError(
-            `logout: An unexpected error occurred: ${e.message}`
-        );
+        if (resultData.noAction) {
+          return ErrorHandler.createSuccess(resultData.message);
+        }
+        return ErrorHandler.createSuccess(null);
+      } else {
+        return result;
       }
     },
   };

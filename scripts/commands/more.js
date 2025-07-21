@@ -27,31 +27,25 @@ EXAMPLES
       const { options, inputItems, inputError, dependencies } = context;
       const { ErrorHandler, PagerManager } = dependencies;
 
-      try {
-        if (inputError) {
-          return ErrorHandler.createError(
-              "more: Could not read one or more sources."
-          );
-        }
-
-        if (!inputItems || inputItems.length === 0) {
-          return ErrorHandler.createSuccess("");
-        }
-
-        const content = inputItems.map((item) => item.content).join("\\n");
-
-        if (!options.isInteractive) {
-          return ErrorHandler.createSuccess(content);
-        }
-
-        await PagerManager.enter(content, { mode: "more" });
-
-        return ErrorHandler.createSuccess("");
-      } catch (e) {
+      if (inputError) {
         return ErrorHandler.createError(
-            `more: An unexpected error occurred: ${e.message}`
+            "more: Could not read one or more sources."
         );
       }
+
+      if (!inputItems || inputItems.length === 0) {
+        return ErrorHandler.createSuccess("");
+      }
+
+      const content = inputItems.map((item) => item.content).join("\\n");
+
+      if (!options.isInteractive) {
+        return ErrorHandler.createSuccess(content);
+      }
+
+      await PagerManager.enter(content, { mode: "more" });
+
+      return ErrorHandler.createSuccess("");
     },
   };
   CommandRegistry.register(moreCommandDefinition);

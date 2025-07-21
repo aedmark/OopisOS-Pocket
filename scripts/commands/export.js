@@ -37,35 +37,29 @@ EXAMPLES
       const { Config, Utils, ErrorHandler } = dependencies;
       const { node, resolvedPath } = validatedPaths[0];
 
-      try {
-        const fileName = resolvedPath.substring(
-            resolvedPath.lastIndexOf(Config.FILESYSTEM.PATH_SEPARATOR) + 1
-        );
+      const fileName = resolvedPath.substring(
+          resolvedPath.lastIndexOf(Config.FILESYSTEM.PATH_SEPARATOR) + 1
+      );
 
-        const blob = new Blob([node.content || ""], {
-          type: "text/plain;charset=utf-8",
-        });
-        const url = URL.createObjectURL(blob);
+      const blob = new Blob([node.content || ""], {
+        type: "text/plain;charset=utf-8",
+      });
+      const url = URL.createObjectURL(blob);
 
-        const a = Utils.createElement("a", {
-          href: url,
-          download: fileName,
-        });
+      const a = Utils.createElement("a", {
+        href: url,
+        download: fileName,
+      });
 
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
 
-        URL.revokeObjectURL(url);
+      URL.revokeObjectURL(url);
 
-        return ErrorHandler.createSuccess(
-            `${Config.MESSAGES.EXPORTING_PREFIX}${fileName}${Config.MESSAGES.EXPORTING_SUFFIX}`
-        );
-      } catch (e) {
-        return ErrorHandler.createError(
-            `export: Failed to download file: ${e.message}`
-        );
-      }
+      return ErrorHandler.createSuccess(
+          `${Config.MESSAGES.EXPORTING_PREFIX}${fileName}${Config.MESSAGES.EXPORTING_SUFFIX}`
+      );
     },
   };
   CommandRegistry.register(exportCommandDefinition);

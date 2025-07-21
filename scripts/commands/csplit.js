@@ -60,109 +60,103 @@ EXAMPLES
       const fileNode = validatedPaths[0].node;
       const patterns = args.slice(1);
 
-      try {
-        const content = fileNode.content || "";
-        const lines = content.split("\n");
+      const content = fileNode.content || "";
+      const lines = content.split("\n");
 
-        const prefix = flags.prefix || "xx";
-        const numDigits = flags.digits ? parseInt(flags.digits, 10) : 2;
+      const prefix = flags.prefix || "xx";
+      const numDigits = flags.digits ? parseInt(flags.digits, 10) : 2;
 
-        if (isNaN(numDigits) || numDigits < 1) {
-          return ErrorHandler.createError(
-              `csplit: invalid number of digits: '${flags.digits}'`
-          );
-        }
-
-        const segments = [];
-        let lastSplitLine = 0;
-
-        for (const pattern of patterns) {
-          let splitLine = -1;
-
-          if (pattern.startsWith("/")) {
-            try {
-              const regexStr = pattern.slice(1, pattern.lastIndexOf("/"));
-              const regex = new RegExp(regexStr);
-              for (let j = lastSplitLine; j < lines.length; j++) {
-                if (regex.test(lines[j])) {
-                  splitLine = j;
-                  break;
-                }
-              }
-            } catch (e) {
-              return ErrorHandler.createError(
-                  `csplit: invalid regular expression: '${pattern}'`
-              );
-            }
-          } else {
-            const lineNum = parseInt(pattern, 10);
-            if (isNaN(lineNum) || lineNum <= 0 || lineNum > lines.length) {
-              return ErrorHandler.createError(
-                  `csplit: '${pattern}': line number out of range`
-              );
-            }
-            splitLine = lineNum - 1;
-          }
-
-          if (splitLine === -1 || splitLine < lastSplitLine) {
-            return ErrorHandler.createError(
-                `csplit: '${pattern}': pattern not found or out of order`
-            );
-          }
-
-          segments.push(lines.slice(lastSplitLine, splitLine));
-          lastSplitLine = splitLine;
-        }
-
-        segments.push(lines.slice(lastSplitLine));
-
-        const createdFileNames = [];
-        let anyChangeMade = false;
-
-        for (let i = 0; i < segments.length; i++) {
-          const segmentContent = segments[i].join("\n");
-
-          if (!segmentContent && flags.elideEmpty) {
-            continue;
-          }
-
-          const fileName = `${prefix}${String(i).padStart(numDigits, "0")}`;
-          const saveResult = await FileSystemManager.createOrUpdateFile(
-              FileSystemManager.getAbsolutePath(fileName),
-              segmentContent,
-              {
-                currentUser,
-                primaryGroup: UserManager.getPrimaryGroupForUser(currentUser),
-              }
-          );
-
-          if (!saveResult.success) {
-            if (!flags.keepFiles) {
-              for (const f of createdFileNames) {
-                await CommandExecutor.processSingleCommand(`rm -f ${f}`, {
-                  isInteractive: false,
-                });
-              }
-            }
-            return ErrorHandler.createError(
-                `csplit: failed to write to ${fileName}: ${saveResult.error}`
-            );
-          }
-
-          createdFileNames.push(fileName);
-          anyChangeMade = true;
-
-          if (!flags.quiet) {
-            await OutputManager.appendToOutput(String(segmentContent.length));
-          }
-        }
-
-        return ErrorHandler.createSuccess("", { stateModified: anyChangeMade });
-      } catch (e) {
+      if (isNaN(numDigits) || numDigits < 1) {
         return ErrorHandler.createError(
-            `csplit: An unexpected error occurred: ${e.message}`
+            `csplit: invalid number of digits: '${flags.digits}'`
         );
       }
+
+      const segments = [];
+      let lastSplitLine = 0;
+
+      for (const pattern of patterns) {
+        let splitLine = -1;
+
+        if (pattern.startsWith("/")) {
+          try {
+            const regexStr = pattern.slice(1, pattern.lastIndexOf("/"));
+            const regex = new RegExp(regexStr);
+            for (let j = lastSplitLine; j < lines.length; j++) {
+              if (regex.test(lines[j])) {
+                splitLine = j;
+                break;
+              }
+            }
+          } catch (e) {
+            return ErrorHandler.createError(
+                `csplit: invalid regular expression: '${pattern}'`
+            );
+          }
+        } else {
+          const lineNum = parseInt(pattern, 10);
+          if (isNaN(lineNum) || lineNum <= 0 || lineNum > lines.length) {
+            return ErrorHandler.createError(
+                `csplit: '${pattern}': line number out of range`
+            );
+          }
+          splitLine = lineNum - 1;
+        }
+
+        if (splitLine === -1 || splitLine < lastSplitLine) {
+          return ErrorHandler.createError(
+              `csplit: '${pattern}': pattern not found or out of order`
+          );
+        }
+
+        segments.push(lines.slice(lastSplitLine, splitLine));
+        lastSplitLine = splitLine;
+      }
+
+      segments.push(lines.slice(lastSplitLine));
+
+      const createdFileNames = [];
+      let anyChangeMade = false;
+
+      for (let i = 0; i < segments.length; i++) {
+        const segmentContent = segments[i].join("\n");
+
+        if (!segmentContent && flags.elideEmpty) {
+          continue;
+        }
+
+        const fileName = `${prefix}${String(i).padStart(numDigits, "0")}`;
+        const saveResult = await FileSystemManager.createOrUpdateFile(
+            FileSystemManager.getAbsolutePath(fileName),
+            segmentContent,
+            {
+              currentUser,
+              primaryGroup: UserManager.getPrimaryGroupForUser(currentUser),
+            }
+        );
+
+        if (!saveResult.success) {
+          if (!flags.keepFiles) {
+            for (const f of createdFileNames) {
+              await CommandExecutor.processSingleCommand(`rm -f ${f}`, {
+                isInteractive: false,
+              });
+            }
+          }
+          return ErrorHandler.createError(
+              `csplit: failed to write to ${fileName}: ${saveResult.error}`
+          );
+        }
+
+        createdFileNames.push(fileName);
+        anyChangeMade = true;
+
+        if (!flags.quiet) {
+          await OutputManager.appendToOutput(String(segmentContent.length));
+        }
+      }
+
+      return ErrorHandler.createSuccess("", { stateModified: anyChangeMade });
     },
   };
   CommandRegistry.register(csplitCommandDefinition);

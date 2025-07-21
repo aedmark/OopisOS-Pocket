@@ -29,27 +29,21 @@ EXAMPLES
       const { UserManager, GroupManager, ErrorHandler } = dependencies;
       const targetUser = args.length > 0 ? args[0] : currentUser;
 
-      try {
-        if (!(await UserManager.userExists(targetUser))) {
-          return ErrorHandler.createError(
-              `groups: user '${targetUser}' does not exist`
-          );
-        }
-
-        const userGroups = GroupManager.getGroupsForUser(targetUser);
-
-        if (userGroups.length === 0) {
-          return ErrorHandler.createSuccess(
-              `groups: user '${targetUser}' is not a member of any group`
-          );
-        }
-
-        return ErrorHandler.createSuccess(userGroups.join(" "));
-      } catch (e) {
+      if (!(await UserManager.userExists(targetUser))) {
         return ErrorHandler.createError(
-            `groups: An unexpected error occurred: ${e.message}`
+            `groups: user '${targetUser}' does not exist`
         );
       }
+
+      const userGroups = GroupManager.getGroupsForUser(targetUser);
+
+      if (userGroups.length === 0) {
+        return ErrorHandler.createSuccess(
+            `groups: user '${targetUser}' is not a member of any group`
+        );
+      }
+
+      return ErrorHandler.createSuccess(userGroups.join(" "));
     },
   };
   CommandRegistry.register(groupsCommandDefinition);

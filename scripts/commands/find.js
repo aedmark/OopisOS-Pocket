@@ -36,270 +36,264 @@ Expressions are made up of tests and actions:
       let filesProcessedSuccessfully = true;
       let anyChangeMadeDuringFind = false;
 
-      try {
-        const predicates = {
-          "-name": (node, path, pattern) => {
-            const regex = Utils.globToRegex(pattern);
-            if (!regex) {
-              outputLines.push(`find: invalid pattern for -name: ${pattern}`);
-              hadError = true;
-              return false;
-            }
-            return regex.test(path.substring(path.lastIndexOf("/") + 1));
-          },
-          "-type": (node, path, typeChar) => {
-            if (typeChar === "f") return node.type === "file";
-            if (typeChar === "d") return node.type === "directory";
-            outputLines.push(`find: unknown type '${typeChar}' for -type`);
+      const predicates = {
+        "-name": (node, path, pattern) => {
+          const regex = Utils.globToRegex(pattern);
+          if (!regex) {
+            outputLines.push(`find: invalid pattern for -name: ${pattern}`);
             hadError = true;
             return false;
-          },
-          "-user": (node, path, username) => node.owner === username,
-          "-perm": (node, path, modeStr) => {
-            if (!/^[0-7]{3,4}$/.test(modeStr)) {
-              outputLines.push(`find: invalid mode '${modeStr}' for -perm`);
-              hadError = true;
-              return false;
-            }
-            return node.mode === parseInt(modeStr, 8);
-          },
-          "-mtime": (node, path, mtimeSpec) => {
-            if (!node.mtime) return false;
-            const ageInMs =
-                new Date().getTime() - new Date(node.mtime).getTime();
-            const days = ageInMs / (24 * 60 * 60 * 1000);
-            let n;
-            if (mtimeSpec.startsWith("+")) {
-              n = parseInt(mtimeSpec.substring(1), 10);
-              return !isNaN(n) && days > n;
-            } else if (mtimeSpec.startsWith("-")) {
-              n = parseInt(mtimeSpec.substring(1), 10);
-              return !isNaN(n) && days < n;
-            } else {
-              n = parseInt(mtimeSpec, 10);
-              return !isNaN(n) && Math.floor(days) === n;
-            }
-          },
-        };
-
-        const actions = {
-          "-print": async (node, path) => {
-            outputLines.push(path);
-            return true;
-          },
-          "-exec": async (node, path, commandParts) => {
-            const cmdStr = commandParts
-                .map((part) => (part === "{}" ? `"${path}"` : part))
-                .join(" ");
-            const result = await CommandExecutor.processSingleCommand(cmdStr, {
-              isInteractive: false,
-            });
-            if (!result.success) {
-              outputLines.push(
-                  `find: -exec: command '${cmdStr}' failed: ${result.error}`
-              );
-              filesProcessedSuccessfully = false;
-              return false;
-            }
-            return true;
-          },
-          "-delete": async (node, path) => {
-            const result = await FileSystemManager.deleteNodeRecursive(path, {
-              force: true,
-              currentUser,
-            });
-            if (!result.success) {
-              outputLines.push(
-                  `find: -delete: ${result.error.messages.join(";") || `failed to delete '${path}'`}`
-              );
-              filesProcessedSuccessfully = false;
-              return false;
-            }
-            if (result.data.anyChangeMade) anyChangeMadeDuringFind = true;
-            return true;
-          },
-        };
-
-        let parsedExpression = [];
-        let currentTermGroup = [];
-        let nextTermNegated = false;
-        let hasExplicitAction = false;
-        let i = 0;
-        while (i < expressionArgs.length) {
-          const token = expressionArgs[i];
-          if (token === "-not" || token === "!") {
-            nextTermNegated = true;
-            i++;
-            continue;
           }
-          if (token === "-or" || token === "-o") {
-            if (currentTermGroup.length > 0)
-              parsedExpression.push({
-                type: "AND_GROUP",
-                terms: currentTermGroup,
-              });
-            currentTermGroup = [];
-            parsedExpression.push({ type: "OR" });
-            i++;
-            continue;
+          return regex.test(path.substring(path.lastIndexOf("/") + 1));
+        },
+        "-type": (node, path, typeChar) => {
+          if (typeChar === "f") return node.type === "file";
+          if (typeChar === "d") return node.type === "directory";
+          outputLines.push(`find: unknown type '${typeChar}' for -type`);
+          hadError = true;
+          return false;
+        },
+        "-user": (node, path, username) => node.owner === username,
+        "-perm": (node, path, modeStr) => {
+          if (!/^[0-7]{3,4}$/.test(modeStr)) {
+            outputLines.push(`find: invalid mode '${modeStr}' for -perm`);
+            hadError = true;
+            return false;
           }
+          return node.mode === parseInt(modeStr, 8);
+        },
+        "-mtime": (node, path, mtimeSpec) => {
+          if (!node.mtime) return false;
+          const ageInMs =
+              new Date().getTime() - new Date(node.mtime).getTime();
+          const days = ageInMs / (24 * 60 * 60 * 1000);
+          let n;
+          if (mtimeSpec.startsWith("+")) {
+            n = parseInt(mtimeSpec.substring(1), 10);
+            return !isNaN(n) && days > n;
+          } else if (mtimeSpec.startsWith("-")) {
+            n = parseInt(mtimeSpec.substring(1), 10);
+            return !isNaN(n) && days < n;
+          } else {
+            n = parseInt(mtimeSpec, 10);
+            return !isNaN(n) && Math.floor(days) === n;
+          }
+        },
+      };
 
-          let term = { name: token, negated: nextTermNegated };
-          nextTermNegated = false;
+      const actions = {
+        "-print": async (node, path) => {
+          outputLines.push(path);
+          return true;
+        },
+        "-exec": async (node, path, commandParts) => {
+          const cmdStr = commandParts
+              .map((part) => (part === "{}" ? `"${path}"` : part))
+              .join(" ");
+          const result = await CommandExecutor.processSingleCommand(cmdStr, {
+            isInteractive: false,
+          });
+          if (!result.success) {
+            outputLines.push(
+                `find: -exec: command '${cmdStr}' failed: ${result.error}`
+            );
+            filesProcessedSuccessfully = false;
+            return false;
+          }
+          return true;
+        },
+        "-delete": async (node, path) => {
+          const result = await FileSystemManager.deleteNodeRecursive(path, {
+            force: true,
+            currentUser,
+          });
+          if (!result.success) {
+            outputLines.push(
+                `find: -delete: ${result.error.messages.join(";") || `failed to delete '${path}'`}`
+            );
+            filesProcessedSuccessfully = false;
+            return false;
+          }
+          if (result.data.anyChangeMade) anyChangeMadeDuringFind = true;
+          return true;
+        },
+      };
 
-          if (predicates[token]) {
-            term.type = "TEST";
-            term.eval = predicates[token];
-            if (i + 1 < expressionArgs.length) {
-              term.arg = expressionArgs[++i];
-            } else {
-              return ErrorHandler.createError(
-                  `find: missing argument to \`${token}\``
-              );
-            }
-          } else if (actions[token]) {
-            term.type = "ACTION";
-            term.perform = actions[token];
-            hasExplicitAction = true;
-            if (token === "-exec") {
-              term.commandParts = [];
-              i++;
-              while (i < expressionArgs.length && expressionArgs[i] !== ";")
-                term.commandParts.push(expressionArgs[i++]);
-              if (i >= expressionArgs.length || expressionArgs[i] !== ";")
-                return ErrorHandler.createError(
-                    "find: missing terminating ';' for -exec"
-                );
-            }
+      let parsedExpression = [];
+      let currentTermGroup = [];
+      let nextTermNegated = false;
+      let hasExplicitAction = false;
+      let i = 0;
+      while (i < expressionArgs.length) {
+        const token = expressionArgs[i];
+        if (token === "-not" || token === "!") {
+          nextTermNegated = true;
+          i++;
+          continue;
+        }
+        if (token === "-or" || token === "-o") {
+          if (currentTermGroup.length > 0)
+            parsedExpression.push({
+              type: "AND_GROUP",
+              terms: currentTermGroup,
+            });
+          currentTermGroup = [];
+          parsedExpression.push({ type: "OR" });
+          i++;
+          continue;
+        }
+
+        let term = { name: token, negated: nextTermNegated };
+        nextTermNegated = false;
+
+        if (predicates[token]) {
+          term.type = "TEST";
+          term.eval = predicates[token];
+          if (i + 1 < expressionArgs.length) {
+            term.arg = expressionArgs[++i];
           } else {
             return ErrorHandler.createError(
-                `find: unknown predicate '${token}'`
+                `find: missing argument to \`${token}\``
             );
           }
-          currentTermGroup.push(term);
-          i++;
-        }
-        if (currentTermGroup.length > 0)
-          parsedExpression.push({ type: "AND_GROUP", terms: currentTermGroup });
-
-        if (!hasExplicitAction) {
-          if (
-              parsedExpression.length === 0 ||
-              parsedExpression[parsedExpression.length - 1].type === "OR"
-          )
-            parsedExpression.push({ type: "AND_GROUP", terms: [] });
-          parsedExpression[parsedExpression.length - 1].terms.push({
-            type: "ACTION",
-            name: "-print",
-            perform: actions["-print"],
-            negated: false,
-          });
-        }
-
-        async function evaluateExpressionForNode(node, path) {
-          let overallResult = false;
-          let currentAndGroupResult = true;
-
-          for (const groupOrOperator of parsedExpression) {
-            if (groupOrOperator.type === "AND_GROUP") {
-              currentAndGroupResult = true;
-              for (const term of groupOrOperator.terms.filter(
-                  (t) => t.type === "TEST"
-              )) {
-                const result = await term.eval(node, path, term.arg);
-                const effectiveResult = term.negated ? !result : result;
-                if (!effectiveResult) {
-                  currentAndGroupResult = false;
-                  break;
-                }
-              }
-            } else if (groupOrOperator.type === "OR") {
-              overallResult = overallResult || currentAndGroupResult;
-              currentAndGroupResult = true;
-            }
-          }
-          overallResult = overallResult || currentAndGroupResult;
-          return overallResult;
-        }
-
-        async function recurseFind(currentResolvedPath, isDepthFirst) {
-          const node = FileSystemManager.getNodeByPath(currentResolvedPath);
-          if (!node) {
-            outputLines.push(
-                `find: ‘${currentResolvedPath}’: No such file or directory`
-            );
-            filesProcessedSuccessfully = false;
-            return;
-          }
-          if (!FileSystemManager.hasPermission(node, currentUser, "read")) {
-            outputLines.push(
-                `find: ‘${currentResolvedPath}’: Permission denied`
-            );
-            filesProcessedSuccessfully = false;
-            return;
-          }
-
-          const processNode = async () => {
-            if (await evaluateExpressionForNode(node, currentResolvedPath)) {
-              for (const groupOrOperator of parsedExpression) {
-                if (groupOrOperator.type === "AND_GROUP") {
-                  for (const term of groupOrOperator.terms.filter(
-                      (t) => t.type === "ACTION"
-                  ))
-                    await term.perform(
-                        node,
-                        currentResolvedPath,
-                        term.commandParts
-                    );
-                }
-              }
-            }
-          };
-
-          if (!isDepthFirst) await processNode();
-
-          if (node.type === "directory") {
-            for (const childName of Object.keys(node.children || {})) {
-              await recurseFind(
-                  FileSystemManager.getAbsolutePath(
-                      childName,
-                      currentResolvedPath
-                  ),
-                  isDepthFirst
+        } else if (actions[token]) {
+          term.type = "ACTION";
+          term.perform = actions[token];
+          hasExplicitAction = true;
+          if (token === "-exec") {
+            term.commandParts = [];
+            i++;
+            while (i < expressionArgs.length && expressionArgs[i] !== ";")
+              term.commandParts.push(expressionArgs[i++]);
+            if (i >= expressionArgs.length || expressionArgs[i] !== ";")
+              return ErrorHandler.createError(
+                  "find: missing terminating ';' for -exec"
               );
-            }
           }
-
-          if (isDepthFirst) await processNode();
-        }
-
-        const startPathResolved =
-            FileSystemManager.getAbsolutePath(startPathArg);
-        const startNode = FileSystemManager.getNodeByPath(startPathResolved);
-
-        if (!startNode) {
+        } else {
           return ErrorHandler.createError(
-              `find: '${startPathArg}': No such file or directory`
+              `find: unknown predicate '${token}'`
           );
         }
+        currentTermGroup.push(term);
+        i++;
+      }
+      if (currentTermGroup.length > 0)
+        parsedExpression.push({ type: "AND_GROUP", terms: currentTermGroup });
 
-        const impliesDepth = parsedExpression.some(
-            (g) =>
-                g.type === "AND_GROUP" && g.terms.some((t) => t.name === "-delete")
-        );
-        await recurseFind(startPathResolved, impliesDepth);
-
-        if (hadError || !filesProcessedSuccessfully) {
-          return ErrorHandler.createError(outputLines.join("\n"));
-        }
-        return ErrorHandler.createSuccess(outputLines.join("\n"), {
-          stateModified: anyChangeMadeDuringFind,
+      if (!hasExplicitAction) {
+        if (
+            parsedExpression.length === 0 ||
+            parsedExpression[parsedExpression.length - 1].type === "OR"
+        )
+          parsedExpression.push({ type: "AND_GROUP", terms: [] });
+        parsedExpression[parsedExpression.length - 1].terms.push({
+          type: "ACTION",
+          name: "-print",
+          perform: actions["-print"],
+          negated: false,
         });
-      } catch (e) {
+      }
+
+      async function evaluateExpressionForNode(node, path) {
+        let overallResult = false;
+        let currentAndGroupResult = true;
+
+        for (const groupOrOperator of parsedExpression) {
+          if (groupOrOperator.type === "AND_GROUP") {
+            currentAndGroupResult = true;
+            for (const term of groupOrOperator.terms.filter(
+                (t) => t.type === "TEST"
+            )) {
+              const result = await term.eval(node, path, term.arg);
+              const effectiveResult = term.negated ? !result : result;
+              if (!effectiveResult) {
+                currentAndGroupResult = false;
+                break;
+              }
+            }
+          } else if (groupOrOperator.type === "OR") {
+            overallResult = overallResult || currentAndGroupResult;
+            currentAndGroupResult = true;
+          }
+        }
+        overallResult = overallResult || currentAndGroupResult;
+        return overallResult;
+      }
+
+      async function recurseFind(currentResolvedPath, isDepthFirst) {
+        const node = FileSystemManager.getNodeByPath(currentResolvedPath);
+        if (!node) {
+          outputLines.push(
+              `find: ‘${currentResolvedPath}’: No such file or directory`
+          );
+          filesProcessedSuccessfully = false;
+          return;
+        }
+        if (!FileSystemManager.hasPermission(node, currentUser, "read")) {
+          outputLines.push(
+              `find: ‘${currentResolvedPath}’: Permission denied`
+          );
+          filesProcessedSuccessfully = false;
+          return;
+        }
+
+        const processNode = async () => {
+          if (await evaluateExpressionForNode(node, currentResolvedPath)) {
+            for (const groupOrOperator of parsedExpression) {
+              if (groupOrOperator.type === "AND_GROUP") {
+                for (const term of groupOrOperator.terms.filter(
+                    (t) => t.type === "ACTION"
+                ))
+                  await term.perform(
+                      node,
+                      currentResolvedPath,
+                      term.commandParts
+                  );
+              }
+            }
+          }
+        };
+
+        if (!isDepthFirst) await processNode();
+
+        if (node.type === "directory") {
+          for (const childName of Object.keys(node.children || {})) {
+            await recurseFind(
+                FileSystemManager.getAbsolutePath(
+                    childName,
+                    currentResolvedPath
+                ),
+                isDepthFirst
+            );
+          }
+        }
+
+        if (isDepthFirst) await processNode();
+      }
+
+      const startPathResolved =
+          FileSystemManager.getAbsolutePath(startPathArg);
+      const startNode = FileSystemManager.getNodeByPath(startPathResolved);
+
+      if (!startNode) {
         return ErrorHandler.createError(
-            `find: An unexpected error occurred: ${e.message}`
+            `find: '${startPathArg}': No such file or directory`
         );
       }
+
+      const impliesDepth = parsedExpression.some(
+          (g) =>
+              g.type === "AND_GROUP" && g.terms.some((t) => t.name === "-delete")
+      );
+      await recurseFind(startPathResolved, impliesDepth);
+
+      if (hadError || !filesProcessedSuccessfully) {
+        return ErrorHandler.createError(outputLines.join("\n"));
+      }
+      return ErrorHandler.createSuccess(outputLines.join("\n"), {
+        stateModified: anyChangeMadeDuringFind,
+      });
     },
   };
   CommandRegistry.register(findCommandDefinition);

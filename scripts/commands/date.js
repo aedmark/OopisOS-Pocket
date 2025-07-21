@@ -19,13 +19,7 @@ DESCRIPTION
     },
     coreLogic: async (context) => {
       const { ErrorHandler } = context.dependencies;
-      try {
-        return ErrorHandler.createSuccess(new Date().toString());
-      } catch (e) {
-        return ErrorHandler.createError(
-            `date: An unexpected error occurred: ${e.message}`
-        );
-      }
+      return ErrorHandler.createSuccess(new Date().toString());
     },
   };
   CommandRegistry.register(dateCommandDefinition);

@@ -42,74 +42,68 @@ EXAMPLES
       const { flags, inputItems, inputError, dependencies } = context;
       const { ErrorHandler } = dependencies;
 
-      try {
-        if (inputError) {
-          return ErrorHandler.createError(
-              "uniq: One or more input files could not be read."
-          );
-        }
+      if (inputError) {
+        return ErrorHandler.createError(
+            "uniq: One or more input files could not be read."
+        );
+      }
 
-        if (flags.repeated && flags.unique) {
-          return ErrorHandler.createError(
-              "uniq: printing only unique and repeated lines is mutually exclusive"
-          );
-        }
+      if (flags.repeated && flags.unique) {
+        return ErrorHandler.createError(
+            "uniq: printing only unique and repeated lines is mutually exclusive"
+        );
+      }
 
-        if (!inputItems || inputItems.length === 0) {
-          return ErrorHandler.createSuccess("");
-        }
+      if (!inputItems || inputItems.length === 0) {
+        return ErrorHandler.createSuccess("");
+      }
 
-        const inputText = inputItems.map((item) => item.content).join("\n");
-        if (!inputText) {
-          return ErrorHandler.createSuccess("");
-        }
+      const inputText = inputItems.map((item) => item.content).join("\n");
+      if (!inputText) {
+        return ErrorHandler.createSuccess("");
+      }
 
-        let lines = inputText.split("\n");
-        if (lines.length > 0 && lines[lines.length - 1] === "") {
-          lines.pop();
-        }
+      let lines = inputText.split("\n");
+      if (lines.length > 0 && lines[lines.length - 1] === "") {
+        lines.pop();
+      }
 
-        const outputLines = [];
-        if (lines.length > 0) {
-          let currentLine = lines[0];
-          let count = 1;
+      const outputLines = [];
+      if (lines.length > 0) {
+        let currentLine = lines[0];
+        let count = 1;
 
-          for (let i = 1; i <= lines.length; i++) {
-            if (i < lines.length && lines[i] === currentLine) {
-              count++;
-            } else {
-              if (!flags.repeated && !flags.unique) {
-                outputLines.push(
-                    flags.count
-                        ? `${String(count).padStart(7)} ${currentLine}`
-                        : currentLine
-                );
-              } else if (flags.repeated && count > 1) {
-                outputLines.push(
-                    flags.count
-                        ? `${String(count).padStart(7)} ${currentLine}`
-                        : currentLine
-                );
-              } else if (flags.unique && count === 1) {
-                outputLines.push(
-                    flags.count
-                        ? `${String(count).padStart(7)} ${currentLine}`
-                        : currentLine
-                );
-              }
-              if (i < lines.length) {
-                currentLine = lines[i];
-                count = 1;
-              }
+        for (let i = 1; i <= lines.length; i++) {
+          if (i < lines.length && lines[i] === currentLine) {
+            count++;
+          } else {
+            if (!flags.repeated && !flags.unique) {
+              outputLines.push(
+                  flags.count
+                      ? `${String(count).padStart(7)} ${currentLine}`
+                      : currentLine
+              );
+            } else if (flags.repeated && count > 1) {
+              outputLines.push(
+                  flags.count
+                      ? `${String(count).padStart(7)} ${currentLine}`
+                      : currentLine
+              );
+            } else if (flags.unique && count === 1) {
+              outputLines.push(
+                  flags.count
+                      ? `${String(count).padStart(7)} ${currentLine}`
+                      : currentLine
+              );
+            }
+            if (i < lines.length) {
+              currentLine = lines[i];
+              count = 1;
             }
           }
         }
-        return ErrorHandler.createSuccess(outputLines.join("\n"));
-      } catch (e) {
-        return ErrorHandler.createError(
-            `uniq: An unexpected error occurred: ${e.message}`
-        );
       }
+      return ErrorHandler.createSuccess(outputLines.join("\n"));
     },
   };
   CommandRegistry.register(uniqCommandDefinition);

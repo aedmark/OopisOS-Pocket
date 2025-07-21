@@ -84,29 +84,23 @@ EXAMPLES
       const { CommandExecutor, CommandRegistry, ErrorHandler } = dependencies;
       const commandName = args[0];
 
-      try {
-        const isLoaded =
-            await CommandExecutor._ensureCommandLoaded(commandName);
+      const isLoaded =
+          await CommandExecutor._ensureCommandLoaded(commandName);
 
-        if (!isLoaded) {
-          return ErrorHandler.createError(`No manual entry for ${commandName}`);
-        }
-
-        const allCommands = CommandRegistry.getDefinitions();
-        const commandData = allCommands[commandName];
-
-        if (!commandData) {
-          return ErrorHandler.createError(`No manual entry for ${commandName}`);
-        }
-
-        const manPage = formatManPage(commandName, commandData);
-
-        return ErrorHandler.createSuccess(manPage);
-      } catch (e) {
-        return ErrorHandler.createError(
-            `man: An unexpected error occurred: ${e.message}`
-        );
+      if (!isLoaded) {
+        return ErrorHandler.createError(`No manual entry for ${commandName}`);
       }
+
+      const allCommands = CommandRegistry.getDefinitions();
+      const commandData = allCommands[commandName];
+
+      if (!commandData) {
+        return ErrorHandler.createError(`No manual entry for ${commandName}`);
+      }
+
+      const manPage = formatManPage(commandName, commandData);
+
+      return ErrorHandler.createSuccess(manPage);
     },
   };
   CommandRegistry.register(manCommandDefinition);

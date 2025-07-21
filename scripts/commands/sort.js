@@ -41,58 +41,52 @@ EXAMPLES
       const { flags, inputItems, inputError, dependencies } = context;
       const { ErrorHandler } = dependencies;
 
-      try {
-        if (inputError) {
-          return ErrorHandler.createError(
-              "sort: No readable input provided or permission denied."
-          );
-        }
-
-        if (!inputItems || inputItems.length === 0) {
-          return ErrorHandler.createSuccess("");
-        }
-
-        const input = inputItems.map((item) => item.content).join("\n");
-        let lines = input.split("\n");
-
-        if (lines.length > 0 && lines.at(-1) === "") {
-          lines.pop();
-        }
-
-        if (flags.numeric) {
-          lines.sort((a, b) => {
-            const numA = parseFloat(a);
-            const numB = parseFloat(b);
-            if (isNaN(numA) && isNaN(numB)) return a.localeCompare(b);
-            if (isNaN(numA)) return 1;
-            if (isNaN(numB)) return -1;
-            return numA - numB;
-          });
-        } else {
-          lines.sort((a, b) => a.localeCompare(b));
-        }
-
-        if (flags.reverse) {
-          lines.reverse();
-        }
-
-        if (flags.unique) {
-          const uniqueLines = [...new Set(lines)];
-          if (flags.numeric) {
-            uniqueLines.sort((a, b) => parseFloat(a) - parseFloat(b));
-          }
-          if (flags.reverse) {
-            uniqueLines.reverse();
-          }
-          lines = uniqueLines;
-        }
-
-        return ErrorHandler.createSuccess(lines.join("\n"));
-      } catch (e) {
+      if (inputError) {
         return ErrorHandler.createError(
-            `sort: An unexpected error occurred: ${e.message}`
+            "sort: No readable input provided or permission denied."
         );
       }
+
+      if (!inputItems || inputItems.length === 0) {
+        return ErrorHandler.createSuccess("");
+      }
+
+      const input = inputItems.map((item) => item.content).join("\n");
+      let lines = input.split("\n");
+
+      if (lines.length > 0 && lines.at(-1) === "") {
+        lines.pop();
+      }
+
+      if (flags.numeric) {
+        lines.sort((a, b) => {
+          const numA = parseFloat(a);
+          const numB = parseFloat(b);
+          if (isNaN(numA) && isNaN(numB)) return a.localeCompare(b);
+          if (isNaN(numA)) return 1;
+          if (isNaN(numB)) return -1;
+          return numA - numB;
+        });
+      } else {
+        lines.sort((a, b) => a.localeCompare(b));
+      }
+
+      if (flags.reverse) {
+        lines.reverse();
+      }
+
+      if (flags.unique) {
+        const uniqueLines = [...new Set(lines)];
+        if (flags.numeric) {
+          uniqueLines.sort((a, b) => parseFloat(a) - parseFloat(b));
+        }
+        if (flags.reverse) {
+          uniqueLines.reverse();
+        }
+        lines = uniqueLines;
+      }
+
+      return ErrorHandler.createSuccess(lines.join("\n"));
     },
   };
   CommandRegistry.register(sortCommandDefinition);

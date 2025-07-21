@@ -48,91 +48,85 @@ WARNING
       ]
     },
     coreLogic: async (context) => {
-      const { args, flags, currentUser, options, validatedPaths, dependencies } = context;
+      const { flags, currentUser, options, validatedPaths, dependencies } = context;
       const { ErrorHandler, FileSystemManager, ModalManager, Config } = dependencies;
       let allSuccess = true;
       let anyChangeMade = false;
       const messages = [];
 
-      try {
-        for (const pathData of validatedPaths) {
-          const { arg: pathArg, node, resolvedPath } = pathData;
+      for (const pathData of validatedPaths) {
+        const { arg: pathArg, node, resolvedPath } = pathData;
 
-          if (!node) {
-            if (!flags.force) {
-              messages.push(`rm: cannot remove '${pathArg}': No such file or directory`);
-              allSuccess = false;
-            }
-            continue;
-          }
-
-          if (resolvedPath === "/") {
-            messages.push(`rm: cannot remove root directory`);
+        if (!node) {
+          if (!flags.force) {
+            messages.push(`rm: cannot remove '${pathArg}': No such file or directory`);
             allSuccess = false;
-            continue;
           }
+          continue;
+        }
 
-          if (node.type === "directory" && !flags.recursive) {
-            messages.push(
-                `rm: cannot remove '${pathArg}': Is a directory (use -r or -R)`
-            );
-            allSuccess = false;
-            continue;
-          }
+        if (resolvedPath === "/") {
+          messages.push(`rm: cannot remove root directory`);
+          allSuccess = false;
+          continue;
+        }
 
-          const isPromptRequired =
-              flags.interactive || (options.isInteractive && !flags.force);
+        if (node.type === "directory" && !flags.recursive) {
+          messages.push(
+              `rm: cannot remove '${pathArg}': Is a directory (use -r or -R)`
+          );
+          allSuccess = false;
+          continue;
+        }
 
-          if (isPromptRequired) {
-            const promptMsg =
-                node.type === "directory"
-                    ? `Recursively remove directory '${pathArg}'?`
-                    : `Remove file '${pathArg}'?`;
-            const confirmed = await new Promise((resolve) => {
-              ModalManager.request({
-                context: "terminal",
-                type: "confirm",
-                messageLines: [promptMsg],
-                onConfirm: () => resolve(true),
-                onCancel: () => resolve(false),
-                options,
-              });
+        const isPromptRequired =
+            flags.interactive || (options.isInteractive && !flags.force);
+
+        if (isPromptRequired) {
+          const promptMsg =
+              node.type === "directory"
+                  ? `Recursively remove directory '${pathArg}'?`
+                  : `Remove file '${pathArg}'?`;
+          const confirmed = await new Promise((resolve) => {
+            ModalManager.request({
+              context: "terminal",
+              type: "confirm",
+              messageLines: [promptMsg],
+              onConfirm: () => resolve(true),
+              onCancel: () => resolve(false),
+              options,
             });
+          });
 
-            if (!confirmed) {
-              messages.push(
-                  `${Config.MESSAGES.REMOVAL_CANCELLED_PREFIX}'${pathArg}'${Config.MESSAGES.REMOVAL_CANCELLED_SUFFIX}`
-              );
-              continue;
-            }
-          }
-
-          const deleteResult = await FileSystemManager.deleteNodeRecursive(
-              resolvedPath,
-              { force: true, currentUser }
-          );
-          if (deleteResult.success) {
-            if (deleteResult.data.anyChangeMade) anyChangeMade = true;
-          } else {
-            allSuccess = false;
+          if (!confirmed) {
             messages.push(
-                ...(deleteResult.error.messages || [deleteResult.error])
+                `${Config.MESSAGES.REMOVAL_CANCELLED_PREFIX}'${pathArg}'${Config.MESSAGES.REMOVAL_CANCELLED_SUFFIX}`
             );
+            continue;
           }
         }
 
-        const finalOutput = messages.filter((m) => m).join("\n");
-        if (!allSuccess) {
-          return ErrorHandler.createError(
-              finalOutput || "Unknown error during rm operation."
+        const deleteResult = await FileSystemManager.deleteNodeRecursive(
+            resolvedPath,
+            { force: true, currentUser }
+        );
+        if (deleteResult.success) {
+          if (deleteResult.data.anyChangeMade) anyChangeMade = true;
+        } else {
+          allSuccess = false;
+          messages.push(
+              ...(deleteResult.error.messages || [deleteResult.error])
           );
         }
-        return ErrorHandler.createSuccess("", { stateModified: anyChangeMade });
-      } catch (e) {
+      }
+
+      const finalOutput = messages.filter((m) => m).join("\n");
+      if (!allSuccess) {
         return ErrorHandler.createError(
-            `rm: An unexpected error occurred: ${e.message}`
+            finalOutput || "Unknown error during rm operation."
         );
       }
+      return ErrorHandler.createSuccess("", { stateModified: anyChangeMade });
     },
   };
   CommandRegistry.register(rmCommandDefinition);

@@ -34,19 +34,19 @@ EXAMPLES
       const { flags, inputItems, inputError, dependencies } = context;
       const { ErrorHandler } = dependencies;
 
+      if (inputError) {
+        return ErrorHandler.createError(
+            "base64: No readable input provided or permission denied."
+        );
+      }
+
+      if (!inputItems || inputItems.length === 0) {
+        return ErrorHandler.createSuccess("");
+      }
+
+      const inputData = inputItems.map((item) => item.content).join("\n");
+
       try {
-        if (inputError) {
-          return ErrorHandler.createError(
-              "base64: No readable input provided or permission denied."
-          );
-        }
-
-        if (!inputItems || inputItems.length === 0) {
-          return ErrorHandler.createSuccess("");
-        }
-
-        const inputData = inputItems.map((item) => item.content).join("\n");
-
         if (flags.decode) {
           // The 'atob' function in browsers correctly handles whitespace.
           const decodedData = atob(inputData);
@@ -63,10 +63,8 @@ EXAMPLES
         if (e instanceof DOMException && e.name === "InvalidCharacterError") {
           return ErrorHandler.createError("base64: invalid input");
         }
-        // Catch any other unexpected errors.
-        return ErrorHandler.createError(
-            `base64: an unexpected error occurred: ${e.message}`
-        );
+        // Re-throw any other unexpected errors.
+        throw e;
       }
     },
   };

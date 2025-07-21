@@ -46,77 +46,71 @@ EXAMPLES
       const { flags, args, inputItems, inputError, dependencies } = context;
       const { ErrorHandler } = dependencies;
 
-      try {
-        if (args.length === 0) {
-          return ErrorHandler.createError("awk: missing program");
-        }
+      if (args.length === 0) {
+        return ErrorHandler.createError("awk: missing program");
+      }
 
-        if (inputError) {
-          return ErrorHandler.createError(
-              "awk: One or more input files could not be read."
-          );
-        }
-
-        const programString = args[0];
-        const program = _parseProgram(programString);
-        if (program.error) {
-          return ErrorHandler.createError(
-              `awk: program error: ${program.error}`
-          );
-        }
-
-        if (!inputItems || inputItems.length === 0) {
-          return ErrorHandler.createSuccess("");
-        }
-
-        const inputText = inputItems.map((item) => item.content).join("\n");
-        const separator = flags.fieldSeparator
-            ? new RegExp(flags.fieldSeparator)
-            : /\s+/;
-        let outputLines = [];
-        let nr = 0;
-
-        if (program.begin) {
-          const beginResult = _executeAction(program.begin, [], {
-            NR: 0,
-            NF: 0,
-          });
-          if (beginResult !== null) {
-            outputLines.push(beginResult);
-          }
-        }
-
-        const lines = inputText.split("\n");
-        for (const line of lines) {
-          if (line === "" && lines.at(-1) === "") continue;
-          nr++;
-          const trimmedLine = line.trim();
-          let fields = trimmedLine === "" ? [] : trimmedLine.split(separator);
-          if (!Array.isArray(fields)) fields = [];
-          const allFields = [line, ...fields];
-          const vars = { NR: nr, NF: fields.length };
-
-          for (const rule of program.rules) {
-            if (rule.pattern.test(line)) {
-              const actionResult = _executeAction(rule.action, allFields, vars);
-              if (actionResult !== null) outputLines.push(actionResult);
-            }
-          }
-        }
-
-        if (program.end) {
-          const endResult = _executeAction(program.end, [], { NR: nr, NF: 0 });
-          if (endResult !== null) {
-            outputLines.push(endResult);
-          }
-        }
-
-        return ErrorHandler.createSuccess(outputLines.join("\n"));
-      } catch (e) {
+      if (inputError) {
         return ErrorHandler.createError(
-            `awk: An unexpected error occurred: ${e.message}`
+            "awk: One or more input files could not be read."
         );
       }
+
+      const programString = args[0];
+      const program = _parseProgram(programString);
+      if (program.error) {
+        return ErrorHandler.createError(
+            `awk: program error: ${program.error}`
+        );
+      }
+
+      if (!inputItems || inputItems.length === 0) {
+        return ErrorHandler.createSuccess("");
+      }
+
+      const inputText = inputItems.map((item) => item.content).join("\n");
+      const separator = flags.fieldSeparator
+          ? new RegExp(flags.fieldSeparator)
+          : /\s+/;
+      let outputLines = [];
+      let nr = 0;
+
+      if (program.begin) {
+        const beginResult = _executeAction(program.begin, [], {
+          NR: 0,
+          NF: 0,
+        });
+        if (beginResult !== null) {
+          outputLines.push(beginResult);
+        }
+      }
+
+      const lines = inputText.split("\n");
+      for (const line of lines) {
+        if (line === "" && lines.at(-1) === "") continue;
+        nr++;
+        const trimmedLine = line.trim();
+        let fields = trimmedLine === "" ? [] : trimmedLine.split(separator);
+        if (!Array.isArray(fields)) fields = [];
+        const allFields = [line, ...fields];
+        const vars = { NR: nr, NF: fields.length };
+
+        for (const rule of program.rules) {
+          if (rule.pattern.test(line)) {
+            const actionResult = _executeAction(rule.action, allFields, vars);
+            if (actionResult !== null) outputLines.push(actionResult);
+          }
+        }
+      }
+
+      if (program.end) {
+        const endResult = _executeAction(program.end, [], { NR: nr, NF: 0 });
+        if (endResult !== null) {
+          outputLines.push(endResult);
+        }
+      }
+
+      return ErrorHandler.createSuccess(outputLines.join("\n"));
     },
   };
 

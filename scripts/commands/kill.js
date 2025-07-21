@@ -18,7 +18,7 @@ DESCRIPTION
        corresponding job IDs.
 
 EXAMPLES
-       delay 10000 &
+       delay 10000 
               [1] Backgrounded.
               
        ps

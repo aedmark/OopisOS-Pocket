@@ -63,23 +63,17 @@ PERMISSIONS
       const { node } = validatedPaths[0];
       const nowISO = new Date().toISOString();
 
-      try {
-        if (!/^[0-7]{3,4}$/.test(modeArg)) {
-          return ErrorHandler.createError(
-              `chmod: invalid mode: ‘${modeArg}’ (must be 3 or 4 octal digits)`
-          );
-        }
-
-        const newMode = parseInt(modeArg, 8);
-        node.mode = newMode;
-        node.mtime = nowISO;
-
-        return ErrorHandler.createSuccess("", { stateModified: true });
-      } catch (e) {
+      if (!/^[0-7]{3,4}$/.test(modeArg)) {
         return ErrorHandler.createError(
-            `chmod: An unexpected error occurred: ${e.message}`
+            `chmod: invalid mode: ‘${modeArg}’ (must be 3 or 4 octal digits)`
         );
       }
+
+      const newMode = parseInt(modeArg, 8);
+      node.mode = newMode;
+      node.mtime = nowISO;
+
+      return ErrorHandler.createSuccess("", { stateModified: true });
     },
   };
   CommandRegistry.register(chmodCommandDefinition);

@@ -30,26 +30,20 @@ OPTIONS
     coreLogic: async (context) => {
       const { flags, dependencies } = context;
       const { ErrorHandler, HistoryManager, Config } = dependencies;
-      try {
-        if (flags.clear) {
-          HistoryManager.clearHistory();
-          return ErrorHandler.createSuccess("Command history cleared.");
-        }
-        const history = HistoryManager.getFullHistory();
-        if (history.length === 0)
-          return ErrorHandler.createSuccess(
-              Config.MESSAGES.NO_COMMANDS_IN_HISTORY
-          );
-
-        const output = history
-            .map((cmd, i) => `  ${String(i + 1).padStart(3)}  ${cmd}`)
-            .join("\n");
-        return ErrorHandler.createSuccess(output);
-      } catch (e) {
-        return ErrorHandler.createError(
-            `history: An unexpected error occurred: ${e.message}`
-        );
+      if (flags.clear) {
+        HistoryManager.clearHistory();
+        return ErrorHandler.createSuccess("Command history cleared.");
       }
+      const history = HistoryManager.getFullHistory();
+      if (history.length === 0)
+        return ErrorHandler.createSuccess(
+            Config.MESSAGES.NO_COMMANDS_IN_HISTORY
+        );
+
+      const output = history
+          .map((cmd, i) => `  ${String(i + 1).padStart(3)}  ${cmd}`)
+          .join("\n");
+      return ErrorHandler.createSuccess(output);
     },
   };
   CommandRegistry.register(historyCommandDefinition);

@@ -31,27 +31,21 @@ EXAMPLES
     coreLogic: async (context) => {
       const { dependencies } = context;
       const { ErrorHandler, CommandExecutor } = dependencies;
-      try {
-        const jobs = CommandExecutor.getActiveJobs();
-        const jobIds = Object.keys(jobs);
+      const jobs = CommandExecutor.getActiveJobs();
+      const jobIds = Object.keys(jobs);
 
-        if (jobIds.length === 0) {
-          return ErrorHandler.createSuccess("No active background jobs.");
-        }
-
-        let outputLines = ["  PID   COMMAND"];
-
-        jobIds.forEach((id) => {
-          const job = jobs[id];
-          outputLines.push(`  ${String(id).padEnd(5)} ${job.command}`);
-        });
-
-        return ErrorHandler.createSuccess(outputLines.join("\n"));
-      } catch (e) {
-        return ErrorHandler.createError(
-            `ps: An unexpected error occurred: ${e.message}`
-        );
+      if (jobIds.length === 0) {
+        return ErrorHandler.createSuccess("No active background jobs.");
       }
+
+      let outputLines = ["  PID   COMMAND"];
+
+      jobIds.forEach((id) => {
+        const job = jobs[id];
+        outputLines.push(`  ${String(id).padEnd(5)} ${job.command}`);
+      });
+
+      return ErrorHandler.createSuccess(outputLines.join("\n"));
     },
   };
   CommandRegistry.register(psCommandDefinition);

@@ -38,28 +38,22 @@ EXAMPLES
       const targetUser = args.length > 0 ? args[0] : "root";
       const providedPassword = args.length > 1 ? args[1] : null;
 
-      try {
-        const result = await UserManager.su(
-            targetUser,
-            providedPassword,
-            options
-        );
-        if (result.success) {
-          const resultData = result.data || {};
-          if (!resultData.noAction) {
-            return ErrorHandler.createSuccess(
-                `${Config.MESSAGES.WELCOME_PREFIX} ${targetUser}${Config.MESSAGES.WELCOME_SUFFIX}`,
-                { effect: "clear_screen" }
-            );
-          }
-          return ErrorHandler.createSuccess(resultData.message);
-        } else {
-          return result;
+      const result = await UserManager.su(
+          targetUser,
+          providedPassword,
+          options
+      );
+      if (result.success) {
+        const resultData = result.data || {};
+        if (!resultData.noAction) {
+          return ErrorHandler.createSuccess(
+              `${Config.MESSAGES.WELCOME_PREFIX} ${targetUser}${Config.MESSAGES.WELCOME_SUFFIX}`,
+              { effect: "clear_screen" }
+          );
         }
-      } catch (e) {
-        return ErrorHandler.createError(
-            `su: An unexpected error occurred: ${e.message}`
-        );
+        return ErrorHandler.createSuccess(resultData.message);
+      } else {
+        return result;
       }
     },
   };

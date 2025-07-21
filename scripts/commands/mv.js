@@ -50,73 +50,67 @@ EXAMPLES
       const nowISO = new Date().toISOString();
       let changesMade = false;
 
-      try {
-        const destPathArg = args.pop();
-        const sourcePathArgs = args;
+      const destPathArg = args.pop();
+      const sourcePathArgs = args;
 
-        const planResult = await FileSystemManager.prepareFileOperation(
-            sourcePathArgs,
-            destPathArg,
-            { isMove: true }
-        );
+      const planResult = await FileSystemManager.prepareFileOperation(
+          sourcePathArgs,
+          destPathArg,
+          { isMove: true }
+      );
 
-        if (!planResult.success) {
-          return ErrorHandler.createError(`mv: ${planResult.error}`);
+      if (!planResult.success) {
+        return ErrorHandler.createError(`mv: ${planResult.error}`);
+      }
+
+      const operationsPlan = planResult.data;
+
+      for (const operation of operationsPlan) {
+        if (operation.sourceAbsPath === operation.destinationAbsPath) {
+          continue;
         }
 
-        const operationsPlan = planResult.data;
-
-        for (const operation of operationsPlan) {
-          if (operation.sourceAbsPath === operation.destinationAbsPath) {
+        if (
+            operation.willOverwrite &&
+            (flags.interactive || (options.isInteractive && !flags.force))
+        ) {
+          const confirmed = await new Promise((resolve) => {
+            ModalManager.request({
+              context: "terminal",
+              type: "confirm",
+              messageLines: [`Overwrite '${operation.destinationAbsPath}'?`],
+              onConfirm: () => resolve(true),
+              onCancel: () => resolve(false),
+              options,
+            });
+          });
+          if (!confirmed) {
             continue;
           }
-
-          if (
-              operation.willOverwrite &&
-              (flags.interactive || (options.isInteractive && !flags.force))
-          ) {
-            const confirmed = await new Promise((resolve) => {
-              ModalManager.request({
-                context: "terminal",
-                type: "confirm",
-                messageLines: [`Overwrite '${operation.destinationAbsPath}'?`],
-                onConfirm: () => resolve(true),
-                onCancel: () => resolve(false),
-                options,
-              });
-            });
-            if (!confirmed) {
-              continue;
-            }
-          }
-
-          const sourceName = operation.sourceAbsPath.substring(
-              operation.sourceAbsPath.lastIndexOf("/") + 1
-          );
-          const sourceParentPath =
-              operation.sourceAbsPath.substring(
-                  0,
-                  operation.sourceAbsPath.lastIndexOf("/")
-              ) || "/";
-          const sourceParentNode =
-              FileSystemManager.getNodeByPath(sourceParentPath);
-
-          const movedNode = Utils.deepCopyNode(operation.sourceNode);
-          movedNode.mtime = nowISO;
-          operation.destinationParentNode.children[operation.finalName] =
-              movedNode;
-          operation.destinationParentNode.mtime = nowISO;
-          delete sourceParentNode.children[sourceName];
-          sourceParentNode.mtime = nowISO;
-          changesMade = true;
         }
 
-        return ErrorHandler.createSuccess("", { stateModified: changesMade });
-      } catch (e) {
-        return ErrorHandler.createError(
-            `mv: An unexpected error occurred: ${e.message}`
+        const sourceName = operation.sourceAbsPath.substring(
+            operation.sourceAbsPath.lastIndexOf("/") + 1
         );
+        const sourceParentPath =
+            operation.sourceAbsPath.substring(
+                0,
+                operation.sourceAbsPath.lastIndexOf("/")
+            ) || "/";
+        const sourceParentNode =
+            FileSystemManager.getNodeByPath(sourceParentPath);
+
+        const movedNode = Utils.deepCopyNode(operation.sourceNode);
+        movedNode.mtime = nowISO;
+        operation.destinationParentNode.children[operation.finalName] =
+            movedNode;
+        operation.destinationParentNode.mtime = nowISO;
+        delete sourceParentNode.children[sourceName];
+        sourceParentNode.mtime = nowISO;
+        changesMade = true;
       }
+
+      return ErrorHandler.createSuccess("", { stateModified: changesMade });
     },
   };
   CommandRegistry.register(mvCommandDefinition);

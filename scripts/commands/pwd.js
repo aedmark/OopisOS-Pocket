@@ -20,13 +20,7 @@ DESCRIPTION
     coreLogic: async (context) => {
       const { dependencies } = context;
       const { ErrorHandler, FileSystemManager } = dependencies;
-      try {
-        return ErrorHandler.createSuccess(FileSystemManager.getCurrentPath());
-      } catch (e) {
-        return ErrorHandler.createError(
-            `pwd: An unexpected error occurred: ${e.message}`
-        );
-      }
+      return ErrorHandler.createSuccess(FileSystemManager.getCurrentPath());
     },
   };
   CommandRegistry.register(pwdCommandDefinition);

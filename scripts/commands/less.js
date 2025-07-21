@@ -29,31 +29,25 @@ EXAMPLES
       const { options, inputItems, inputError, dependencies } = context;
       const { ErrorHandler, PagerManager } = dependencies;
 
-      try {
-        if (inputError) {
-          return ErrorHandler.createError(
-              "less: Could not read one or more sources."
-          );
-        }
-
-        if (!inputItems || inputItems.length === 0) {
-          return ErrorHandler.createSuccess("");
-        }
-
-        const content = inputItems.map((item) => item.content).join("\\n");
-
-        if (!options.isInteractive) {
-          return ErrorHandler.createSuccess(content);
-        }
-
-        await PagerManager.enter(content, { mode: "less" });
-
-        return ErrorHandler.createSuccess("");
-      } catch (e) {
+      if (inputError) {
         return ErrorHandler.createError(
-            `less: An unexpected error occurred: ${e.message}`
+            "less: Could not read one or more sources."
         );
       }
+
+      if (!inputItems || inputItems.length === 0) {
+        return ErrorHandler.createSuccess("");
+      }
+
+      const content = inputItems.map((item) => item.content).join("\\n");
+
+      if (!options.isInteractive) {
+        return ErrorHandler.createSuccess(content);
+      }
+
+      await PagerManager.enter(content, { mode: "less" });
+
+      return ErrorHandler.createSuccess("");
     },
   };
   CommandRegistry.register(lessCommandDefinition);

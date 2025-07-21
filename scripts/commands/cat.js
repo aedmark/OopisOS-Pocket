@@ -37,38 +37,32 @@ EXAMPLES
     coreLogic: async (context) => {
       const { flags, inputItems, inputError, dependencies } = context;
       const { ErrorHandler } = dependencies;
-      try {
-        if (inputError) {
-          return ErrorHandler.createError(
-              "cat: One or more files could not be read."
-          );
-        }
-
-        if (!inputItems || inputItems.length === 0) {
-          return ErrorHandler.createSuccess("");
-        }
-
-        const content = inputItems.map((item) => item.content).join("\n");
-
-        if (flags.numberLines) {
-          let lineCounter = 1;
-          const lines = content.split("\n");
-          const processedLines =
-              lines.length > 0 && lines[lines.length - 1] === ""
-                  ? lines.slice(0, -1)
-                  : lines;
-          const numberedOutput = processedLines
-              .map((line) => `     ${String(lineCounter++).padStart(5)}  ${line}`)
-              .join("\n");
-          return ErrorHandler.createSuccess(numberedOutput);
-        }
-
-        return ErrorHandler.createSuccess(content);
-      } catch (e) {
+      if (inputError) {
         return ErrorHandler.createError(
-            `cat: An unexpected error occurred: ${e.message}`
+            "cat: One or more files could not be read."
         );
       }
+
+      if (!inputItems || inputItems.length === 0) {
+        return ErrorHandler.createSuccess("");
+      }
+
+      const content = inputItems.map((item) => item.content).join("\n");
+
+      if (flags.numberLines) {
+        let lineCounter = 1;
+        const lines = content.split("\n");
+        const processedLines =
+            lines.length > 0 && lines[lines.length - 1] === ""
+                ? lines.slice(0, -1)
+                : lines;
+        const numberedOutput = processedLines
+            .map((line) => `     ${String(lineCounter++).padStart(5)}  ${line}`)
+            .join("\n");
+        return ErrorHandler.createSuccess(numberedOutput);
+      }
+
+      return ErrorHandler.createSuccess(content);
     },
   };
   CommandRegistry.register(catCommandDefinition);

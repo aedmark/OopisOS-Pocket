@@ -26,18 +26,12 @@ DESCRIPTION
     coreLogic: async (context) => {
       const { dependencies } = context;
       const { SessionManager, ErrorHandler } = dependencies;
-      try {
-        const result = await SessionManager.saveManualState();
+      const result = await SessionManager.saveManualState();
 
-        if (result.success) {
-          return ErrorHandler.createSuccess(result.data.message);
-        } else {
-          return ErrorHandler.createError(result.error);
-        }
-      } catch (e) {
-        return ErrorHandler.createError(
-            `savestate: An unexpected error occurred: ${e.message}`
-        );
+      if (result.success) {
+        return ErrorHandler.createSuccess(result.data.message);
+      } else {
+        return ErrorHandler.createError(result.error);
       }
     },
   };

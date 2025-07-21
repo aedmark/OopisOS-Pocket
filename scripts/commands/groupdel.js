@@ -33,25 +33,19 @@ PERMISSIONS
       const { GroupManager, ErrorHandler } = dependencies;
       const groupName = args[0];
 
-      try {
-        if (currentUser !== "root") {
-          return ErrorHandler.createError(
-              "groupdel: only root can delete groups."
-          );
-        }
-
-        const result = GroupManager.deleteGroup(groupName);
-
-        if (!result.success) {
-          return ErrorHandler.createError(`groupdel: ${result.error}`);
-        }
-
-        return ErrorHandler.createSuccess(`Group '${groupName}' deleted.`);
-      } catch (e) {
+      if (currentUser !== "root") {
         return ErrorHandler.createError(
-            `groupdel: An unexpected error occurred: ${e.message}`
+            "groupdel: only root can delete groups."
         );
       }
+
+      const result = GroupManager.deleteGroup(groupName);
+
+      if (!result.success) {
+        return ErrorHandler.createError(`groupdel: ${result.error}`);
+      }
+
+      return ErrorHandler.createSuccess(`Group '${groupName}' deleted.`);
     },
   };
   CommandRegistry.register(groupdelCommandDefinition);

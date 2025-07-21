@@ -36,31 +36,25 @@ SEE ALSO
       const { validatedPaths, dependencies } = context;
       const { ErrorHandler, FileSystemManager } = dependencies;
 
-      try {
-        for (const pathData of validatedPaths) {
-          const { arg: pathArg, node, resolvedPath } = pathData;
+      for (const pathData of validatedPaths) {
+        const { arg: pathArg, node, resolvedPath } = pathData;
 
-          if (Object.keys(node.children).length > 0) {
-            return ErrorHandler.createError(
-                `rmdir: failed to remove '${pathArg}': Directory not empty`
-            );
-          }
-
-          const parentPath =
-              resolvedPath.substring(0, resolvedPath.lastIndexOf("/")) || "/";
-          const parentNode = FileSystemManager.getNodeByPath(parentPath);
-
-          const dirName = resolvedPath.split("/").pop();
-          delete parentNode.children[dirName];
-          parentNode.mtime = new Date().toISOString();
+        if (Object.keys(node.children).length > 0) {
+          return ErrorHandler.createError(
+              `rmdir: failed to remove '${pathArg}': Directory not empty`
+          );
         }
 
-        return ErrorHandler.createSuccess("", { stateModified: true });
-      } catch (e) {
-        return ErrorHandler.createError(
-            `rmdir: An unexpected error occurred: ${e.message}`
-        );
+        const parentPath =
+            resolvedPath.substring(0, resolvedPath.lastIndexOf("/")) || "/";
+        const parentNode = FileSystemManager.getNodeByPath(parentPath);
+
+        const dirName = resolvedPath.split("/").pop();
+        delete parentNode.children[dirName];
+        parentNode.mtime = new Date().toISOString();
       }
+
+      return ErrorHandler.createSuccess("", { stateModified: true });
     },
   };
   CommandRegistry.register(rmdirCommandDefinition);

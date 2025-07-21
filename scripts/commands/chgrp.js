@@ -43,22 +43,16 @@ PERMISSIONS
       const groupName = args[0];
       const { node } = validatedPaths[0];
 
-      try {
-        if (!GroupManager.groupExists(groupName)) {
-          return ErrorHandler.createError(
-              `chgrp: invalid group: '${groupName}'`
-          );
-        }
-
-        node.group = groupName;
-        node.mtime = new Date().toISOString();
-
-        return ErrorHandler.createSuccess("", { stateModified: true });
-      } catch (e) {
+      if (!GroupManager.groupExists(groupName)) {
         return ErrorHandler.createError(
-            `chgrp: An unexpected error occurred: ${e.message}`
+            `chgrp: invalid group: '${groupName}'`
         );
       }
+
+      node.group = groupName;
+      node.mtime = new Date().toISOString();
+
+      return ErrorHandler.createSuccess("", { stateModified: true });
     },
   };
   CommandRegistry.register(chgrpCommandDefinition);

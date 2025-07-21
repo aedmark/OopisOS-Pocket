@@ -35,27 +35,21 @@ PERMISSIONS
       const { GroupManager, ErrorHandler } = dependencies;
       const groupName = args[0];
 
-      try {
-        if (currentUser !== "root") {
-          return ErrorHandler.createError(
-              "groupadd: only root can add groups."
-          );
-        }
-
-        if (GroupManager.groupExists(groupName)) {
-          return ErrorHandler.createError(
-              `groupadd: group '${groupName}' already exists.`
-          );
-        }
-
-        GroupManager.createGroup(groupName);
-
-        return ErrorHandler.createSuccess(`Group '${groupName}' created.`);
-      } catch (e) {
+      if (currentUser !== "root") {
         return ErrorHandler.createError(
-            `groupadd: An unexpected error occurred: ${e.message}`
+            "groupadd: only root can add groups."
         );
       }
+
+      if (GroupManager.groupExists(groupName)) {
+        return ErrorHandler.createError(
+            `groupadd: group '${groupName}' already exists.`
+        );
+      }
+
+      GroupManager.createGroup(groupName);
+
+      return ErrorHandler.createSuccess(`Group '${groupName}' created.`);
     },
   };
   CommandRegistry.register(groupaddCommandDefinition);

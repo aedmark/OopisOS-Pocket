@@ -41,25 +41,19 @@ PERMISSIONS
       const { node } = validatedPaths[0];
       const nowISO = new Date().toISOString();
 
-      try {
-        if (
-            !(await UserManager.userExists(newOwnerArg)) &&
-            newOwnerArg !== Config.USER.DEFAULT_NAME
-        ) {
-          return ErrorHandler.createError(
-              `chown: user '${newOwnerArg}' does not exist.`
-          );
-        }
-
-        node.owner = newOwnerArg;
-        node.mtime = nowISO;
-
-        return ErrorHandler.createSuccess("", { stateModified: true });
-      } catch (e) {
+      if (
+          !(await UserManager.userExists(newOwnerArg)) &&
+          newOwnerArg !== Config.USER.DEFAULT_NAME
+      ) {
         return ErrorHandler.createError(
-            `chown: An unexpected error occurred: ${e.message}`
+            `chown: user '${newOwnerArg}' does not exist.`
         );
       }
+
+      node.owner = newOwnerArg;
+      node.mtime = nowISO;
+
+      return ErrorHandler.createSuccess("", { stateModified: true });
     },
   };
   CommandRegistry.register(chownCommandDefinition);

@@ -47,18 +47,12 @@ EXAMPLES
       const file1Node = validatedPaths[0].node;
       const file2Node = validatedPaths[1].node;
 
-      try {
-        const diffResult = DiffUtils.compare(
-            file1Node.content || "",
-            file2Node.content || ""
-        );
+      const diffResult = DiffUtils.compare(
+          file1Node.content || "",
+          file2Node.content || ""
+      );
 
-        return ErrorHandler.createSuccess(diffResult);
-      } catch (e) {
-        return ErrorHandler.createError(
-            `diff: An unexpected error occurred: ${e.message}`
-        );
-      }
+      return ErrorHandler.createSuccess(diffResult);
     },
   };
   CommandRegistry.register(diffCommandDefinition);

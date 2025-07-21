@@ -28,29 +28,23 @@ EXAMPLES
       const { args, dependencies } = context;
       const { AliasManager, ErrorHandler } = dependencies;
 
-      try {
-        let allSuccess = true;
-        const errorMessages = [];
-        let changesMade = false;
+      let allSuccess = true;
+      const errorMessages = [];
+      let changesMade = false;
 
-        for (const aliasName of args) {
-          if (AliasManager.removeAlias(aliasName)) {
-            changesMade = true;
-          } else {
-            allSuccess = false;
-            errorMessages.push(`unalias: no such alias: ${aliasName}`);
-          }
-        }
-
-        if (allSuccess) {
-          return ErrorHandler.createSuccess("", { stateModified: changesMade });
+      for (const aliasName of args) {
+        if (AliasManager.removeAlias(aliasName)) {
+          changesMade = true;
         } else {
-          return ErrorHandler.createError(errorMessages.join("\n"));
+          allSuccess = false;
+          errorMessages.push(`unalias: no such alias: ${aliasName}`);
         }
-      } catch (e) {
-        return ErrorHandler.createError(
-            `unalias: An unexpected error occurred: ${e.message}`
-        );
+      }
+
+      if (allSuccess) {
+        return ErrorHandler.createSuccess("", { stateModified: changesMade });
+      } else {
+        return ErrorHandler.createError(errorMessages.join("\n"));
       }
     },
   };

@@ -61,78 +61,72 @@ EXAMPLES
       const { args, flags, inputItems, inputError, dependencies } = context;
       const { ErrorHandler, Utils } = dependencies;
 
-      try {
-        let lines = [];
-        let outputCount = null;
+      let lines = [];
+      let outputCount = null;
 
-        if (flags.inputRange) {
-          const rangeParts = flags.inputRange.split("-");
-          if (rangeParts.length !== 2) {
-            return ErrorHandler.createError(
-                "shuf: invalid input range format for -i. Expected LO-HI."
-            );
-          }
-          const lo = parseInt(rangeParts[0], 10);
-          const hi = parseInt(rangeParts[1], 10);
-
-          if (isNaN(lo) || isNaN(hi) || lo > hi) {
-            return ErrorHandler.createError(
-                "shuf: invalid numeric range for -i."
-            );
-          }
-          for (let i = lo; i <= hi; i++) {
-            lines.push(String(i));
-          }
-        } else if (flags.echo) {
-          lines = args;
-        } else {
-          if (inputError) {
-            return ErrorHandler.createError(
-                "shuf: No readable input provided or permission denied."
-            );
-          }
-          if (inputItems && inputItems.length > 0) {
-            lines = inputItems
-                .map((item) => item.content)
-                .join("\n")
-                .split("\n");
-          } else if (args.length === 0) {
-            return ErrorHandler.createSuccess("");
-          }
+      if (flags.inputRange) {
+        const rangeParts = flags.inputRange.split("-");
+        if (rangeParts.length !== 2) {
+          return ErrorHandler.createError(
+              "shuf: invalid input range format for -i. Expected LO-HI."
+          );
         }
+        const lo = parseInt(rangeParts[0], 10);
+        const hi = parseInt(rangeParts[1], 10);
 
-        if (flags.count) {
-          const countResult = Utils.parseNumericArg(flags.count, {
-            allowFloat: false,
-            allowNegative: false,
-          });
-          if (countResult.error) {
-            return ErrorHandler.createError(
-                `shuf: invalid count for -n: ${countResult.error}`
-            );
-          }
-          outputCount = countResult.value;
+        if (isNaN(lo) || isNaN(hi) || lo > hi) {
+          return ErrorHandler.createError(
+              "shuf: invalid numeric range for -i."
+          );
         }
-
-        if (lines.length > 0 && lines[lines.length - 1] === "") {
-          lines.pop();
+        for (let i = lo; i <= hi; i++) {
+          lines.push(String(i));
         }
-
-        const shuffledLines = fisherYatesShuffle(lines);
-
-        let finalOutput;
-        if (outputCount !== null) {
-          finalOutput = shuffledLines.slice(0, outputCount);
-        } else {
-          finalOutput = shuffledLines;
+      } else if (flags.echo) {
+        lines = args;
+      } else {
+        if (inputError) {
+          return ErrorHandler.createError(
+              "shuf: No readable input provided or permission denied."
+          );
         }
-
-        return ErrorHandler.createSuccess(finalOutput.join("\n"));
-      } catch (e) {
-        return ErrorHandler.createError(
-            `shuf: An unexpected error occurred: ${e.message}`
-        );
+        if (inputItems && inputItems.length > 0) {
+          lines = inputItems
+              .map((item) => item.content)
+              .join("\n")
+              .split("\n");
+        } else if (args.length === 0) {
+          return ErrorHandler.createSuccess("");
+        }
       }
+
+      if (flags.count) {
+        const countResult = Utils.parseNumericArg(flags.count, {
+          allowFloat: false,
+          allowNegative: false,
+        });
+        if (countResult.error) {
+          return ErrorHandler.createError(
+              `shuf: invalid count for -n: ${countResult.error}`
+          );
+        }
+        outputCount = countResult.value;
+      }
+
+      if (lines.length > 0 && lines[lines.length - 1] === "") {
+        lines.pop();
+      }
+
+      const shuffledLines = fisherYatesShuffle(lines);
+
+      let finalOutput;
+      if (outputCount !== null) {
+        finalOutput = shuffledLines.slice(0, outputCount);
+      } else {
+        finalOutput = shuffledLines;
+      }
+
+      return ErrorHandler.createSuccess(finalOutput.join("\n"));
     },
   };
   CommandRegistry.register(shufCommandDefinition);

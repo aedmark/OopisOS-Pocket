@@ -46,94 +46,88 @@ EXAMPLES
       let changesMade = false;
       const nowISO = new Date().toISOString();
 
-      try {
-        const primaryGroup = UserManager.getPrimaryGroupForUser(currentUser);
-        if (!primaryGroup) {
-          return ErrorHandler.createError(
-              `mkdir: critical - could not determine primary group for user '${currentUser}'`
+      const primaryGroup = UserManager.getPrimaryGroupForUser(currentUser);
+      if (!primaryGroup) {
+        return ErrorHandler.createError(
+            `mkdir: critical - could not determine primary group for user '${currentUser}'`
+        );
+      }
+
+      for (const pathArg of args) {
+        const resolvedPath = FileSystemManager.getAbsolutePath(pathArg);
+        const dirName = resolvedPath.substring(
+            resolvedPath.lastIndexOf("/") + 1
+        );
+
+        if (
+            resolvedPath === "/" ||
+            dirName === "" ||
+            dirName === "." ||
+            dirName === ".."
+        ) {
+          messages.push(
+              `mkdir: cannot create directory '${pathArg}': Invalid path or name`
           );
+          allSuccess = false;
+          continue;
         }
 
-        for (const pathArg of args) {
-          const resolvedPath = FileSystemManager.getAbsolutePath(pathArg);
-          const dirName = resolvedPath.substring(
-              resolvedPath.lastIndexOf("/") + 1
-          );
+        const parentPathForTarget =
+            resolvedPath.substring(0, resolvedPath.lastIndexOf("/")) || "/";
+        let parentNodeToCreateIn;
 
-          if (
-              resolvedPath === "/" ||
-              dirName === "" ||
-              dirName === "." ||
-              dirName === ".."
-          ) {
+        if (flags.parents) {
+          const parentDirResult =
+              FileSystemManager.createParentDirectoriesIfNeeded(resolvedPath);
+          if (!parentDirResult.success) {
+            messages.push(`mkdir: ${parentDirResult.error}`);
+            allSuccess = false;
+            continue;
+          }
+          parentNodeToCreateIn = parentDirResult.data;
+        } else {
+          const parentValidationResult = FileSystemManager.validatePath(
+              parentPathForTarget,
+              { expectedType: "directory", permissions: ["write"] }
+          );
+          if (!parentValidationResult.success) {
             messages.push(
-                `mkdir: cannot create directory '${pathArg}': Invalid path or name`
+                `mkdir: cannot create directory '${pathArg}': ${parentValidationResult.error.replace(parentPathForTarget + ":", "").trim()}`
             );
             allSuccess = false;
             continue;
           }
+          parentNodeToCreateIn = parentValidationResult.data.node;
+        }
 
-          const parentPathForTarget =
-              resolvedPath.substring(0, resolvedPath.lastIndexOf("/")) || "/";
-          let parentNodeToCreateIn;
-
-          if (flags.parents) {
-            const parentDirResult =
-                FileSystemManager.createParentDirectoriesIfNeeded(resolvedPath);
-            if (!parentDirResult.success) {
-              messages.push(`mkdir: ${parentDirResult.error}`);
-              allSuccess = false;
-              continue;
-            }
-            parentNodeToCreateIn = parentDirResult.data;
-          } else {
-            const parentValidationResult = FileSystemManager.validatePath(
-                parentPathForTarget,
-                { expectedType: "directory", permissions: ["write"] }
+        if (
+            parentNodeToCreateIn.children &&
+            parentNodeToCreateIn.children[dirName]
+        ) {
+          const existingItem = parentNodeToCreateIn.children[dirName];
+          if (existingItem.type === "file") {
+            messages.push(
+                `mkdir: cannot create directory '${pathArg}': File exists`
             );
-            if (!parentValidationResult.success) {
-              messages.push(
-                  `mkdir: cannot create directory '${pathArg}': ${parentValidationResult.error.replace(parentPathForTarget + ":", "").trim()}`
-              );
-              allSuccess = false;
-              continue;
-            }
-            parentNodeToCreateIn = parentValidationResult.data.node;
+            allSuccess = false;
+          } else if (existingItem.type === "directory" && !flags.parents) {
+            // This is not an error, just do nothing.
           }
-
-          if (
-              parentNodeToCreateIn.children &&
-              parentNodeToCreateIn.children[dirName]
-          ) {
-            const existingItem = parentNodeToCreateIn.children[dirName];
-            if (existingItem.type === "file") {
-              messages.push(
-                  `mkdir: cannot create directory '${pathArg}': File exists`
+        } else {
+          parentNodeToCreateIn.children[dirName] =
+              FileSystemManager._createNewDirectoryNode(
+                  currentUser,
+                  primaryGroup
               );
-              allSuccess = false;
-            } else if (existingItem.type === "directory" && !flags.parents) {
-              // This is not an error, just do nothing.
-            }
-          } else {
-            parentNodeToCreateIn.children[dirName] =
-                FileSystemManager._createNewDirectoryNode(
-                    currentUser,
-                    primaryGroup
-                );
-            parentNodeToCreateIn.mtime = nowISO;
-            changesMade = true;
-          }
+          parentNodeToCreateIn.mtime = nowISO;
+          changesMade = true;
         }
-
-        if (!allSuccess) {
-          return ErrorHandler.createError(messages.join("\n"));
-        }
-        return ErrorHandler.createSuccess("", { stateModified: changesMade });
-      } catch (e) {
-        return ErrorHandler.createError(
-            `mkdir: An unexpected error occurred: ${e.message}`
-        );
       }
+
+      if (!allSuccess) {
+        return ErrorHandler.createError(messages.join("\n"));
+      }
+      return ErrorHandler.createSuccess("", { stateModified: changesMade });
     },
   };
   CommandRegistry.register(mkdirCommandDefinition);

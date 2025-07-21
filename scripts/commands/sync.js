@@ -23,14 +23,9 @@ DESCRIPTION
     coreLogic: async (context) => {
       const { dependencies } = context;
       const { ErrorHandler } = dependencies;
-      try {
-        // This command's entire purpose is to represent a state modification.
-        // The actual save is handled by the executor when it sees the flag.
-        return ErrorHandler.createSuccess("", { stateModified: true });
-      } catch (error) {
-        console.error("Error during sync operation:", error);
-        return ErrorHandler.createError("sync: An unexpected error occurred.");
-      }
+      // This command's entire purpose is to represent a state modification.
+      // The actual save is handled by the executor when it sees the flag.
+      return ErrorHandler.createSuccess("", { stateModified: true });
     },
   };
   CommandRegistry.register(syncCommandDefinition);

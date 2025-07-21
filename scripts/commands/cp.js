@@ -70,132 +70,126 @@ EXAMPLES
       const nowISO = new Date().toISOString();
       let anyChangesMade = false;
 
-      try {
-        const destPathArg = args.pop();
-        const sourcePathArgs = args;
+      const destPathArg = args.pop();
+      const sourcePathArgs = args;
 
-        const planResult = await FileSystemManager.prepareFileOperation(
-            sourcePathArgs,
-            destPathArg,
-            { isCopy: true }
-        );
+      const planResult = await FileSystemManager.prepareFileOperation(
+          sourcePathArgs,
+          destPathArg,
+          { isCopy: true }
+      );
 
-        if (!planResult.success) {
-          return ErrorHandler.createError(`cp: ${planResult.error}`);
+      if (!planResult.success) {
+        return ErrorHandler.createError(`cp: ${planResult.error}`);
+      }
+
+      const operationsPlan = planResult.data;
+
+      for (const operation of operationsPlan) {
+        if (
+            operation.willOverwrite &&
+            (flags.interactive || (options.isInteractive && !flags.force))
+        ) {
+          const confirmed = await new Promise((resolve) => {
+            ModalManager.request({
+              context: "terminal",
+              messageLines: [`Overwrite '${operation.destinationAbsPath}'?`],
+              onConfirm: () => resolve(true),
+              onCancel: () => resolve(false),
+              options,
+            });
+          });
+          if (!confirmed) {
+            continue; // Skip this operation
+          }
         }
 
-        const operationsPlan = planResult.data;
+        const destParentFullPath =
+            operation.destinationAbsPath.substring(
+                0,
+                operation.destinationAbsPath.lastIndexOf("/")
+            ) || "/";
+        const copyResult = await _executeCopyInternal(
+            operation.sourceNode,
+            operation.destinationParentNode,
+            operation.finalName,
+            destParentFullPath
+        );
+        if (!copyResult.success) {
+          return copyResult; // Propagate error
+        }
+        if (copyResult.data.changed) {
+          anyChangesMade = true;
+        }
+      }
 
-        for (const operation of operationsPlan) {
-          if (
-              operation.willOverwrite &&
-              (flags.interactive || (options.isInteractive && !flags.force))
-          ) {
-            const confirmed = await new Promise((resolve) => {
-              ModalManager.request({
-                context: "terminal",
-                messageLines: [`Overwrite '${operation.destinationAbsPath}'?`],
-                onConfirm: () => resolve(true),
-                onCancel: () => resolve(false),
-                options,
-              });
-            });
-            if (!confirmed) {
-              continue; // Skip this operation
-            }
-          }
+      return ErrorHandler.createSuccess("", {
+        stateModified: anyChangesMade,
+      });
 
-          const destParentFullPath =
-              operation.destinationAbsPath.substring(
-                  0,
-                  operation.destinationAbsPath.lastIndexOf("/")
-              ) || "/";
-          const copyResult = await _executeCopyInternal(
-              operation.sourceNode,
-              operation.destinationParentNode,
-              operation.finalName,
+      async function _executeCopyInternal(
+          sourceNode,
+          destinationParentNode,
+          finalName,
+          destParentFullPath
+      ) {
+        if (sourceNode.type === "file") {
+          const newFilePath = FileSystemManager.getAbsolutePath(
+              finalName,
               destParentFullPath
           );
-          if (!copyResult.success) {
-            return copyResult; // Propagate error
-          }
-          if (copyResult.data.changed) {
-            anyChangesMade = true;
-          }
-        }
 
-        return ErrorHandler.createSuccess("", {
-          stateModified: anyChangesMade,
-        });
-
-        async function _executeCopyInternal(
-            sourceNode,
-            destinationParentNode,
-            finalName,
-            destParentFullPath
-        ) {
-          if (sourceNode.type === "file") {
-            const newFilePath = FileSystemManager.getAbsolutePath(
-                finalName,
-                destParentFullPath
-            );
-
-            const createResult = await FileSystemManager.createOrUpdateFile(
-                newFilePath,
-                sourceNode.content,
-                {
-                  currentUser: flags.preserve ? sourceNode.owner : currentUser,
-                  primaryGroup: flags.preserve
-                      ? sourceNode.group
-                      : UserManager.getPrimaryGroupForUser(currentUser),
-                }
-            );
-
-            if (!createResult.success) {
-              return createResult;
-            }
-            const newNode = FileSystemManager.getNodeByPath(newFilePath);
-            if (flags.preserve) {
-              newNode.mode = sourceNode.mode;
-              newNode.mtime = sourceNode.mtime;
-            }
-          } else if (sourceNode.type === "directory") {
-            if (!flags.recursive) {
-              await OutputManager.appendToOutput(
-                  `cp: omitting directory '${finalName}'`
-              );
-              return ErrorHandler.createSuccess({ changed: false });
-            }
-
-            const newDirNode = FileSystemManager._createNewDirectoryNode(
-                flags.preserve ? sourceNode.owner : currentUser,
-                flags.preserve
+          const createResult = await FileSystemManager.createOrUpdateFile(
+              newFilePath,
+              sourceNode.content,
+              {
+                currentUser: flags.preserve ? sourceNode.owner : currentUser,
+                primaryGroup: flags.preserve
                     ? sourceNode.group
                     : UserManager.getPrimaryGroupForUser(currentUser),
-                flags.preserve
-                    ? sourceNode.mode
-                    : Config.FILESYSTEM.DEFAULT_DIR_MODE
-            );
-            if (flags.preserve) newDirNode.mtime = sourceNode.mtime;
-            destinationParentNode.children[finalName] = newDirNode;
+              }
+          );
 
-            for (const childName in sourceNode.children) {
-              const childResult = await _executeCopyInternal(
-                  sourceNode.children[childName],
-                  newDirNode,
-                  childName,
-                  FileSystemManager.getAbsolutePath(finalName, destParentFullPath)
-              );
-              if (!childResult.success) return childResult;
-            }
+          if (!createResult.success) {
+            return createResult;
           }
-          destinationParentNode.mtime = nowISO;
-          return ErrorHandler.createSuccess({ changed: true });
+          const newNode = FileSystemManager.getNodeByPath(newFilePath);
+          if (flags.preserve) {
+            newNode.mode = sourceNode.mode;
+            newNode.mtime = sourceNode.mtime;
+          }
+        } else if (sourceNode.type === "directory") {
+          if (!flags.recursive) {
+            await OutputManager.appendToOutput(
+                `cp: omitting directory '${finalName}'`
+            );
+            return ErrorHandler.createSuccess({ changed: false });
+          }
+
+          const newDirNode = FileSystemManager._createNewDirectoryNode(
+              flags.preserve ? sourceNode.owner : currentUser,
+              flags.preserve
+                  ? sourceNode.group
+                  : UserManager.getPrimaryGroupForUser(currentUser),
+              flags.preserve
+                  ? sourceNode.mode
+                  : Config.FILESYSTEM.DEFAULT_DIR_MODE
+          );
+          if (flags.preserve) newDirNode.mtime = sourceNode.mtime;
+          destinationParentNode.children[finalName] = newDirNode;
+
+          for (const childName in sourceNode.children) {
+            const childResult = await _executeCopyInternal(
+                sourceNode.children[childName],
+                newDirNode,
+                childName,
+                FileSystemManager.getAbsolutePath(finalName, destParentFullPath)
+            );
+            if (!childResult.success) return childResult;
+          }
         }
-      } catch (e) {
-        return ErrorHandler.createError(
-            `cp: An unexpected error occurred: ${e.message}`
-        );
+        destinationParentNode.mtime = nowISO;
+        return ErrorHandler.createSuccess({ changed: true });
       }
     },
   };

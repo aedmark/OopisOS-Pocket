@@ -27,31 +27,25 @@ EXAMPLES
     coreLogic: async (context) => {
       const { dependencies } = context;
       const { StorageManager, Config, ErrorHandler } = dependencies;
-      try {
-        const users = StorageManager.loadItem(
-            Config.STORAGE_KEYS.USER_CREDENTIALS,
-            "User list",
-            {}
-        );
-        let userNames = Object.keys(users);
+      const users = StorageManager.loadItem(
+          Config.STORAGE_KEYS.USER_CREDENTIALS,
+          "User list",
+          {}
+      );
+      let userNames = Object.keys(users);
 
-        if (!userNames.includes(Config.USER.DEFAULT_NAME)) {
-          userNames.push(Config.USER.DEFAULT_NAME);
-        }
-
-        userNames.sort();
-
-        if (userNames.length === 0)
-          return ErrorHandler.createSuccess("No users registered.");
-
-        const output =
-            "Registered users:\n" + userNames.map((u) => `  ${u}`).join("\n");
-        return ErrorHandler.createSuccess(output);
-      } catch (e) {
-        return ErrorHandler.createError(
-            `listusers: An unexpected error occurred: ${e.message}`
-        );
+      if (!userNames.includes(Config.USER.DEFAULT_NAME)) {
+        userNames.push(Config.USER.DEFAULT_NAME);
       }
+
+      userNames.sort();
+
+      if (userNames.length === 0)
+        return ErrorHandler.createSuccess("No users registered.");
+
+      const output =
+          "Registered users:\n" + userNames.map((u) => `  ${u}`).join("\n");
+      return ErrorHandler.createSuccess(output);
     },
   };
   CommandRegistry.register(listusersCommandDefinition);

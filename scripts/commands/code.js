@@ -37,50 +37,44 @@ DESCRIPTION
       const { args, options, validatedPaths, dependencies } = context;
       const { ErrorHandler, Utils, CommandExecutor, AppLayerManager, CodeManager, CodeUI, App } = dependencies;
 
-      try {
-        if (!options.isInteractive) {
-          return ErrorHandler.createError(
-              "code: Can only be run in interactive mode."
-          );
-        }
-
-        const hasFileArgument = args.length > 0 && validatedPaths.length > 0;
-        const filePath = hasFileArgument ? validatedPaths[0].resolvedPath : null;
-        const node = hasFileArgument ? validatedPaths[0].node : null;
-
-        const extension = Utils.getFileExtension(filePath);
-        const documentExtensions = ["md", "html"];
-
-        if (documentExtensions.includes(extension)) {
-          await CommandExecutor._ensureCommandLoaded("edit");
-          return CommandExecutor.processSingleCommand(`edit "${filePath}"`, {
-            isInteractive: true,
-          });
-        }
-
-        if (
-            typeof CodeManager === "undefined" ||
-            typeof CodeUI === "undefined" ||
-            typeof App === "undefined"
-        ) {
-          return ErrorHandler.createError(
-              "code: The code editor application modules are not loaded."
-          );
-        }
-
-        const fileContent = node ? node.content || "" : "";
-        AppLayerManager.show(new CodeManager(), {
-          filePath: filePath,
-          fileContent,
-          dependencies
-        });
-
-        return ErrorHandler.createSuccess("");
-      } catch (e) {
+      if (!options.isInteractive) {
         return ErrorHandler.createError(
-            `code: An unexpected error occurred: ${e.message}`
+            "code: Can only be run in interactive mode."
         );
       }
+
+      const hasFileArgument = args.length > 0 && validatedPaths.length > 0;
+      const filePath = hasFileArgument ? validatedPaths[0].resolvedPath : null;
+      const node = hasFileArgument ? validatedPaths[0].node : null;
+
+      const extension = Utils.getFileExtension(filePath);
+      const documentExtensions = ["md", "html"];
+
+      if (documentExtensions.includes(extension)) {
+        await CommandExecutor._ensureCommandLoaded("edit");
+        return CommandExecutor.processSingleCommand(`edit "${filePath}"`, {
+          isInteractive: true,
+        });
+      }
+
+      if (
+          typeof CodeManager === "undefined" ||
+          typeof CodeUI === "undefined" ||
+          typeof App === "undefined"
+      ) {
+        return ErrorHandler.createError(
+            "code: The code editor application modules are not loaded."
+        );
+      }
+
+      const fileContent = node ? node.content || "" : "";
+      AppLayerManager.show(new CodeManager(), {
+        filePath: filePath,
+        fileContent,
+        dependencies
+      });
+
+      return ErrorHandler.createSuccess("");
     },
   };
   CommandRegistry.register(codeCommandDefinition);

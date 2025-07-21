@@ -125,10 +125,6 @@ SCRIPTING
         }
 
         return ErrorHandler.createSuccess("");
-      } catch (e) {
-        return ErrorHandler.createError(
-            `run: An unexpected error occurred: ${e.message}`
-        );
       } finally {
         EnvironmentManager.pop();
       }

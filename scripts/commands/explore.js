@@ -8,9 +8,7 @@
       "apps/explorer/explorer_ui.js",
       "apps/explorer/explorer_manager.js",
     ],
-    // --- MODIFICATION START: Added ExplorerUI and App to ensure all components are loaded ---
     applicationModules: ["ExplorerManager", "ExplorerUI", "App"],
-    // --- MODIFICATION END ---
     description: "Opens the graphical file explorer.",
     helpText: `Usage: explore [path]
 
@@ -37,32 +35,26 @@ DESCRIPTION
       const { args, options, dependencies } = context;
       const { ErrorHandler, AppLayerManager, ExplorerManager } = dependencies;
 
-      try {
-        if (!options.isInteractive) {
-          return ErrorHandler.createError(
-              "explore: Can only be run in an interactive session."
-          );
-        }
-
-        if (
-            typeof ExplorerManager === "undefined" ||
-            typeof AppLayerManager === "undefined"
-        ) {
-          return ErrorHandler.createError(
-              "explore: Explorer application module is not loaded."
-          );
-        }
-
-        const startPath = args.length > 0 ? args[0] : null;
-
-        AppLayerManager.show(new ExplorerManager(), { startPath: startPath, dependencies: dependencies });
-
-        return ErrorHandler.createSuccess("");
-      } catch (e) {
+      if (!options.isInteractive) {
         return ErrorHandler.createError(
-            `explore: An unexpected error occurred: ${e.message}`
+            "explore: Can only be run in an interactive session."
         );
       }
+
+      if (
+          typeof ExplorerManager === "undefined" ||
+          typeof AppLayerManager === "undefined"
+      ) {
+        return ErrorHandler.createError(
+            "explore: Explorer application module is not loaded."
+        );
+      }
+
+      const startPath = args.length > 0 ? args[0] : null;
+
+      AppLayerManager.show(new ExplorerManager(), { startPath: startPath, dependencies: dependencies });
+
+      return ErrorHandler.createSuccess("");
     },
   };
   CommandRegistry.register(exploreCommandDefinition);

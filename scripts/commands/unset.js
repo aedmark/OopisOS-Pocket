@@ -26,14 +26,8 @@ EXAMPLES
     coreLogic: async (context) => {
       const { args, dependencies } = context;
       const { EnvironmentManager, ErrorHandler } = dependencies;
-      try {
-        args.forEach((varName) => EnvironmentManager.unset(varName));
-        return ErrorHandler.createSuccess();
-      } catch (e) {
-        return ErrorHandler.createError(
-            `unset: An unexpected error occurred: ${e.message}`
-        );
-      }
+      args.forEach((varName) => EnvironmentManager.unset(varName));
+      return ErrorHandler.createSuccess();
     },
   };
   CommandRegistry.register(unsetCommandDefinition);

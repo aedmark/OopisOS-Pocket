@@ -37,53 +37,47 @@ EXAMPLES
       const { args, currentUser, dependencies } = context;
       const { ErrorHandler, GroupManager, UserManager, Config } = dependencies;
 
-      try {
-        const flag = args[0];
-        const groupName = args[1];
-        const username = args[2];
+      const flag = args[0];
+      const groupName = args[1];
+      const username = args[2];
 
-        if (currentUser !== "root") {
-          return ErrorHandler.createError(
-              "usermod: only root can modify user groups."
-          );
-        }
-
-        if (flag !== "-aG") {
-          return ErrorHandler.createError(
-              "usermod: invalid flag. Only '-aG' is supported."
-          );
-        }
-
-        if (!GroupManager.groupExists(groupName)) {
-          return ErrorHandler.createError(
-              `usermod: group '${groupName}' does not exist.`
-          );
-        }
-
-        if (
-            !(await UserManager.userExists(username)) &&
-            username !== Config.USER.DEFAULT_NAME
-        ) {
-          return ErrorHandler.createError(
-              `usermod: user '${username}' does not exist.`
-          );
-        }
-
-        const userAdded = GroupManager.addUserToGroup(username, groupName);
-
-        if (userAdded) {
-          return ErrorHandler.createSuccess(
-              `Added user '${username}' to group '${groupName}'.`,
-              { stateModified: true }
-          );
-        } else {
-          return ErrorHandler.createSuccess(
-              `User '${username}' is already in group '${groupName}'.`
-          );
-        }
-      } catch (e) {
+      if (currentUser !== "root") {
         return ErrorHandler.createError(
-            `usermod: An unexpected error occurred: ${e.message}`
+            "usermod: only root can modify user groups."
+        );
+      }
+
+      if (flag !== "-aG") {
+        return ErrorHandler.createError(
+            "usermod: invalid flag. Only '-aG' is supported."
+        );
+      }
+
+      if (!GroupManager.groupExists(groupName)) {
+        return ErrorHandler.createError(
+            `usermod: group '${groupName}' does not exist.`
+        );
+      }
+
+      if (
+          !(await UserManager.userExists(username)) &&
+          username !== Config.USER.DEFAULT_NAME
+      ) {
+        return ErrorHandler.createError(
+            `usermod: user '${username}' does not exist.`
+        );
+      }
+
+      const userAdded = GroupManager.addUserToGroup(username, groupName);
+
+      if (userAdded) {
+        return ErrorHandler.createSuccess(
+            `Added user '${username}' to group '${groupName}'.`,
+            { stateModified: true }
+        );
+      } else {
+        return ErrorHandler.createSuccess(
+            `User '${username}' is already in group '${groupName}'.`
         );
       }
     },

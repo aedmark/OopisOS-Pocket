@@ -34,110 +34,104 @@ EXAMPLES
       const { args, currentUser, options, dependencies } = context;
       const { UserManager, ErrorHandler, ModalManager, Config } = dependencies;
 
-      try {
-        if (!options.isInteractive) {
-          return ErrorHandler.createError(
-              "passwd: can only be run in interactive mode."
-          );
-        }
-
-        const targetUsername = args[0] || currentUser;
-
-        if (currentUser !== "root" && currentUser !== targetUsername) {
-          return ErrorHandler.createError(
-              "passwd: you may only change your own password."
-          );
-        }
-
-        if (!(await UserManager.userExists(targetUsername))) {
-          return ErrorHandler.createError(
-              `passwd: user '${targetUsername}' does not exist.`
-          );
-        }
-
-        return new Promise((resolve) => {
-          const getNewPassword = (oldPassword) => {
-            ModalManager.request({
-              context: "terminal",
-              type: "input",
-              messageLines: [`Enter new password for ${targetUsername}:`],
-              obscured: true,
-              onConfirm: (newPassword) => {
-                if (!newPassword) {
-                  resolve(
-                      ErrorHandler.createError(
-                          Config.MESSAGES.EMPTY_PASSWORD_NOT_ALLOWED
-                      )
-                  );
-                  return;
-                }
-                ModalManager.request({
-                  context: "terminal",
-                  type: "input",
-                  messageLines: [`Confirm new password:`],
-                  obscured: true,
-                  onConfirm: async (confirmPassword) => {
-                    if (newPassword !== confirmPassword) {
-                      resolve(
-                          ErrorHandler.createError(
-                              Config.MESSAGES.PASSWORD_MISMATCH
-                          )
-                      );
-                      return;
-                    }
-                    const result = await UserManager.changePassword(
-                        currentUser,
-                        targetUsername,
-                        oldPassword,
-                        newPassword
-                    );
-                    resolve(result);
-                  },
-                  onCancel: () =>
-                      resolve(
-                          ErrorHandler.createSuccess(
-                              Config.MESSAGES.OPERATION_CANCELLED
-                          )
-                      ),
-                });
-              },
-              onCancel: () =>
-                  resolve(
-                      ErrorHandler.createSuccess(
-                          Config.MESSAGES.OPERATION_CANCELLED
-                      )
-                  ),
-            });
-          };
-
-          if (currentUser === "root" && currentUser !== targetUsername) {
-            getNewPassword(null);
-          } else {
-            ModalManager.request({
-              context: "terminal",
-              type: "input",
-              messageLines: [`Enter current password for ${currentUser}:`],
-              obscured: true,
-              onConfirm: (oldPassword) => getNewPassword(oldPassword),
-              onCancel: () =>
-                  resolve(
-                      ErrorHandler.createSuccess(
-                          Config.MESSAGES.OPERATION_CANCELLED
-                      )
-                  ),
-            });
-          }
-        }).then((result) => {
-          if (result.success) {
-            return ErrorHandler.createSuccess(result.data);
-          }
-          return result;
-        });
-      } catch (e) {
+      if (!options.isInteractive) {
         return ErrorHandler.createError(
-            `passwd: An unexpected error occurred: ${e.message}`
+            "passwd: can only be run in interactive mode."
         );
       }
+
+      const targetUsername = args[0] || currentUser;
+
+      if (currentUser !== "root" && currentUser !== targetUsername) {
+        return ErrorHandler.createError(
+            "passwd: you may only change your own password."
+        );
+      }
+
+      if (!(await UserManager.userExists(targetUsername))) {
+        return ErrorHandler.createError(
+            `passwd: user '${targetUsername}' does not exist.`
+        );
+      }
+
+      return new Promise((resolve) => {
+        const getNewPassword = (oldPassword) => {
+          ModalManager.request({
+            context: "terminal",
+            type: "input",
+            messageLines: [`Enter new password for ${targetUsername}:`],
+            obscured: true,
+            onConfirm: (newPassword) => {
+              if (!newPassword) {
+                resolve(
+                    ErrorHandler.createError(
+                        Config.MESSAGES.EMPTY_PASSWORD_NOT_ALLOWED
+                    )
+                );
+                return;
+              }
+              ModalManager.request({
+                context: "terminal",
+                type: "input",
+                messageLines: [`Confirm new password:`],
+                obscured: true,
+                onConfirm: async (confirmPassword) => {
+                  if (newPassword !== confirmPassword) {
+                    resolve(
+                        ErrorHandler.createError(
+                            Config.MESSAGES.PASSWORD_MISMATCH
+                        )
+                    );
+                    return;
+                  }
+                  const result = await UserManager.changePassword(
+                      currentUser,
+                      targetUsername,
+                      oldPassword,
+                      newPassword
+                  );
+                  resolve(result);
+                },
+                onCancel: () =>
+                    resolve(
+                        ErrorHandler.createSuccess(
+                            Config.MESSAGES.OPERATION_CANCELLED
+                        )
+                    ),
+              });
+            },
+            onCancel: () =>
+                resolve(
+                    ErrorHandler.createSuccess(
+                        Config.MESSAGES.OPERATION_CANCELLED
+                    )
+                ),
+          });
+        };
+
+        if (currentUser === "root" && currentUser !== targetUsername) {
+          getNewPassword(null);
+        } else {
+          ModalManager.request({
+            context: "terminal",
+            type: "input",
+            messageLines: [`Enter current password for ${currentUser}:`],
+            obscured: true,
+            onConfirm: (oldPassword) => getNewPassword(oldPassword),
+            onCancel: () =>
+                resolve(
+                    ErrorHandler.createSuccess(
+                        Config.MESSAGES.OPERATION_CANCELLED
+                    )
+                ),
+          });
+        }
+      }).then((result) => {
+        if (result.success) {
+          return ErrorHandler.createSuccess(result.data);
+        }
+        return result;
+      });
     },
   };
   CommandRegistry.register(passwdCommandDefinition);

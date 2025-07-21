@@ -25,36 +25,30 @@ DESCRIPTION
       const { EnvironmentManager, ErrorHandler } = dependencies;
 
 
-      try {
-        if (args.length === 0) {
-          const allVars = EnvironmentManager.getAll();
-          const output = Object.keys(allVars)
-              .sort()
-              .map((key) => `${key}="${allVars[key]}"`)
-              .join("\n");
-          return ErrorHandler.createSuccess(output);
-        }
-
-        const { name, value } = Utils.parseKeyValue(args);
-
-        if (value !== null) {
-          const result = EnvironmentManager.set(name, value);
-          if (!result.success) {
-            return ErrorHandler.createError(`set: ${result.error}`);
-          }
-        } else {
-          const result = EnvironmentManager.set(name, "");
-          if (!result.success) {
-            return ErrorHandler.createError(`set: ${result.error}`);
-          }
-        }
-
-        return ErrorHandler.createSuccess();
-      } catch (e) {
-        return ErrorHandler.createError(
-            `set: An unexpected error occurred: ${e.message}`
-        );
+      if (args.length === 0) {
+        const allVars = EnvironmentManager.getAll();
+        const output = Object.keys(allVars)
+            .sort()
+            .map((key) => `${key}="${allVars[key]}"`)
+            .join("\n");
+        return ErrorHandler.createSuccess(output);
       }
+
+      const { name, value } = Utils.parseKeyValue(args);
+
+      if (value !== null) {
+        const result = EnvironmentManager.set(name, value);
+        if (!result.success) {
+          return ErrorHandler.createError(`set: ${result.error}`);
+        }
+      } else {
+        const result = EnvironmentManager.set(name, "");
+        if (!result.success) {
+          return ErrorHandler.createError(`set: ${result.error}`);
+        }
+      }
+
+      return ErrorHandler.createSuccess();
     },
   };
   CommandRegistry.register(setCommandDefinition);

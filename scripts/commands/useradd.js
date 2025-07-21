@@ -31,81 +31,75 @@ EXAMPLES
       const { UserManager, ErrorHandler, ModalManager, Config, StorageManager } = dependencies;
       const username = args[0];
 
-      try {
-        const userCheck = StorageManager.loadItem(
-            Config.STORAGE_KEYS.USER_CREDENTIALS,
-            "User list",
-            {}
-        );
-        if (userCheck[username]) {
-          return ErrorHandler.createError(
-              `useradd: User '${username}' already exists.`
-          );
-        }
-
-        return new Promise(async (resolve) => {
-          ModalManager.request({
-            context: "terminal",
-            type: "input",
-            messageLines: [Config.MESSAGES.PASSWORD_PROMPT],
-            obscured: true,
-            onConfirm: (firstPassword) => {
-              if (firstPassword.trim() === "") {
-                resolve(
-                    ErrorHandler.createError(
-                        Config.MESSAGES.EMPTY_PASSWORD_NOT_ALLOWED
-                    )
-                );
-                return;
-              }
-              ModalManager.request({
-                context: "terminal",
-                type: "input",
-                messageLines: [Config.MESSAGES.PASSWORD_CONFIRM_PROMPT],
-                obscured: true,
-                onConfirm: async (confirmedPassword) => {
-                  if (firstPassword !== confirmedPassword) {
-                    resolve(
-                        ErrorHandler.createError(
-                            Config.MESSAGES.PASSWORD_MISMATCH
-                        )
-                    );
-                    return;
-                  }
-                  const registerResult = await UserManager.register(
-                      username,
-                      firstPassword
-                  );
-                  resolve(registerResult);
-                },
-                onCancel: () =>
-                    resolve(
-                        ErrorHandler.createSuccess(
-                            Config.MESSAGES.OPERATION_CANCELLED
-                        )
-                    ),
-                options,
-              });
-            },
-            onCancel: () =>
-                resolve(
-                    ErrorHandler.createSuccess(Config.MESSAGES.OPERATION_CANCELLED)
-                ),
-            options,
-          });
-        }).then((result) => {
-          if (result.success) {
-            return ErrorHandler.createSuccess(result.data, {
-              stateModified: result.stateModified
-            });
-          }
-          return result;
-        });
-      } catch (e) {
+      const userCheck = StorageManager.loadItem(
+          Config.STORAGE_KEYS.USER_CREDENTIALS,
+          "User list",
+          {}
+      );
+      if (userCheck[username]) {
         return ErrorHandler.createError(
-            `useradd: An unexpected error occurred: ${e.message}`
+            `useradd: User '${username}' already exists.`
         );
       }
+
+      return new Promise(async (resolve) => {
+        ModalManager.request({
+          context: "terminal",
+          type: "input",
+          messageLines: [Config.MESSAGES.PASSWORD_PROMPT],
+          obscured: true,
+          onConfirm: (firstPassword) => {
+            if (firstPassword.trim() === "") {
+              resolve(
+                  ErrorHandler.createError(
+                      Config.MESSAGES.EMPTY_PASSWORD_NOT_ALLOWED
+                  )
+              );
+              return;
+            }
+            ModalManager.request({
+              context: "terminal",
+              type: "input",
+              messageLines: [Config.MESSAGES.PASSWORD_CONFIRM_PROMPT],
+              obscured: true,
+              onConfirm: async (confirmedPassword) => {
+                if (firstPassword !== confirmedPassword) {
+                  resolve(
+                      ErrorHandler.createError(
+                          Config.MESSAGES.PASSWORD_MISMATCH
+                      )
+                  );
+                  return;
+                }
+                const registerResult = await UserManager.register(
+                    username,
+                    firstPassword
+                );
+                resolve(registerResult);
+              },
+              onCancel: () =>
+                  resolve(
+                      ErrorHandler.createSuccess(
+                          Config.MESSAGES.OPERATION_CANCELLED
+                      )
+                  ),
+              options,
+            });
+          },
+          onCancel: () =>
+              resolve(
+                  ErrorHandler.createSuccess(Config.MESSAGES.OPERATION_CANCELLED)
+              ),
+          options,
+        });
+      }).then((result) => {
+        if (result.success) {
+          return ErrorHandler.createSuccess(result.data, {
+            stateModified: result.stateModified
+          });
+        }
+        return result;
+      });
     },
   };
   CommandRegistry.register(useraddCommandDefinition);

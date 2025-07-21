@@ -38,46 +38,40 @@ EXAMPLES
       const { args, dependencies } = context;
       const { AliasManager, ErrorHandler } = dependencies;
 
-      try {
-        if (args.length === 0) {
-          const allAliases = AliasManager.getAllAliases();
-          if (Object.keys(allAliases).length === 0) {
-            return ErrorHandler.createSuccess("");
-          }
-          const outputLines = [];
-          for (const name in allAliases) {
-            const value = allAliases[name];
-            outputLines.push(`alias ${name}='${value}'`);
-          }
-          return ErrorHandler.createSuccess(outputLines.sort().join("\n"));
+      if (args.length === 0) {
+        const allAliases = AliasManager.getAllAliases();
+        if (Object.keys(allAliases).length === 0) {
+          return ErrorHandler.createSuccess("");
         }
+        const outputLines = [];
+        for (const name in allAliases) {
+          const value = allAliases[name];
+          outputLines.push(`alias ${name}='${value}'`);
+        }
+        return ErrorHandler.createSuccess(outputLines.sort().join("\n"));
+      }
 
-        const { name, value } = Utils.parseKeyValue(args);
+      const { name, value } = Utils.parseKeyValue(args);
 
-        if (value !== null) {
-          // A value was provided, so we are setting an alias
-          if (!name) {
-            return ErrorHandler.createError(
-                "alias: invalid format. Missing name."
-            );
-          }
-          if (AliasManager.setAlias(name, value)) {
-            return ErrorHandler.createSuccess("", { stateModified: true });
-          }
-          return ErrorHandler.createError("alias: failed to set alias.");
+      if (value !== null) {
+        // A value was provided, so we are setting an alias
+        if (!name) {
+          return ErrorHandler.createError(
+              "alias: invalid format. Missing name."
+          );
+        }
+        if (AliasManager.setAlias(name, value)) {
+          return ErrorHandler.createSuccess("", { stateModified: true });
+        }
+        return ErrorHandler.createError("alias: failed to set alias.");
+      } else {
+        // No value, so we are displaying an existing alias
+        const aliasValue = AliasManager.getAlias(name);
+        if (aliasValue) {
+          return ErrorHandler.createSuccess(`alias ${name}='${aliasValue}'`);
         } else {
-          // No value, so we are displaying an existing alias
-          const aliasValue = AliasManager.getAlias(name);
-          if (aliasValue) {
-            return ErrorHandler.createSuccess(`alias ${name}='${aliasValue}'`);
-          } else {
-            return ErrorHandler.createError(`alias: ${name}: not found`);
-          }
+          return ErrorHandler.createError(`alias: ${name}: not found`);
         }
-      } catch (e) {
-        return ErrorHandler.createError(
-            `alias: An unexpected error occurred: ${e.message}`
-        );
       }
     },
   };

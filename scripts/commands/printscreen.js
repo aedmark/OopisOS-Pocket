@@ -32,70 +32,64 @@ EXAMPLES
       const { FileSystemManager, UserManager, ErrorHandler } = dependencies;
       const filePathArg = args[0];
 
-      try {
-        const pathValidationResult = FileSystemManager.validatePath(
-            filePathArg,
-            {
-              allowMissing: true,
-              expectedType: "file",
-              disallowRoot: true,
-            }
-        );
+      const pathValidationResult = FileSystemManager.validatePath(
+          filePathArg,
+          {
+            allowMissing: true,
+            expectedType: "file",
+            disallowRoot: true,
+          }
+      );
 
-        if (
-            !pathValidationResult.success &&
-            pathValidationResult.data?.node !== null
-        ) {
-          return ErrorHandler.createError(
-              `printscreen: ${pathValidationResult.error}`
-          );
-        }
-        const pathValidation = pathValidationResult.data;
-
-        if (pathValidation.node && pathValidation.node.type === "directory") {
-          return ErrorHandler.createError(
-              `printscreen: cannot overwrite directory '${filePathArg}' with a file.`
-          );
-        }
-
-        if (
-            pathValidation.node &&
-            !FileSystemManager.hasPermission(
-                pathValidation.node,
-                currentUser,
-                "write"
-            )
-        ) {
-          return ErrorHandler.createError(
-              `printscreen: '${filePathArg}': Permission denied`
-          );
-        }
-
-        const outputDiv = document.getElementById("output");
-        const outputContent = outputDiv ? outputDiv.innerText : "";
-
-        const saveResult = await FileSystemManager.createOrUpdateFile(
-            pathValidation.resolvedPath,
-            outputContent,
-            {
-              currentUser,
-              primaryGroup: UserManager.getPrimaryGroupForUser(currentUser),
-            }
-        );
-
-        if (!saveResult.success) {
-          return ErrorHandler.createError(`printscreen: ${saveResult.error}`);
-        }
-
-        return ErrorHandler.createSuccess(
-            `Terminal output saved to '${pathValidation.resolvedPath}'`,
-            { stateModified: true }
-        );
-      } catch (e) {
+      if (
+          !pathValidationResult.success &&
+          pathValidationResult.data?.node !== null
+      ) {
         return ErrorHandler.createError(
-            `printscreen: An unexpected error occurred: ${e.message}`
+            `printscreen: ${pathValidationResult.error}`
         );
       }
+      const pathValidation = pathValidationResult.data;
+
+      if (pathValidation.node && pathValidation.node.type === "directory") {
+        return ErrorHandler.createError(
+            `printscreen: cannot overwrite directory '${filePathArg}' with a file.`
+        );
+      }
+
+      if (
+          pathValidation.node &&
+          !FileSystemManager.hasPermission(
+              pathValidation.node,
+              currentUser,
+              "write"
+          )
+      ) {
+        return ErrorHandler.createError(
+            `printscreen: '${filePathArg}': Permission denied`
+        );
+      }
+
+      const outputDiv = document.getElementById("output");
+      const outputContent = outputDiv ? outputDiv.innerText : "";
+
+      const saveResult = await FileSystemManager.createOrUpdateFile(
+          pathValidation.resolvedPath,
+          outputContent,
+          {
+            currentUser,
+            primaryGroup: UserManager.getPrimaryGroupForUser(currentUser),
+          }
+      );
+
+      if (!saveResult.success) {
+        return ErrorHandler.createError(`printscreen: ${saveResult.error}`);
+      }
+
+      return ErrorHandler.createSuccess(
+          `Terminal output saved to '${pathValidation.resolvedPath}'`,
+          { stateModified: true }
+      );
     },
   };
   CommandRegistry.register(printscreenCommandDefinition);

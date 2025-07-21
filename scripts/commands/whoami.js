@@ -18,13 +18,7 @@ DESCRIPTION
     coreLogic: async (context) => {
       const { dependencies } = context;
       const { ErrorHandler, UserManager } = dependencies;
-      try {
-        return ErrorHandler.createSuccess(UserManager.getCurrentUser().name);
-      } catch (e) {
-        return ErrorHandler.createError(
-            `whoami: An unexpected error occurred: ${e.message}`
-        );
-      }
+      return ErrorHandler.createSuccess(UserManager.getCurrentUser().name);
     },
   };
   CommandRegistry.register(whoamiCommandDefinition);
