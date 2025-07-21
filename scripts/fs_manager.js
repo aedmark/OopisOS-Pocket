@@ -1,17 +1,13 @@
-// scripts/fs_manager.js
 class FileSystemManager {
-  constructor(config) { // Accept config as an argument
+  constructor(config) {
     this.config = config;
     this.fsData = {};
-    this.currentPath = this.config.FILESYSTEM.ROOT_PATH; // Use the argument
-    this.dependencies = {}; // Central dependency store
+    this.currentPath = this.config.FILESYSTEM.ROOT_PATH;
+    this.dependencies = {};
   }
 
-  // A method to set dependencies post-instantiation
-  // This helps break circular dependency loops during construction
   setDependencies(dependencies) {
     this.dependencies = dependencies;
-    // For any methods still using the old direct properties
     this.userManager = dependencies.UserManager;
     this.groupManager = dependencies.GroupManager;
   }
@@ -286,13 +282,10 @@ class FileSystemManager {
     } = options;
     const currentUser = this.dependencies.UserManager.getCurrentUser().name;
 
-    // 1. Resolve Path
     const resolvedPath = this.getAbsolutePath(pathArg);
 
-    // 2. Retrieve Node
     const node = this.getNodeByPath(resolvedPath);
 
-    // 3. Validate Node Existence
     if (!node) {
       if (allowMissing) {
         return ErrorHandler.createSuccess({ node: null, resolvedPath });
@@ -300,7 +293,6 @@ class FileSystemManager {
       return ErrorHandler.createError(`${pathArg}: No such file or directory`);
     }
 
-    // 4. Validate Expected Type
     if (expectedType && node.type !== expectedType) {
       if (expectedType === "file") {
         return ErrorHandler.createError(`${pathArg}: Is not a file`);
@@ -310,14 +302,12 @@ class FileSystemManager {
       }
     }
 
-    // 5. Validate Permissions
     for (const perm of permissions) {
       if (!this.hasPermission(node, currentUser, perm)) {
         return ErrorHandler.createError(`${pathArg}: Permission denied`);
       }
     }
 
-    // 6. Success
     return ErrorHandler.createSuccess({ node, resolvedPath });
   }
 
@@ -687,7 +677,6 @@ class FileSystemManager {
     const { ErrorHandler } = this.dependencies;
     const { isCopy = false, isMove = false } = options;
 
-    // 1. Destination Analysis
     const destValidationResult = this.validatePath(destPathArg, {
       allowMissing: true,
     });
@@ -703,24 +692,20 @@ class FileSystemManager {
         destValidationResult.data.node &&
         destValidationResult.data.node.type === "directory";
 
-    // 2. Input Validation
     if (sourcePathArgs.length > 1 && !isDestADirectory) {
       return ErrorHandler.createError(
           `target '${destPathArg}' is not a directory`
       );
     }
 
-    // 3. Operation Plan Creation
     const operationsPlan = [];
     for (const sourcePath of sourcePathArgs) {
-      // 3.1. Validate Source Path
       let sourceValidationResult;
       if (isCopy) {
         sourceValidationResult = this.validatePath(sourcePath, {
           permissions: ["read"],
         });
       } else {
-        // isMove
         sourceValidationResult = this.validatePath(sourcePath);
         if (sourceValidationResult.success) {
           const sourceParentPath =
@@ -748,7 +733,6 @@ class FileSystemManager {
       const { node: sourceNode, resolvedPath: sourceAbsPath } =
           sourceValidationResult.data;
 
-      // 3.2. Determine Final Destination Path
       let destinationAbsPath;
       let finalName;
       let destinationParentNode;
@@ -780,10 +764,8 @@ class FileSystemManager {
         destinationParentNode = destParentValidation.data.node;
       }
 
-      // 3.3. Check for Overwrite
       const willOverwrite = !!destinationParentNode.children[finalName];
 
-      // 3.4. Validate Destination Parent Writable (already done for non-directory dest)
       if (isDestADirectory) {
         const parentValidation = this.validatePath(
             destValidationResult.data.resolvedPath,
@@ -794,7 +776,6 @@ class FileSystemManager {
         }
       }
 
-      // 3.5. Critical check for move
       if (isMove) {
         if (sourceAbsPath === "/") {
           return ErrorHandler.createError("cannot move root directory");
@@ -809,7 +790,6 @@ class FileSystemManager {
         }
       }
 
-      // 3.6. Push to Plan
       operationsPlan.push({
         sourceNode,
         sourceAbsPath,
@@ -820,7 +800,6 @@ class FileSystemManager {
       });
     }
 
-    // 4. Return Plan
     return ErrorHandler.createSuccess(operationsPlan);
   }
 }

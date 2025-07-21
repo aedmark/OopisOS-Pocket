@@ -1,4 +1,3 @@
-// scripts/session_manager.js
 class EnvironmentManager {
   constructor() {
     this.envStack = [{}];

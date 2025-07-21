@@ -1,4 +1,3 @@
-// scripts/terminal_ui.js
 var TerminalUI = (() => {
   "use strict";
   let isNavigatingHistory = false;

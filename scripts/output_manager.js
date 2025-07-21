@@ -1,4 +1,3 @@
-// scripts/output_manager.js
 const OutputManager = (() => {
   "use strict";
 

@@ -1,4 +1,3 @@
-// scripts/user_manager.js
 class UserManager {
   constructor(config, fsManager, groupManager) {
     this.config = config;

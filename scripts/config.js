@@ -1,5 +1,3 @@
-// scripts/config.js
-
 class ConfigManager {
   constructor() {
     this.dependencies = {};

@@ -1,4 +1,3 @@
-// scripts/modal_manager.js
 var ModalManager = (() => {
   "use strict";
   let isAwaitingTerminalInput = false;

@@ -1,17 +1,15 @@
-// scripts/group_manager.js
 class GroupManager {
   constructor() {
     this.groups = {};
-    this.dependencies = {}; // Add dependencies property
+    this.dependencies = {};
   }
 
-  // Add setDependencies method
   setDependencies(dependencies) {
     this.dependencies = dependencies;
   }
 
   initialize() {
-    const { StorageManager, Config } = this.dependencies; // Use dependencies
+    const { StorageManager, Config } = this.dependencies;
     this.groups = StorageManager.loadItem(
         Config.STORAGE_KEYS.USER_GROUPS,
         "User Groups",
@@ -33,7 +31,7 @@ class GroupManager {
   }
 
   _save() {
-    const { StorageManager, Config } = this.dependencies; // Use dependencies
+    const { StorageManager, Config } = this.dependencies;
     StorageManager.saveItem(
         Config.STORAGE_KEYS.USER_GROUPS,
         this.groups,
@@ -67,7 +65,7 @@ class GroupManager {
   }
 
   getGroupsForUser(username) {
-    const { StorageManager, Config } = this.dependencies; // Use dependencies
+    const { StorageManager, Config } = this.dependencies;
     const userGroups = [];
     const users = StorageManager.loadItem(
         Config.STORAGE_KEYS.USER_CREDENTIALS,
@@ -94,13 +92,13 @@ class GroupManager {
   }
 
   deleteGroup(groupName) {
-    const { StorageManager } = this.dependencies; // Use dependencies
+    const { StorageManager } = this.dependencies;
     if (!this.groupExists(groupName)) {
       return { success: false, error: `group '${groupName}' does not exist.` };
     }
 
     const users = StorageManager.loadItem(
-        this.dependencies.Config.STORAGE_KEYS.USER_CREDENTIALS, // Use dependencies.Config
+        this.dependencies.Config.STORAGE_KEYS.USER_CREDENTIALS,
         "User list",
         {}
     );
