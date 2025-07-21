@@ -2,15 +2,15 @@ window.EditorManager = class EditorManager extends App {
   constructor() {
     super();
     this.state = {};
-    this.dependencies = {}; // To be populated on enter
+    this.dependencies = {};
     this._debouncedPushUndo = null;
     this.callbacks = {};
-    this.ui = null; // To hold the UI instance
+    this.ui = null;
   }
 
   enter(appLayer, options = {}) {
     const { filePath, fileContent, onSaveCallback, dependencies } = options;
-    this.dependencies = dependencies; // Dependency injection
+    this.dependencies = dependencies;
     this.callbacks = this._createCallbacks();
 
     this._debouncedPushUndo = this.dependencies.Utils.debounce((content) => {
@@ -43,7 +43,6 @@ window.EditorManager = class EditorManager extends App {
 
     this.isActive = true;
 
-    // --- FIX: Instantiate the global EditorUI class directly ---
     this.ui = new EditorUI(this.state, this.callbacks, this.dependencies);
     this.container = this.ui.elements.container;
 

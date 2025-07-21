@@ -1,4 +1,3 @@
-// scripts/storage.js
 class StorageManager {
   constructor() {
     this.dependencies = {};
