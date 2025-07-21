@@ -1,4 +1,3 @@
-// scripts/apps/code/code_manager.js
 window.CodeManager = class CodeManager extends App {
   constructor() {
     super();

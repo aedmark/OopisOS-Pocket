@@ -43,7 +43,7 @@ window.EditorManager = class EditorManager extends App {
 
     this.isActive = true;
 
-    this.ui = new EditorUI(this.state, this.callbacks, this.dependencies);
+    this.ui = new this.dependencies.EditorUI(this.state, this.callbacks, this.dependencies);
     this.container = this.ui.elements.container;
 
     appLayer.appendChild(this.container);

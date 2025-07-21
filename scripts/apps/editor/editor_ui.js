@@ -25,7 +25,6 @@ window.EditorUI = class EditorUI {
         [this.elements.titleInput]
     );
 
-    // --- FIX START: Consolidated event listeners into the createButton calls ---
     this.elements.saveBtn = UIComponents.createButton("💾 Save", {
       onClick: () => this.managerCallbacks.onSaveRequest(),
     });
@@ -44,7 +43,6 @@ window.EditorUI = class EditorUI {
     this.elements.wordWrapBtn = UIComponents.createButton("Wrap", {
       onClick: () => this.managerCallbacks.onWordWrapToggle(),
     });
-    // --- FIX END ---
 
     const toolbarGroup = Utils.createElement(
         "div",
