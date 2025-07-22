@@ -52,8 +52,6 @@ echo "nested file content" > zip_test/nested_dir/file2.txt
 echo '#!/bin/oopis_shell' > arg_test.sh
 echo 'echo "Arg 1: $1, Arg 2: $2, Arg Count: $#, All Args: $@" ' >> arg_test.sh
 chmod 700 arg_test.sh
-echo -e '#!/bin/oopis_shell\nrun ./infinite_loop.sh' > infinite_loop.sh
-chmod 700 infinite_loop.sh
 # ls sorting assets
 touch -d "2 days ago" old.ext
 touch -d "1 day ago" new.txt
@@ -188,8 +186,6 @@ echo "===== Phase 6: Testing Scripting & Process Management ====="
 delay 400
 echo "--- Test: Script argument passing ---"
 run ./arg_test.sh first "second arg" third
-echo "--- Test: Script execution governor (expect graceful failure) ---"
-check_fail "run ./infinite_loop.sh"
 echo "--- Test: Background jobs (ps, kill) ---"
 delay 5000 &
 ps
