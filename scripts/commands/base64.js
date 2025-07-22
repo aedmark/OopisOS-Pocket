@@ -2,10 +2,12 @@
 (() => {
   "use strict";
 
-  const base64CommandDefinition = {
-    commandName: "base64",
-    description: "Encode or decode data and print to standard output.",
-    helpText: `Usage: base64 [OPTION]... [FILE]
+  class Base64Command extends Command {
+    constructor() {
+      super({
+        commandName: "base64",
+        description: "Encode or decode data and print to standard output.",
+        helpText: `Usage: base64 [OPTION]... [FILE]
 
 Base64 encode or decode FILE, or standard input, to standard output.
 
@@ -27,10 +29,13 @@ EXAMPLES
 
        cat encoded.txt | base64 -d
               Decodes the content of 'encoded.txt' and prints the original script.`,
-    isInputStream: true,
-    completionType: "paths",
-    flagDefinitions: [{ name: "decode", short: "-d", long: "--decode" }],
-    coreLogic: async (context) => {
+        isInputStream: true,
+        completionType: "paths",
+        flagDefinitions: [{ name: "decode", short: "-d", long: "--decode" }],
+      });
+    }
+
+    async coreLogic(context) {
       const { flags, inputItems, inputError, dependencies } = context;
       const { ErrorHandler } = dependencies;
 
@@ -66,7 +71,8 @@ EXAMPLES
         // Re-throw any other unexpected errors.
         throw e;
       }
-    },
-  };
-  CommandRegistry.register(base64CommandDefinition);
+    }
+  }
+
+  CommandRegistry.register(new Base64Command());
 })();

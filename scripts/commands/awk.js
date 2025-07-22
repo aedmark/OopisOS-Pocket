@@ -1,10 +1,13 @@
 // scripts/commands/awk.js
 (() => {
   "use strict";
-  const awkCommandDefinition = {
-    commandName: "awk",
-    description: "Pattern scanning and text processing language.",
-    helpText: `Usage: awk 'program' [file...]
+
+  class AwkCommand extends Command {
+    constructor() {
+      super({
+        commandName: "awk",
+        description: "Pattern scanning and text processing language.",
+        helpText: `Usage: awk 'program' [file...]
        awk -F<separator> 'program' [file...]
 
 A tool for pattern scanning and processing.
@@ -36,16 +39,82 @@ EXAMPLES
        awk '/success/ {print "Found:", $0}' app.log
               Prints "Found:" followed by the full line for every line containing
               "success" in the file app.log.`,
-    completionType: "paths",
-    isInputStream: true,
-    flagDefinitions: [
-      { name: "fieldSeparator", short: "-F", takesValue: true },
-    ],
-    firstFileArgIndex: 1,
-    coreLogic: async (context) => {
+        completionType: "paths",
+        isInputStream: true,
+        flagDefinitions: [
+          { name: "fieldSeparator", short: "-F", takesValue: true },
+        ],
+        // No firstFileArgIndex needed here anymore! The base class handles it.
+      });
+    }
+
+    _parseProgram(programString) {
+      const program = { begin: null, end: null, rules: [], error: null };
+      const ruleRegex =
+          /(BEGIN)\s*{([^}]*)}|(END)\s*{([^}]*)}|(\/[^/]*\/)\s*{([^}]*)}/g;
+      let match;
+      while ((match = ruleRegex.exec(programString)) !== null) {
+        if (match[1]) {
+          program.begin = match[2].trim();
+        } else if (match[3]) {
+          program.end = match[4].trim();
+        } else if (match[5]) {
+          try {
+            const pattern = new RegExp(match[5].slice(1, -1));
+            program.rules.push({ pattern: pattern, action: match[6].trim() });
+          } catch (e) {
+            program.error = `Invalid regex pattern: ${match[5]}`;
+            return program;
+          }
+        }
+      }
+      if (
+          programString.trim() &&
+          !program.begin &&
+          !program.end &&
+          program.rules.length === 0
+      ) {
+        const simpleActionMatch = programString.trim().match(/^{([^}]*)}$/);
+        if (simpleActionMatch) {
+          program.rules.push({
+            pattern: /.*/,
+            action: simpleActionMatch[1].trim(),
+          });
+        } else {
+          program.error = `Unrecognized program format: ${programString}`;
+        }
+      }
+      return program;
+    }
+
+    _executeAction(action, fields, vars) {
+      if (action.startsWith("print")) {
+        let argsStr = action.substring(5).trim();
+        if (argsStr === "") {
+          return fields[0];
+        }
+
+        argsStr = argsStr.replace(/\$(\d+)/g, (match, n) => {
+          const index = parseInt(n, 10);
+          return fields[index] || "";
+        });
+
+        argsStr = argsStr.replace(/\$0/g, fields[0] || "");
+        argsStr = argsStr.replace(/NR/g, vars.NR);
+        argsStr = argsStr.replace(/NF/g, vars.NF);
+
+        // Replace commas with spaces for multi-argument print
+        return argsStr.replace(/,/g, " ").replace(/"/g, ""); // Also strip quotes
+      }
+      return null;
+    }
+
+    async coreLogic(context) {
       const { flags, args, inputItems, inputError, dependencies } = context;
       const { ErrorHandler } = dependencies;
 
+      // The 'args' array from context now correctly contains only non-flag arguments.
+      // The program is the first argument, and any subsequent arguments are files.
       if (args.length === 0) {
         return ErrorHandler.createError("awk: missing program");
       }
@@ -56,14 +125,16 @@ EXAMPLES
         );
       }
 
-      const programString = args[0];
-      const program = _parseProgram(programString);
+      const programString = args[0]; // The program is now always the first argument
+      const program = this._parseProgram(programString);
       if (program.error) {
         return ErrorHandler.createError(
             `awk: program error: ${program.error}`
         );
       }
 
+      // The inputItems are now correctly populated by the base class logic,
+      // whether from a pipe or from the file arguments.
       if (!inputItems || inputItems.length === 0) {
         return ErrorHandler.createSuccess("");
       }
@@ -76,7 +147,7 @@ EXAMPLES
       let nr = 0;
 
       if (program.begin) {
-        const beginResult = _executeAction(program.begin, [], {
+        const beginResult = this._executeAction(program.begin, [], {
           NR: 0,
           NF: 0,
         });
@@ -97,83 +168,22 @@ EXAMPLES
 
         for (const rule of program.rules) {
           if (rule.pattern.test(line)) {
-            const actionResult = _executeAction(rule.action, allFields, vars);
+            const actionResult = this._executeAction(rule.action, allFields, vars);
             if (actionResult !== null) outputLines.push(actionResult);
           }
         }
       }
 
       if (program.end) {
-        const endResult = _executeAction(program.end, [], { NR: nr, NF: 0 });
+        const endResult = this._executeAction(program.end, [], { NR: nr, NF: 0 });
         if (endResult !== null) {
           outputLines.push(endResult);
         }
       }
 
       return ErrorHandler.createSuccess(outputLines.join("\n"));
-    },
-  };
-
-  function _parseProgram(programString) {
-    const program = { begin: null, end: null, rules: [], error: null };
-    const ruleRegex =
-        /(BEGIN)\s*{([^}]*)}|(END)\s*{([^}]*)}|(\/[^/]*\/)\s*{([^}]*)}/g;
-    let match;
-    while ((match = ruleRegex.exec(programString)) !== null) {
-      if (match[1]) {
-        program.begin = match[2].trim();
-      } else if (match[3]) {
-        program.end = match[4].trim();
-      } else if (match[5]) {
-        try {
-          const pattern = new RegExp(match[5].slice(1, -1));
-          program.rules.push({ pattern: pattern, action: match[6].trim() });
-        } catch (e) {
-          program.error = `Invalid regex pattern: ${match[5]}`;
-          return program;
-        }
-      }
     }
-    if (
-        programString.trim() &&
-        !program.begin &&
-        !program.end &&
-        program.rules.length === 0
-    ) {
-      const simpleActionMatch = programString.trim().match(/^{([^}]*)}$/);
-      if (simpleActionMatch) {
-        program.rules.push({
-          pattern: /.*/,
-          action: simpleActionMatch[1].trim(),
-        });
-      } else {
-        program.error = `Unrecognized program format: ${programString}`;
-      }
-    }
-    return program;
   }
 
-  function _executeAction(action, fields, vars) {
-    if (action.startsWith("print")) {
-      let argsStr = action.substring(5).trim();
-      if (argsStr === "") {
-        return fields[0];
-      }
-
-      argsStr = argsStr.replace(/\$(\d+)/g, (match, n) => {
-        const index = parseInt(n, 10);
-        return fields[index] || "";
-      });
-
-      argsStr = argsStr.replace(/\$0/g, fields[0] || "");
-      argsStr = argsStr.replace(/NR/g, vars.NR);
-      argsStr = argsStr.replace(/NF/g, vars.NF);
-
-      // Replace commas with spaces for multi-argument print
-      return argsStr.replace(/,/g, " ").replace(/"/g, ""); // Also strip quotes
-    }
-    return null;
-  }
-
-  CommandRegistry.register(awkCommandDefinition);
+  CommandRegistry.register(new AwkCommand());
 })();

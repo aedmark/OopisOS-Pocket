@@ -2,10 +2,12 @@
 (() => {
   "use strict";
 
-  const backupCommandDefinition = {
-    commandName: "backup",
-    description: "Creates a secure backup of the current OopisOS system state.",
-    helpText: `Usage: backup
+  class BackupCommand extends Command {
+    constructor() {
+      super({
+        commandName: "backup",
+        description: "Creates a secure backup of the current OopisOS system state.",
+        helpText: `Usage: backup
 
 Creates a secure, verifiable backup of the current OopisOS system state.
 
@@ -17,10 +19,13 @@ DESCRIPTION
 
        When run in the Electron desktop app, it will open a native file save dialog.
        Otherwise, it will trigger a browser download.`,
-    argValidation: {
-      exact: 0,
-    },
-    coreLogic: async (context) => {
+        argValidation: {
+          exact: 0,
+        },
+      });
+    }
+
+    async coreLogic(context) {
       const { options, dependencies } = context;
       const {
         UserManager,
@@ -104,7 +109,8 @@ DESCRIPTION
             `backup: An unexpected error occurred: ${e.message}`
         );
       }
-    },
-  };
-  CommandRegistry.register(backupCommandDefinition);
+    }
+  }
+
+  CommandRegistry.register(new BackupCommand());
 })();

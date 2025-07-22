@@ -2,10 +2,12 @@
 (() => {
   "use strict";
 
-  const aliasCommandDefinition = {
-    commandName: "alias",
-    description: "Create, remove, and display command aliases.",
-    helpText: `Usage: alias [name='command']...
+  class AliasCommand extends Command {
+    constructor() {
+      super({
+        commandName: "alias",
+        description: "Create, remove, and display command aliases.",
+        helpText: `Usage: alias [name='command']...
 
 Define or display command aliases.
 
@@ -34,9 +36,12 @@ EXAMPLES
        
        alias ll
               Displays the definition for the 'll' alias.`,
-    coreLogic: async (context) => {
+      });
+    }
+
+    async coreLogic(context) {
       const { args, dependencies } = context;
-      const { AliasManager, ErrorHandler } = dependencies;
+      const { AliasManager, ErrorHandler, Utils } = dependencies;
 
       if (args.length === 0) {
         const allAliases = AliasManager.getAllAliases();
@@ -73,7 +78,8 @@ EXAMPLES
           return ErrorHandler.createError(`alias: ${name}: not found`);
         }
       }
-    },
-  };
-  CommandRegistry.register(aliasCommandDefinition);
+    }
+  }
+
+  CommandRegistry.register(new AliasCommand());
 })();

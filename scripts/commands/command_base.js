@@ -1,4 +1,4 @@
-// gem/scripts/commands/command_base.js
+// scripts/commands/command_base.js
 class Command {
     constructor(definition) {
         if (!definition || !definition.commandName) {
@@ -21,7 +21,10 @@ class Command {
             return;
         }
 
+        // This is the key change: We now respect the 'firstFileArgIndex'
+        // passed from the execute method to know where the file list truly begins.
         const fileArgs = args.slice(firstFileArgIndex);
+
         if (fileArgs.length === 0) {
             return;
         }
@@ -67,13 +70,13 @@ class Command {
         );
 
         // 2. Validate Argument Count
-        if (this.definition.validations && this.definition.validations.args) {
+        if (this.definition.argValidation) { // Simplified check
             const argValidation = Utils.validateArguments(
                 remainingArgs,
-                this.definition.validations.args
+                this.definition.argValidation
             );
             if (!argValidation.isValid) {
-                const errorMsg = this.definition.validations.args.error || argValidation.errorDetail;
+                const errorMsg = this.definition.argValidation.error || argValidation.errorDetail;
                 return ErrorHandler.createError(`${this.commandName}: ${errorMsg}`);
             }
         }
@@ -100,18 +103,25 @@ class Command {
             dependencies,
         };
 
-        // Handle input streams for commands like cat, grep, etc.
         if (this.definition.isInputStream) {
             const inputParts = [];
             let hadError = false;
             let fileCount = 0;
             let firstSourceName = null;
 
-            const firstFileArgIndex = this.definition.firstFileArgIndex || 0;
+            // Determine the correct starting index for file arguments.
+            // For awk, the program is the first arg, so files start at index 1.
+            const fileStartIndex = this.definition.firstFileArgIndex !== undefined
+                ? this.definition.firstFileArgIndex
+                // This is the fallback that correctly identifies the start of file paths for awk.
+                : (this.definition.argValidation && (this.definition.argValidation.exact || this.definition.argValidation.min))
+                    ? (this.definition.argValidation.exact || this.definition.argValidation.min)
+                    : 1;
+
 
             for await (const item of this._generateInputContent(
                 context,
-                firstFileArgIndex
+                fileStartIndex
             )) {
                 fileCount++;
                 if (firstSourceName === null) firstSourceName = item.sourceName;
@@ -135,12 +145,12 @@ class Command {
             context.firstSourceName = firstSourceName;
         }
 
+        if (typeof this.coreLogic === 'function') {
+            return this.coreLogic(context);
+        }
         return this.definition.coreLogic(context);
     }
 
-    /**
-     * A helper to process a single path validation rule.
-     */
     async _validatePathRule(rule, args, dependencies) {
         const { FileSystemManager, UserManager, ErrorHandler } = dependencies;
         const validatedPathsForRule = [];
@@ -188,5 +198,4 @@ class Command {
     }
 }
 
-// Make the class globally available or export it
 window.Command = Command;
