@@ -175,6 +175,9 @@ window.onload = async () => {
     UIComponents: UIComponents,
   };
 
+  const pagerManager = new PagerManager(dependencies);
+  dependencies.PagerManager = pagerManager;
+
   configManager.setDependencies(dependencies);
   storageManager.setDependencies(dependencies);
   indexedDBManager.setDependencies(dependencies);
@@ -185,7 +188,6 @@ window.onload = async () => {
   environmentManager.setDependencies(userManager, fsManager, configManager);
   commandExecutor.setDependencies(dependencies);
   groupManager.setDependencies(dependencies);
-  PagerManager.setDependencies(dependencies);
 
   OutputManager.initialize(domElements);
   OutputManager.setDependencies(dependencies);
