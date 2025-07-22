@@ -1,10 +1,7 @@
 // scripts/commands/wget.js
-(() => {
-  "use strict";
-
-    class WgetCommand extends Command {
-    constructor() {
-      super({
+class WgetCommand extends Command {
+  constructor() {
+    super({
       commandName: "wget",
       description: "The non-interactive network downloader.",
       helpText: `Usage: wget [-O <file>] <URL>
@@ -25,119 +22,114 @@
       in the current directory.`,
       completionType: "paths",
       flagDefinitions: [
-      {
-      name: "outputFile",
-      short: "-O",
-      takesValue: true,
-      },
+        {
+          name: "outputFile",
+          short: "-O",
+          takesValue: true,
+        },
       ],
       argValidation: {
-      min: 1,
-      error: "Usage: wget [-O <file>] <URL>",
+        min: 1,
+        error: "Usage: wget [-O <file>] <URL>",
       },
-      });
-    }
-
-    async coreLogic(context) {
-      
-            const { args, flags, currentUser, dependencies } = context;
-            const { ErrorHandler, FileSystemManager, UserManager, OutputManager, Utils } = dependencies;
-            const url = args[0];
-            let outputFileName = flags.outputFile;
-      
-            try {
-              if (!outputFileName) {
-                try {
-                  const urlObj = new URL(url);
-                  const segments = urlObj.pathname.split("/");
-                  outputFileName = segments.pop() || "index.html";
-                } catch (e) {
-                  return ErrorHandler.createError(`wget: Invalid URL '${url}'`);
-                }
-              }
-      
-              const pathValidationResult = FileSystemManager.validatePath(
-                  outputFileName,
-                  {
-                    allowMissing: true,
-                    disallowRoot: true,
-                  }
-              );
-      
-              if (!pathValidationResult.success) {
-                return ErrorHandler.createError(
-                    `wget: ${pathValidationResult.error}`
-                );
-              }
-              const pathValidation = pathValidationResult.data;
-              if (pathValidation.node && pathValidation.node.type === "directory") {
-                return ErrorHandler.createError(
-                    `wget: '${outputFileName}' is a directory`
-                );
-              }
-      
-              await OutputManager.appendToOutput(
-                  `--OopisOS WGET--\\nResolving ${url}...`
-              );
-      
-              const response = await fetch(url);
-              await OutputManager.appendToOutput(
-                  `Connecting to ${new URL(url).hostname}... connected.`
-              );
-              await OutputManager.appendToOutput(
-                  `HTTP request sent, awaiting response... ${response.status} ${response.statusText}`
-              );
-      
-              if (!response.ok) {
-                return ErrorHandler.createError(
-                    `wget: Server responded with status ${response.status} ${response.statusText}`
-                );
-              }
-      
-              const contentLength = response.headers.get("content-length");
-              const sizeStr = contentLength
-                  ? Utils.formatBytes(parseInt(contentLength, 10))
-                  : "unknown size";
-              await OutputManager.appendToOutput(`Length: ${sizeStr}`);
-      
-              const content = await response.text();
-      
-              const primaryGroup = UserManager.getPrimaryGroupForUser(currentUser);
-              if (!primaryGroup) {
-                return ErrorHandler.createError(
-                    "wget: critical - could not determine primary group for user."
-                );
-              }
-      
-              const saveResult = await FileSystemManager.createOrUpdateFile(
-                  pathValidation.resolvedPath,
-                  content,
-                  {
-                    currentUser,
-                    primaryGroup,
-                  }
-              );
-      
-              if (!saveResult.success) {
-                return ErrorHandler.createError(`wget: ${saveResult.error}`);
-              }
-      
-              await OutputManager.appendToOutput(`Saving to: ‘${outputFileName}’`);
-      
-              return ErrorHandler.createSuccess(
-                  `‘${outputFileName}’ saved [${content.length} bytes]`,
-                  { stateModified: true }
-              );
-            } catch (e) {
-              let errorMsg = `wget: An error occurred. This is often due to a network issue or a CORS policy preventing access.`;
-              if (e instanceof TypeError && e.message.includes("Failed to fetch")) {
-                errorMsg = `wget: Network request failed. The server may be down, or a CORS policy is blocking the request from the browser.`;
-              }
-              return ErrorHandler.createError(errorMsg);
-            }
-          
-    }
+    });
   }
 
-  CommandRegistry.register(new WgetCommand());
-})();
+  async coreLogic(context) {
+    const { args, flags, currentUser, dependencies } = context;
+    const { ErrorHandler, FileSystemManager, UserManager, OutputManager, Utils } = dependencies;
+    const url = args[0];
+    let outputFileName = flags.outputFile;
+
+    try {
+      if (!outputFileName) {
+        try {
+          const urlObj = new URL(url);
+          const segments = urlObj.pathname.split("/");
+          outputFileName = segments.pop() || "index.html";
+        } catch (e) {
+          return ErrorHandler.createError(`wget: Invalid URL '${url}'`);
+        }
+      }
+
+      const pathValidationResult = FileSystemManager.validatePath(
+          outputFileName,
+          {
+            allowMissing: true,
+            disallowRoot: true,
+          }
+      );
+
+      if (!pathValidationResult.success) {
+        return ErrorHandler.createError(
+            `wget: ${pathValidationResult.error}`
+        );
+      }
+      const pathValidation = pathValidationResult.data;
+      if (pathValidation.node && pathValidation.node.type === "directory") {
+        return ErrorHandler.createError(
+            `wget: '${outputFileName}' is a directory`
+        );
+      }
+
+      await OutputManager.appendToOutput(
+          `--OopisOS WGET--\\nResolving ${url}...`
+      );
+
+      const response = await fetch(url);
+      await OutputManager.appendToOutput(
+          `Connecting to ${new URL(url).hostname}... connected.`
+      );
+      await OutputManager.appendToOutput(
+          `HTTP request sent, awaiting response... ${response.status} ${response.statusText}`
+      );
+
+      if (!response.ok) {
+        return ErrorHandler.createError(
+            `wget: Server responded with status ${response.status} ${response.statusText}`
+        );
+      }
+
+      const contentLength = response.headers.get("content-length");
+      const sizeStr = contentLength
+          ? Utils.formatBytes(parseInt(contentLength, 10))
+          : "unknown size";
+      await OutputManager.appendToOutput(`Length: ${sizeStr}`);
+
+      const content = await response.text();
+
+      const primaryGroup = UserManager.getPrimaryGroupForUser(currentUser);
+      if (!primaryGroup) {
+        return ErrorHandler.createError(
+            "wget: critical - could not determine primary group for user."
+        );
+      }
+
+      const saveResult = await FileSystemManager.createOrUpdateFile(
+          pathValidation.resolvedPath,
+          content,
+          {
+            currentUser,
+            primaryGroup,
+          }
+      );
+
+      if (!saveResult.success) {
+        return ErrorHandler.createError(`wget: ${saveResult.error}`);
+      }
+
+      await OutputManager.appendToOutput(`Saving to: ‘${outputFileName}’`);
+
+      return ErrorHandler.createSuccess(
+          `‘${outputFileName}’ saved [${content.length} bytes]`,
+          { stateModified: true }
+      );
+    } catch (e) {
+      let errorMsg = `wget: An error occurred. This is often due to a network issue or a CORS policy preventing access.`;
+      if (e instanceof TypeError && e.message.includes("Failed to fetch")) {
+        errorMsg = `wget: Network request failed. The server may be down, or a CORS policy is blocking the request from the browser.`;
+      }
+      return ErrorHandler.createError(errorMsg);
+    }
+  }
+}
