@@ -48,13 +48,17 @@ class CommandExecutor {
       // Load the script file
       await this._loadScript(commandScriptPath);
 
-      // NEW LOGIC: Check if the script defined a class and register it
-      const className = commandName.charAt(0).toUpperCase() + commandName.slice(1) + 'Command';
+      // Convert snake_case (like check_fail) to CamelCase (CheckFail)
+
+      const className = commandName
+          .split('_')
+          .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+          .join('') + 'Command';
+
       if (typeof window[className] === 'function' && !CommandRegistry.getCommands()[commandName]) {
         const commandInstance = new window[className]();
         CommandRegistry.register(commandInstance);
       }
-      // END NEW LOGIC
 
       // Now, get the instance from the registry (it should be there now)
       const commandInstance = CommandRegistry.getCommands()[commandName];
