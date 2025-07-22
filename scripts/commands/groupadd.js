@@ -1,13 +1,10 @@
 // scripts/commands/groupadd.js
-(() => {
-  "use strict";
-
-    class GroupaddCommand extends Command {
+class GroupaddCommand extends Command {
     constructor() {
-      super({
-      commandName: "groupadd",
-      description: "Creates a new user group.",
-      helpText: `Usage: groupadd <groupname>
+        super({
+            commandName: "groupadd",
+            description: "Creates a new user group.",
+            helpText: `Usage: groupadd <groupname>
       Create a new user group.
       DESCRIPTION
       The groupadd command creates a new group with the specified
@@ -21,39 +18,34 @@
       Creates a new group named 'developers'.
       PERMISSIONS
       Only the superuser (root) can create new groups.`,
-      validations: {
-      args: {
-      exact: 1,
-      error: "Usage: groupadd <groupname>"
-      }
-      },
-      });
+            validations: {
+                args: {
+                    exact: 1,
+                    error: "Usage: groupadd <groupname>"
+                }
+            },
+        });
     }
 
     async coreLogic(context) {
-      
-            const { args, currentUser, dependencies } = context;
-            const { GroupManager, ErrorHandler } = dependencies;
-            const groupName = args[0];
-      
-            if (currentUser !== "root") {
-              return ErrorHandler.createError(
-                  "groupadd: only root can add groups."
-              );
-            }
-      
-            if (GroupManager.groupExists(groupName)) {
-              return ErrorHandler.createError(
-                  `groupadd: group '${groupName}' already exists.`
-              );
-            }
-      
-            GroupManager.createGroup(groupName);
-      
-            return ErrorHandler.createSuccess(`Group '${groupName}' created.`);
-          
-    }
-  }
+        const { args, currentUser, dependencies } = context;
+        const { GroupManager, ErrorHandler } = dependencies;
+        const groupName = args[0];
 
-  CommandRegistry.register(new GroupaddCommand());
-})();
+        if (currentUser !== "root") {
+            return ErrorHandler.createError(
+                "groupadd: only root can add groups."
+            );
+        }
+
+        if (GroupManager.groupExists(groupName)) {
+            return ErrorHandler.createError(
+                `groupadd: group '${groupName}' already exists.`
+            );
+        }
+
+        GroupManager.createGroup(groupName);
+
+        return ErrorHandler.createSuccess(`Group '${groupName}' created.`);
+    }
+}

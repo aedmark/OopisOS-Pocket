@@ -1,10 +1,7 @@
 // scripts/commands/loadstate.js
-(() => {
-  "use strict";
-
-    class LoadstateCommand extends Command {
-    constructor() {
-      super({
+class LoadstateCommand extends Command {
+  constructor() {
+    super({
       commandName: "loadstate",
       description: "Loads the last manually saved session state.",
       helpText: `Usage: loadstate
@@ -21,33 +18,28 @@
       file system and session with the saved data. The command will
       prompt for confirmation before proceeding.`,
       validations: {
-      args: {
-      exact: 0
-      }
+        args: {
+          exact: 0
+        }
       },
-      });
-    }
-
-    async coreLogic(context) {
-      
-            const { options, dependencies } = context;
-            const { SessionManager, ErrorHandler } = dependencies;
-            try {
-              const result = await SessionManager.loadManualState(options);
-              if (result.success) {
-                return ErrorHandler.createSuccess(result.data.message);
-              }
-              return ErrorHandler.createError(
-                  result.data.message || "Failed to load state."
-              );
-            } catch (e) {
-              return ErrorHandler.createError(
-                  `loadstate: An unexpected error occurred: ${e.message}`
-              );
-            }
-          
-    }
+    });
   }
 
-  CommandRegistry.register(new LoadstateCommand());
-})();
+  async coreLogic(context) {
+    const { options, dependencies } = context;
+    const { SessionManager, ErrorHandler } = dependencies;
+    try {
+      const result = await SessionManager.loadManualState(options);
+      if (result.success) {
+        return ErrorHandler.createSuccess(result.data.message);
+      }
+      return ErrorHandler.createError(
+          result.data.message || "Failed to load state."
+      );
+    } catch (e) {
+      return ErrorHandler.createError(
+          `loadstate: An unexpected error occurred: ${e.message}`
+      );
+    }
+  }
+}

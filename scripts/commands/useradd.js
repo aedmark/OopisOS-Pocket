@@ -1,13 +1,10 @@
 // scripts/commands/useradd.js
-(() => {
-  "use strict";
-
-    class UseraddCommand extends Command {
+class UseraddCommand extends Command {
     constructor() {
-      super({
-      commandName: "useradd",
-      description: "Creates a new user account.",
-      helpText: `Usage: useradd <username>
+        super({
+            commandName: "useradd",
+            description: "Creates a new user account.",
+            helpText: `Usage: useradd <username>
       Create a new user account.
       DESCRIPTION
       The useradd command creates a new user account with the specified
@@ -19,92 +16,87 @@
       useradd newdev
       Starts the process to create a user named 'newdev',
       prompting for a password.`,
-      completionType: "users",
-      argValidation: {
-      exact: 1,
-      error: "expects exactly one argument (username)",
-      },
-      });
+            completionType: "users",
+            argValidation: {
+                exact: 1,
+                error: "expects exactly one argument (username)",
+            },
+        });
     }
 
     async coreLogic(context) {
-      
-            const { args, options, dependencies } = context;
-            const { UserManager, ErrorHandler, ModalManager, Config, StorageManager } = dependencies;
-            const username = args[0];
-      
-            const userCheck = StorageManager.loadItem(
-                Config.STORAGE_KEYS.USER_CREDENTIALS,
-                "User list",
-                {}
+        const { args, options, dependencies } = context;
+        const { UserManager, ErrorHandler, ModalManager, Config, StorageManager } = dependencies;
+        const username = args[0];
+
+        const userCheck = StorageManager.loadItem(
+            Config.STORAGE_KEYS.USER_CREDENTIALS,
+            "User list",
+            {}
+        );
+        if (userCheck[username]) {
+            return ErrorHandler.createError(
+                `useradd: User '${username}' already exists.`
             );
-            if (userCheck[username]) {
-              return ErrorHandler.createError(
-                  `useradd: User '${username}' already exists.`
-              );
-            }
-      
-            return new Promise(async (resolve) => {
-              ModalManager.request({
+        }
+
+        return new Promise(async (resolve) => {
+            ModalManager.request({
                 context: "terminal",
                 type: "input",
                 messageLines: [Config.MESSAGES.PASSWORD_PROMPT],
                 obscured: true,
                 onConfirm: (firstPassword) => {
-                  if (firstPassword.trim() === "") {
-                    resolve(
-                        ErrorHandler.createError(
-                            Config.MESSAGES.EMPTY_PASSWORD_NOT_ALLOWED
-                        )
-                    );
-                    return;
-                  }
-                  ModalManager.request({
-                    context: "terminal",
-                    type: "input",
-                    messageLines: [Config.MESSAGES.PASSWORD_CONFIRM_PROMPT],
-                    obscured: true,
-                    onConfirm: async (confirmedPassword) => {
-                      if (firstPassword !== confirmedPassword) {
+                    if (firstPassword.trim() === "") {
                         resolve(
                             ErrorHandler.createError(
-                                Config.MESSAGES.PASSWORD_MISMATCH
+                                Config.MESSAGES.EMPTY_PASSWORD_NOT_ALLOWED
                             )
                         );
                         return;
-                      }
-                      const registerResult = await UserManager.register(
-                          username,
-                          firstPassword
-                      );
-                      resolve(registerResult);
-                    },
-                    onCancel: () =>
-                        resolve(
-                            ErrorHandler.createSuccess(
-                                Config.MESSAGES.OPERATION_CANCELLED
-                            )
-                        ),
-                    options,
-                  });
+                    }
+                    ModalManager.request({
+                        context: "terminal",
+                        type: "input",
+                        messageLines: [Config.MESSAGES.PASSWORD_CONFIRM_PROMPT],
+                        obscured: true,
+                        onConfirm: async (confirmedPassword) => {
+                            if (firstPassword !== confirmedPassword) {
+                                resolve(
+                                    ErrorHandler.createError(
+                                        Config.MESSAGES.PASSWORD_MISMATCH
+                                    )
+                                );
+                                return;
+                            }
+                            const registerResult = await UserManager.register(
+                                username,
+                                firstPassword
+                            );
+                            resolve(registerResult);
+                        },
+                        onCancel: () =>
+                            resolve(
+                                ErrorHandler.createSuccess(
+                                    Config.MESSAGES.OPERATION_CANCELLED
+                                )
+                            ),
+                        options,
+                    });
                 },
                 onCancel: () =>
                     resolve(
                         ErrorHandler.createSuccess(Config.MESSAGES.OPERATION_CANCELLED)
                     ),
                 options,
-              });
-            }).then((result) => {
-              if (result.success) {
-                return ErrorHandler.createSuccess(result.data, {
-                  stateModified: result.stateModified
-                });
-              }
-              return result;
             });
-          
+        }).then((result) => {
+            if (result.success) {
+                return ErrorHandler.createSuccess(result.data, {
+                    stateModified: result.stateModified
+                });
+            }
+            return result;
+        });
     }
-  }
-
-  CommandRegistry.register(new UseraddCommand());
-})();
+}
