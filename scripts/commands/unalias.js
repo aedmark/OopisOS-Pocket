@@ -1,13 +1,10 @@
 // scripts/commands/unalias.js
-(() => {
-  "use strict";
-
-    class UnaliasCommand extends Command {
+class UnaliasCommand extends Command {
     constructor() {
-      super({
-      commandName: "unalias",
-      description: "Removes one or more defined aliases.",
-      helpText: `Usage: unalias <alias_name>...
+        super({
+            commandName: "unalias",
+            description: "Removes one or more defined aliases.",
+            helpText: `Usage: unalias <alias_name>...
       Remove aliases from the set of defined aliases.
       DESCRIPTION
       The unalias command is used to remove one or more specified
@@ -17,40 +14,35 @@
       Removes the 'll' alias.
       unalias mypath mycommand
       Removes both the 'mypath' and 'mycommand' aliases.`,
-      completionType: "aliases",
-      argValidation: {
-      min: 1,
-      error: "Usage: unalias <alias_name>...",
-      },
-      });
+            completionType: "aliases",
+            argValidation: {
+                min: 1,
+                error: "Usage: unalias <alias_name>...",
+            },
+        });
     }
 
     async coreLogic(context) {
-      
-            const { args, dependencies } = context;
-            const { AliasManager, ErrorHandler } = dependencies;
-      
-            let allSuccess = true;
-            const errorMessages = [];
-            let changesMade = false;
-      
-            for (const aliasName of args) {
-              if (AliasManager.removeAlias(aliasName)) {
+        const { args, dependencies } = context;
+        const { AliasManager, ErrorHandler } = dependencies;
+
+        let allSuccess = true;
+        const errorMessages = [];
+        let changesMade = false;
+
+        for (const aliasName of args) {
+            if (AliasManager.removeAlias(aliasName)) {
                 changesMade = true;
-              } else {
+            } else {
                 allSuccess = false;
                 errorMessages.push(`unalias: no such alias: ${aliasName}`);
-              }
             }
-      
-            if (allSuccess) {
-              return ErrorHandler.createSuccess("", { stateModified: changesMade });
-            } else {
-              return ErrorHandler.createError(errorMessages.join("\n"));
-            }
-          
-    }
-  }
+        }
 
-  CommandRegistry.register(new UnaliasCommand());
-})();
+        if (allSuccess) {
+            return ErrorHandler.createSuccess("", { stateModified: changesMade });
+        } else {
+            return ErrorHandler.createError(errorMessages.join("\n"));
+        }
+    }
+}

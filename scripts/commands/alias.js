@@ -1,13 +1,10 @@
 // scripts/commands/alias.js
-(() => {
-  "use strict";
-
-  class AliasCommand extends Command {
-    constructor() {
-      super({
-        commandName: "alias",
-        description: "Create, remove, and display command aliases.",
-        helpText: `Usage: alias [name='command']...
+class AliasCommand extends Command {
+  constructor() {
+    super({
+      commandName: "alias",
+      description: "Create, remove, and display command aliases.",
+      helpText: `Usage: alias [name='command']...
 
 Define or display command aliases.
 
@@ -36,50 +33,47 @@ EXAMPLES
        
        alias ll
               Displays the definition for the 'll' alias.`,
-      });
+    });
+  }
+
+  async coreLogic(context) {
+    const { args, dependencies } = context;
+    const { AliasManager, ErrorHandler, Utils } = dependencies;
+
+    if (args.length === 0) {
+      const allAliases = AliasManager.getAllAliases();
+      if (Object.keys(allAliases).length === 0) {
+        return ErrorHandler.createSuccess("");
+      }
+      const outputLines = [];
+      for (const name in allAliases) {
+        const value = allAliases[name];
+        outputLines.push(`alias ${name}='${value}'`);
+      }
+      return ErrorHandler.createSuccess(outputLines.sort().join("\n"));
     }
 
-    async coreLogic(context) {
-      const { args, dependencies } = context;
-      const { AliasManager, ErrorHandler, Utils } = dependencies;
+    const { name, value } = Utils.parseKeyValue(args);
 
-      if (args.length === 0) {
-        const allAliases = AliasManager.getAllAliases();
-        if (Object.keys(allAliases).length === 0) {
-          return ErrorHandler.createSuccess("");
-        }
-        const outputLines = [];
-        for (const name in allAliases) {
-          const value = allAliases[name];
-          outputLines.push(`alias ${name}='${value}'`);
-        }
-        return ErrorHandler.createSuccess(outputLines.sort().join("\n"));
+    if (value !== null) {
+      // A value was provided, so we are setting an alias
+      if (!name) {
+        return ErrorHandler.createError(
+            "alias: invalid format. Missing name."
+        );
       }
-
-      const { name, value } = Utils.parseKeyValue(args);
-
-      if (value !== null) {
-        // A value was provided, so we are setting an alias
-        if (!name) {
-          return ErrorHandler.createError(
-              "alias: invalid format. Missing name."
-          );
-        }
-        if (AliasManager.setAlias(name, value)) {
-          return ErrorHandler.createSuccess("", { stateModified: true });
-        }
-        return ErrorHandler.createError("alias: failed to set alias.");
+      if (AliasManager.setAlias(name, value)) {
+        return ErrorHandler.createSuccess("", { stateModified: true });
+      }
+      return ErrorHandler.createError("alias: failed to set alias.");
+    } else {
+      // No value, so we are displaying an existing alias
+      const aliasValue = AliasManager.getAlias(name);
+      if (aliasValue) {
+        return ErrorHandler.createSuccess(`alias ${name}='${aliasValue}'`);
       } else {
-        // No value, so we are displaying an existing alias
-        const aliasValue = AliasManager.getAlias(name);
-        if (aliasValue) {
-          return ErrorHandler.createSuccess(`alias ${name}='${aliasValue}'`);
-        } else {
-          return ErrorHandler.createError(`alias: ${name}: not found`);
-        }
+        return ErrorHandler.createError(`alias: ${name}: not found`);
       }
     }
   }
-
-  CommandRegistry.register(new AliasCommand());
-})();
+}
