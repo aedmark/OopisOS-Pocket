@@ -14,11 +14,14 @@ window.AdventureManager = class AdventureManager extends App {
 
     this.dependencies = options.dependencies;
     const { TextAdventureModal } = this.dependencies;
+    // Pass 'this' (the manager instance) to the engine logic creator
+    this.engineLogic = this._createEngineLogic(this);
+
     this.callbacks = {
-      processCommand: this._processCommand.bind(this),
+      processCommand: this.engineLogic.processCommand.bind(this.engineLogic),
       onExitRequest: this.exit.bind(this),
     };
-    this.engineLogic = this._createEngineLogic();
+
 
     this.isActive = true;
     this.engineLogic.initializeState(
@@ -80,7 +83,7 @@ window.AdventureManager = class AdventureManager extends App {
     return this.engineLogic.processCommand(command);
   }
 
-  _createEngineLogic() {
+  _createEngineLogic(manager) {
     const defaultVerbs = {
       look: { action: "look", aliases: ["l", "examine", "x", "look at", "look in", "look inside"] },
       go: { action: "go", aliases: ["north", "south", "east", "west", "up", "down", "n", "s", "e", "w", "u", "d", "enter", "exit"] },
@@ -124,7 +127,7 @@ window.AdventureManager = class AdventureManager extends App {
     const engine = {
       initializeState: (adventureData, scriptingContext) => {
         const adventure = JSON.parse(JSON.stringify(adventureData));
-        this.state = {
+        manager.state = {
           adventure,
           player: {
             currentLocation: adventure.startingRoomId,
@@ -137,21 +140,21 @@ window.AdventureManager = class AdventureManager extends App {
           lastReferencedItemId: null,
           lastPlayerCommand: "",
         };
-        this.state.adventure.verbs = { ...defaultVerbs, ...adventure.verbs };
-        this.state.adventure.npcs = this.state.adventure.npcs || {};
-        this.state.adventure.daemons = this.state.adventure.daemons || {};
+        manager.state.adventure.verbs = { ...defaultVerbs, ...adventure.verbs };
+        manager.state.adventure.npcs = manager.state.adventure.npcs || {};
+        manager.state.adventure.daemons = manager.state.adventure.daemons || {};
 
-        if (this.state.adventure.winCondition)
-          this.state.adventure.winCondition.triggered = false;
-        for (const roomId in this.state.adventure.rooms)
-          this.state.adventure.rooms[roomId].visited = false;
+        if (manager.state.adventure.winCondition)
+          manager.state.adventure.winCondition.triggered = false;
+        for (const roomId in manager.state.adventure.rooms)
+          manager.state.adventure.rooms[roomId].visited = false;
       },
 
       _getItemsInLocation: (locationId) => {
         const items = [];
-        for (const id in this.state.adventure.items) {
-          if (this.state.adventure.items[id].location === locationId) {
-            items.push(this.state.adventure.items[id]);
+        for (const id in manager.state.adventure.items) {
+          if (manager.state.adventure.items[id].location === locationId) {
+            items.push(manager.state.adventure.items[id]);
           }
         }
         return items;
@@ -159,9 +162,9 @@ window.AdventureManager = class AdventureManager extends App {
 
       _getNpcsInLocation: (locationId) => {
         const npcs = [];
-        for (const id in this.state.adventure.npcs) {
-          if (this.state.adventure.npcs[id].location === locationId) {
-            npcs.push(this.state.adventure.npcs[id]);
+        for (const id in manager.state.adventure.npcs) {
+          if (manager.state.adventure.npcs[id].location === locationId) {
+            npcs.push(manager.state.adventure.npcs[id]);
           }
         }
         return npcs;
@@ -179,17 +182,17 @@ window.AdventureManager = class AdventureManager extends App {
       },
 
       _hasLightSource: () => {
-        return this.state.player.inventory.some((itemId) => {
-          const item = this.state.adventure.items[itemId];
+        return manager.state.player.inventory.some((itemId) => {
+          const item = manager.state.adventure.items[itemId];
           return item && item.isLightSource && item.isLit;
         });
       },
 
       displayCurrentRoom: () => {
         const room =
-            this.state.adventure.rooms[this.state.player.currentLocation];
+            manager.state.adventure.rooms[manager.state.player.currentLocation];
         if (!room) {
-          this.ui.appendOutput(
+          manager.ui.appendOutput(
               "Error: You have fallen into the void. The game cannot continue.",
               "error"
           );
@@ -197,12 +200,12 @@ window.AdventureManager = class AdventureManager extends App {
         }
 
         if (room.isDark && !engine._hasLightSource()) {
-          this.ui.updateStatusLine(
+          manager.ui.updateStatusLine(
               room.name,
-              this.state.player.score,
-              this.state.player.moves
+              manager.state.player.score,
+              manager.state.player.moves
           );
-          this.ui.appendOutput(
+          manager.ui.appendOutput(
               "It is pitch black. You are likely to be eaten by a grue.",
               "room-desc"
           );
@@ -213,30 +216,30 @@ window.AdventureManager = class AdventureManager extends App {
           room.visited = true;
           const roomPoints = room.points || 0;
           if (roomPoints > 0) {
-            this.state.player.score += roomPoints;
-            this.ui.appendOutput(
+            manager.state.player.score += roomPoints;
+            manager.ui.appendOutput(
                 `[You have gained ${roomPoints} points for entering a new area]`,
                 "system"
             );
           }
         }
 
-        this.ui.updateStatusLine(
+        manager.ui.updateStatusLine(
             room.name,
-            this.state.player.score,
-            this.state.player.moves
+            manager.state.player.score,
+            manager.state.player.moves
         );
-        this.ui.appendOutput(
+        manager.ui.appendOutput(
             engine._getDynamicDescription(room),
             "room-desc"
         );
 
         const roomNpcs = engine._getNpcsInLocation(
-            this.state.player.currentLocation
+            manager.state.player.currentLocation
         );
         if (roomNpcs.length > 0) {
           roomNpcs.forEach((npc) => {
-            this.ui.appendOutput(
+            manager.ui.appendOutput(
                 `You see ${npc.name} here.`,
                 "items"
             );
@@ -244,10 +247,10 @@ window.AdventureManager = class AdventureManager extends App {
         }
 
         const roomItems = engine._getItemsInLocation(
-            this.state.player.currentLocation
+            manager.state.player.currentLocation
         );
         if (roomItems.length > 0) {
-          this.ui.appendOutput(
+          manager.ui.appendOutput(
               "You see here: " +
               roomItems.map((item) => item.name).join(", ") +
               ".",
@@ -257,12 +260,12 @@ window.AdventureManager = class AdventureManager extends App {
 
         const exitNames = Object.keys(room.exits || {});
         if (exitNames.length > 0) {
-          this.ui.appendOutput(
+          manager.ui.appendOutput(
               "Exits: " + exitNames.join(", ") + ".",
               "exits"
           );
         } else {
-          this.ui.appendOutput(
+          manager.ui.appendOutput(
               "There are no obvious exits.",
               "exits"
           );
@@ -272,32 +275,32 @@ window.AdventureManager = class AdventureManager extends App {
       processCommand: async (command) => {
         if (!command) return;
 
-        if (this.state.disambiguationContext) {
-          this._handleDisambiguation(command.toLowerCase().trim());
+        if (manager.state.disambiguationContext) {
+          engine._handleDisambiguation(command.toLowerCase().trim());
           return;
         }
 
         let commandToProcess = command.toLowerCase().trim();
 
         if (commandToProcess === "again" || commandToProcess === "g") {
-          if (!this.state.lastPlayerCommand) {
-            this.ui.appendOutput("You haven't entered a command to repeat yet.","error");
+          if (!manager.state.lastPlayerCommand) {
+            manager.ui.appendOutput("You haven't entered a command to repeat yet.","error");
             return;
           }
-          this.ui.appendOutput(`(repeating: ${this.state.lastPlayerCommand})`,"system");
-          commandToProcess = this.state.lastPlayerCommand;
+          manager.ui.appendOutput(`(repeating: ${manager.state.lastPlayerCommand})`,"system");
+          commandToProcess = manager.state.lastPlayerCommand;
         } else {
-          this.state.lastPlayerCommand = commandToProcess;
+          manager.state.lastPlayerCommand = commandToProcess;
         }
-        this.state.player.moves++;
-        const parsedCommands = this._parseMultiCommand(commandToProcess);
+        manager.state.player.moves++;
+        const parsedCommands = engine._parseMultiCommand(commandToProcess);
         let stopProcessing = false;
 
         for (const cmd of parsedCommands) {
           if (stopProcessing) break;
 
           if (cmd.error) {
-            this.ui.appendOutput(cmd.error, "error");
+            manager.ui.appendOutput(cmd.error, "error");
             break;
           }
 
@@ -307,46 +310,46 @@ window.AdventureManager = class AdventureManager extends App {
           };
 
           switch (verb.action) {
-            case "look": this._handleLook(directObject, onDisambiguation); break;
-            case "go": this._handleGo(directObject); break;
-            case "take": this._handleTake(directObject, onDisambiguation); break;
-            case "drop": this._handleDrop(directObject, onDisambiguation); break;
-            case "use": this._handleUse(directObject, indirectObject, onDisambiguation); break;
-            case "open": this._handleOpen(directObject, onDisambiguation); break;
-            case "close": this._handleClose(directObject, onDisambiguation); break;
-            case "unlock": this._handleUnlock(directObject, indirectObject, onDisambiguation); break;
-            case "inventory": this._handleInventory(); break;
-            case "help": this._handleHelp(); break;
-            case "quit": this.exit(); stopProcessing = true; break;
-            case "save": await this._handleSave(directObject); break;
-            case "load": await this._handleLoad(directObject); break;
-            case "talk": this._handleTalk(directObject, onDisambiguation); break;
-            case "ask": this._handleAsk(directObject, indirectObject, onDisambiguation); break;
-            case "give": this._handleGive(directObject, indirectObject, onDisambiguation); break;
-            case "show": this._handleShow(directObject, indirectObject, onDisambiguation); break;
-            case "score": this._handleScore(); break;
-            case "read": this._handleRead(directObject, onDisambiguation); break;
-            case "eat": this._handleEatDrink("eat", directObject, onDisambiguation); break;
-            case "drink": this._handleEatDrink("drink", directObject, onDisambiguation); break;
-            case "push": this._handlePushPullTurn("push", directObject, onDisambiguation); break;
-            case "pull": this._handlePushPullTurn("pull", directObject, onDisambiguation); break;
-            case "turn": this._handlePushPullTurn("turn", directObject, onDisambiguation); break;
-            case "wear": this._handleWearRemove("wear", directObject, onDisambiguation); break;
-            case "remove": this._handleWearRemove("remove", directObject, onDisambiguation); break;
-            case "listen": this._handleSensoryVerb("listen", directObject, onDisambiguation); break;
-            case "smell": this._handleSensoryVerb("smell", directObject, onDisambiguation); break;
-            case "touch": this._handleSensoryVerb("touch", directObject, onDisambiguation); break;
-            case "wait": this._handleWait(); break;
-            case "dance": this.ui.appendOutput("You do a little jig. You feel refreshed.", "system"); break;
-            case "sing": this.ui.appendOutput("You belt out a sea shanty. A nearby bird looks annoyed.", "system"); break;
-            case "jump": this.ui.appendOutput("You jump on the spot. Whee!", "system"); break;
-            case "light": this._handleLight(directObject, onDisambiguation); break;
-            default: this.ui.appendOutput(`I don't know how to "${verb.action}".`, "error"); stopProcessing = true;
+            case "look": engine._handleLook(directObject, onDisambiguation); break;
+            case "go": engine._handleGo(directObject); break;
+            case "take": engine._handleTake(directObject, onDisambiguation); break;
+            case "drop": engine._handleDrop(directObject, onDisambiguation); break;
+            case "use": engine._handleUse(directObject, indirectObject, onDisambiguation); break;
+            case "open": engine._handleOpen(directObject, onDisambiguation); break;
+            case "close": engine._handleClose(directObject, onDisambiguation); break;
+            case "unlock": engine._handleUnlock(directObject, indirectObject, onDisambiguation); break;
+            case "inventory": engine._handleInventory(); break;
+            case "help": engine._handleHelp(); break;
+            case "quit": manager.exit(); stopProcessing = true; break;
+            case "save": await engine._handleSave(directObject); break;
+            case "load": await engine._handleLoad(directObject); break;
+            case "talk": engine._handleTalk(directObject, onDisambiguation); break;
+            case "ask": engine._handleAsk(directObject, indirectObject, onDisambiguation); break;
+            case "give": engine._handleGive(directObject, indirectObject, onDisambiguation); break;
+            case "show": engine._handleShow(directObject, indirectObject, onDisambiguation); break;
+            case "score": engine._handleScore(); break;
+            case "read": engine._handleRead(directObject, onDisambiguation); break;
+            case "eat": engine._handleEatDrink("eat", directObject, onDisambiguation); break;
+            case "drink": engine._handleEatDrink("drink", directObject, onDisambiguation); break;
+            case "push": engine._handlePushPullTurn("push", directObject, onDisambiguation); break;
+            case "pull": engine._handlePushPullTurn("pull", directObject, onDisambiguation); break;
+            case "turn": engine._handlePushPullTurn("turn", directObject, onDisambiguation); break;
+            case "wear": engine._handleWearRemove("wear", directObject, onDisambiguation); break;
+            case "remove": engine._handleWearRemove("remove", directObject, onDisambiguation); break;
+            case "listen": engine._handleSensoryVerb("listen", directObject, onDisambiguation); break;
+            case "smell": engine._handleSensoryVerb("smell", directObject, onDisambiguation); break;
+            case "touch": engine._handleSensoryVerb("touch", directObject, onDisambiguation); break;
+            case "wait": engine._handleWait(); break;
+            case "dance": manager.ui.appendOutput("You do a little jig. You feel refreshed.", "system"); break;
+            case "sing": manager.ui.appendOutput("You belt out a sea shanty. A nearby bird looks annoyed.", "system"); break;
+            case "jump": manager.ui.appendOutput("You jump on the spot. Whee!", "system"); break;
+            case "light": engine._handleLight(directObject, onDisambiguation); break;
+            default: manager.ui.appendOutput(`I don't know how to "${verb.action}".`, "error"); stopProcessing = true;
           }
 
           if (!stopProcessing) {
-            this._processDaemons();
-            this._checkWinConditions();
+            engine._processDaemons();
+            engine._checkWinConditions();
             if (parsedCommands.length > 1) {
               await new Promise((resolve) => setTimeout(resolve, 350));
             }
@@ -364,10 +367,10 @@ window.AdventureManager = class AdventureManager extends App {
         const resolvedWords = originalWords.map((word) => {
           if (word === "it") {
             if (
-                this.state.lastReferencedItemId &&
-                this.state.adventure.items[this.state.lastReferencedItemId]
+                manager.state.lastReferencedItemId &&
+                manager.state.adventure.items[manager.state.lastReferencedItemId]
             ) {
-              return this.state.adventure.items[this.state.lastReferencedItemId]
+              return manager.state.adventure.items[manager.state.lastReferencedItemId]
                   .noun;
             }
             return "IT_ERROR_NO_REF";
@@ -387,7 +390,7 @@ window.AdventureManager = class AdventureManager extends App {
 
         for (let i = Math.min(resolvedWords.length, 3); i > 0; i--) {
           const potentialVerbPhrase = resolvedWords.slice(0, i).join(" ");
-          const resolvedVerb = this._resolveVerb(potentialVerbPhrase);
+          const resolvedVerb = engine._resolveVerb(potentialVerbPhrase);
           if (resolvedVerb) {
             verb = resolvedVerb;
             verbWordCount = i;
@@ -400,7 +403,7 @@ window.AdventureManager = class AdventureManager extends App {
             verb = defaultVerb;
             verbWordCount = 0;
           } else if (resolvedWords.length === 1) {
-            const potentialGoVerb = this._resolveVerb(resolvedWords[0]);
+            const potentialGoVerb = engine._resolveVerb(resolvedWords[0]);
             if (potentialGoVerb && potentialGoVerb.action === "go") {
               return {
                 verb: potentialGoVerb,
@@ -462,11 +465,11 @@ window.AdventureManager = class AdventureManager extends App {
 
         let lastVerb = null;
         for (const subCommandStr of commandQueue) {
-          const parsed = this._parseSingleCommand(subCommandStr, lastVerb);
+          const parsed = engine._parseSingleCommand(subCommandStr, lastVerb);
           if (parsed.verb) {
             commands.push(parsed);
             const firstWord = subCommandStr.split(/\s+/)[0];
-            if (this._resolveVerb(firstWord)) {
+            if (engine._resolveVerb(firstWord)) {
               lastVerb = parsed.verb;
             }
           } else {
@@ -481,8 +484,8 @@ window.AdventureManager = class AdventureManager extends App {
 
       _resolveVerb: (verbWord) => {
         if (!verbWord) return null;
-        for (const verbKey in this.state.adventure.verbs) {
-          const verbDef = this.state.adventure.verbs[verbKey];
+        for (const verbKey in manager.state.adventure.verbs) {
+          const verbDef = manager.state.adventure.verbs[verbKey];
           if (verbKey === verbWord || verbDef.aliases?.includes(verbWord)) {
             return verbDef;
           }
@@ -529,14 +532,14 @@ window.AdventureManager = class AdventureManager extends App {
       },
 
       _handleDisambiguation: (response) => {
-        const { found, context } = this.state.disambiguationContext;
-        const result = this._findItem(response, found);
-        this.state.disambiguationContext = null;
+        const { found, context } = manager.state.disambiguationContext;
+        const result = engine._findItem(response, found);
+        manager.state.disambiguationContext = null;
 
         if (result.found.length === 1) {
           context.callback(result.found[0]);
         } else {
-          this.ui.appendOutput(
+          manager.ui.appendOutput(
               "That's still not specific enough. Please try again.",
               "info"
           );
@@ -545,48 +548,48 @@ window.AdventureManager = class AdventureManager extends App {
 
       _handleGo: (direction) => {
         const room =
-            this.state.adventure.rooms[this.state.player.currentLocation];
+            manager.state.adventure.rooms[manager.state.player.currentLocation];
         const exitId = room.exits ? room.exits[direction] : null;
 
         if (!exitId) {
-          this.ui.appendOutput("You can't go that way.", "error");
+          manager.ui.appendOutput("You can't go that way.", "error");
           return;
         }
 
-        const exitBlocker = Object.values(this.state.adventure.items).find(
+        const exitBlocker = Object.values(manager.state.adventure.items).find(
             (item) =>
-                item.location === this.state.player.currentLocation &&
+                item.location === manager.state.player.currentLocation &&
                 item.blocksExit &&
                 item.blocksExit[direction]
         );
         if (exitBlocker && (!exitBlocker.isOpenable || !exitBlocker.isOpen)) {
-          this.ui.appendOutput(
+          manager.ui.appendOutput(
               exitBlocker.lockedMessage ||
               `The way is blocked by the ${exitBlocker.name}.`
           );
           return;
         }
 
-        if (this.state.adventure.rooms[exitId]) {
-          this.state.player.currentLocation = exitId;
-          this.displayCurrentRoom();
+        if (manager.state.adventure.rooms[exitId]) {
+          manager.state.player.currentLocation = exitId;
+          engine.displayCurrentRoom();
         } else {
-          this.ui.appendOutput("You can't go that way.", "error");
+          manager.ui.appendOutput("You can't go that way.", "error");
         }
       },
       _checkWinConditions: () => {
-        const wc = this.state.adventure.winCondition;
+        const wc = manager.state.adventure.winCondition;
         if (!wc || wc.triggered) return;
 
         let won = false;
         if (
             wc.type === "itemInRoom" &&
-            this.state.adventure.items[wc.itemId]?.location === wc.roomId
+            manager.state.adventure.items[wc.itemId]?.location === wc.roomId
         ) {
           won = true;
         } else if (
             wc.type === "playerHasItem" &&
-            this.state.player.inventory.includes(wc.itemId)
+            manager.state.player.inventory.includes(wc.itemId)
         ) {
           won = true;
         } else if (wc.type === "itemUsedOn" && wc.triggeredByUse) {
@@ -595,111 +598,132 @@ window.AdventureManager = class AdventureManager extends App {
 
         if (won) {
           wc.triggered = true;
-          this.ui.appendOutput(
-              `\n${this.state.adventure.winMessage}`,
+          manager.ui.appendOutput(
+              `\n${manager.state.adventure.winMessage}`,
               "adv-success"
           );
-          if (this.container.querySelector("#adventure-input")) {
-            this.container.querySelector("#adventure-input").disabled = true;
+          if (manager.container.querySelector("#adventure-input")) {
+            manager.container.querySelector("#adventure-input").disabled = true;
           }
         }
       },
 
       _handleLook: (target, onDisambiguation) => {
         if (!target || target === "around") {
-          this.displayCurrentRoom();
+          engine.displayCurrentRoom();
           return;
         }
 
         const scope = [
-          ...this._getItemsInLocation(this.state.player.currentLocation),
-          ...this.state.player.inventory.map(id => this.state.adventure.items[id]),
-          ...this._getNpcsInLocation(this.state.player.currentLocation)
+          ...engine._getItemsInLocation(manager.state.player.currentLocation),
+          ...manager.state.player.inventory.map(id => manager.state.adventure.items[id]),
+          ...engine._getNpcsInLocation(manager.state.player.currentLocation)
         ];
 
-        const result = this._findItem(target, scope);
+        const result = engine._findItem(target, scope);
 
         if (result.found.length === 0) {
-          this.ui.appendOutput("You don't see that here.", "error");
+          manager.ui.appendOutput("You don't see that here.", "error");
         } else if (result.found.length > 1) {
-          this.ui.appendOutput(`Which ${target} do you mean?`, "info");
+          manager.ui.appendOutput(`Which ${target} do you mean?`, "info");
+          manager.state.disambiguationContext = {
+            found: result.found,
+            context: {
+              callback: (item) => engine._handleLook(item.noun, onDisambiguation)
+            }
+          };
+          onDisambiguation();
         } else {
           const entity = result.found[0];
-          this.ui.appendOutput(this._getDynamicDescription(entity));
+          manager.ui.appendOutput(engine._getDynamicDescription(entity));
           if (entity.isContainer && entity.isOpen && entity.contains) {
             if (entity.contains.length > 0) {
-              const contents = entity.contains.map(id => this.state.adventure.items[id].name).join(", ");
-              this.ui.appendOutput(`Inside, you see: ${contents}.`);
+              const contents = entity.contains.map(id => manager.state.adventure.items[id].name).join(", ");
+              manager.ui.appendOutput(`Inside, you see: ${contents}.`);
             } else {
-              this.ui.appendOutput("It is empty.");
+              manager.ui.appendOutput("It is empty.");
             }
           }
         }
       },
 
       _handleTake: (target, onDisambiguation) => {
-        const scope = this._getItemsInLocation(this.state.player.currentLocation);
-        const result = this._findItem(target, scope);
+        const scope = engine._getItemsInLocation(manager.state.player.currentLocation);
+        const result = engine._findItem(target, scope);
 
         if (result.found.length === 0) {
-          this.ui.appendOutput("You don't see that here.", "error");
+          manager.ui.appendOutput("You don't see that here.", "error");
         } else if (result.found.length > 1) {
-          this.ui.appendOutput(`Which ${target} do you mean?`, "info");
+          manager.ui.appendOutput(`Which ${target} do you mean?`, "info");
+          manager.state.disambiguationContext = {
+            found: result.found,
+            context: {
+              callback: (item) => engine._handleTake(item.noun, onDisambiguation)
+            }
+          };
+          onDisambiguation();
         } else {
           const item = result.found[0];
           if (!item.canTake) {
-            this.ui.appendOutput("You can't take that.", "error");
+            manager.ui.appendOutput("You can't take that.", "error");
             return;
           }
           item.location = "player";
-          this.state.player.inventory.push(item.id);
-          this.ui.appendOutput(`You take the ${item.name}.`);
+          manager.state.player.inventory.push(item.id);
+          manager.ui.appendOutput(`You take the ${item.name}.`);
         }
       },
 
       _handleDrop: (target, onDisambiguation) => {
-        const scope = this.state.player.inventory.map(id => this.state.adventure.items[id]);
-        const result = this._findItem(target, scope);
+        const scope = manager.state.player.inventory.map(id => manager.state.adventure.items[id]);
+        const result = engine._findItem(target, scope);
 
         if (result.found.length === 0) {
-          this.ui.appendOutput("You don't have that.", "error");
+          manager.ui.appendOutput("You don't have that.", "error");
         } else if (result.found.length > 1) {
-          this.ui.appendOutput(`Which ${target} do you mean?`, "info");
+          manager.ui.appendOutput(`Which ${target} do you mean?`, "info");
+          manager.state.disambiguationContext = {
+            found: result.found,
+            context: {
+              callback: (item) => engine._handleDrop(item.noun, onDisambiguation)
+            }
+          };
+          onDisambiguation();
         } else {
           const item = result.found[0];
-          item.location = this.state.player.currentLocation;
-          this.state.player.inventory = this.state.player.inventory.filter(id => id !== item.id);
-          this.ui.appendOutput(`You drop the ${item.name}.`);
+          item.location = manager.state.player.currentLocation;
+          manager.state.player.inventory = manager.state.player.inventory.filter(id => id !== item.id);
+          manager.ui.appendOutput(`You drop the ${item.name}.`);
         }
       },
 
       _handleInventory: () => {
-        if (this.state.player.inventory.length === 0) {
-          this.ui.appendOutput("You are carrying nothing.");
+        if (manager.state.player.inventory.length === 0) {
+          manager.ui.appendOutput("You are carrying nothing.");
         } else {
-          const inventoryList = this.state.player.inventory.map(id => this.state.adventure.items[id].name).join("\n");
-          this.ui.appendOutput("You are carrying:\n" + inventoryList);
+          const inventoryList = manager.state.player.inventory.map(id => manager.state.adventure.items[id].name).join("\n");
+          manager.ui.appendOutput("You are carrying:\n" + inventoryList);
         }
       },
-      _handleUse: (directObject, indirectObject, onDisambiguation) => this.ui.appendOutput("You can't use that."),
-      _handleOpen: (directObject, onDisambiguation) => this.ui.appendOutput("You can't open that."),
-      _handleClose: (directObject, onDisambiguation) => this.ui.appendOutput("You can't close that."),
-      _handleUnlock: (directObject, indirectObject, onDisambiguation) => this.ui.appendOutput("You can't unlock that."),
-      _handleHelp: () => this.ui.appendOutput("Try commands like 'look', 'go north', 'take key', etc."),
-      _handleSave: async (directObject) => this.ui.appendOutput("Saving is not yet implemented."),
-      _handleLoad: async (directObject) => this.ui.appendOutput("Loading is not yet implemented."),
-      _handleTalk: (directObject, onDisambiguation) => this.ui.appendOutput("There's no one to talk to."),
-      _handleAsk: (directObject, indirectObject, onDisambiguation) => this.ui.appendOutput("There's no one to ask."),
-      _handleGive: (directObject, indirectObject, onDisambiguation) => this.ui.appendOutput("There's no one to give that to."),
-      _handleShow: (directObject, indirectObject, onDisambiguation) => this.ui.appendOutput("There's no one to show that to."),
-      _handleScore: () => this.ui.appendOutput(`Your score is ${this.state.player.score}.`),
-      _handleRead: (directObject, onDisambiguation) => this.ui.appendOutput("There's nothing to read."),
-      _handleEatDrink: (verb, directObject, onDisambiguation) => this.ui.appendOutput("You can't do that."),
-      _handlePushPullTurn: (verb, directObject, onDisambiguation) => this.ui.appendOutput("Nothing happens."),
-      _handleWearRemove: (verb, directObject, onDisambiguation) => this.ui.appendOutput("You can't do that."),
-      _handleSensoryVerb: (verb, directObject, onDisambiguation) => this.ui.appendOutput("You don't notice anything special."),
-      _handleWait: () => this.ui.appendOutput("Time passes."),
-      _handleLight: (directObject, onDisambiguation) => this.ui.appendOutput("You can't light that."),
+      _handleUse: (_directObject, _indirectObject, _onDisambiguation) => manager.ui.appendOutput("You can't use that."),
+      _handleOpen: (_directObject, _onDisambiguation) => manager.ui.appendOutput("You can't open that."),
+      _handleClose: (_directObject, _onDisambiguation) => manager.ui.appendOutput("You can't close that."),
+      _handleUnlock: (_directObject, _indirectObject, _onDisambiguation) => manager.ui.appendOutput("You can't unlock that."),
+      _handleHelp: () => manager.ui.appendOutput("Try commands like 'look', 'go north', 'take key', etc."),
+      _handleSave: async (_directObject) => manager.ui.appendOutput("Saving is not yet implemented."),
+      _handleLoad: async (_directObject) => manager.ui.appendOutput("Loading is not yet implemented."),
+      _handleTalk: (_directObject, _onDisambiguation) => manager.ui.appendOutput("There's no one to talk to."),
+      _handleAsk: (_directObject, _indirectObject, _onDisambiguation) => manager.ui.appendOutput("There's no one to ask."),
+      _handleGive: (_directObject, _indirectObject, _onDisambiguation) => manager.ui.appendOutput("There's no one to give that to."),
+      _handleShow: (_directObject, _indirectObject, _onDisambiguation) => manager.ui.appendOutput("There's no one to show that to."),
+      _handleScore: () => manager.ui.appendOutput(`Your score is ${manager.state.player.score}.`),
+      _handleRead: (_directObject, _onDisambiguation) => manager.ui.appendOutput("There's nothing to read."),
+      _handleEatDrink: (_verb, _directObject, _onDisambiguation) => manager.ui.appendOutput("You can't do that."),
+      _handlePushPullTurn: (_verb, _directObject, _onDisambiguation) => manager.ui.appendOutput("Nothing happens."),
+      _handleWearRemove: (_verb, _directObject, _onDisambiguation) => manager.ui.appendOutput("You can't do that."),
+      _handleSensoryVerb: (_verb, _directObject, _onDisambiguation) => manager.ui.appendOutput("You don't notice anything special."),
+      _handleWait: () => manager.ui.appendOutput("Time passes."),
+      _handleLight: (_directObject, _onDisambiguation) => manager.ui.appendOutput("You can't light that."),
       _processDaemons: () => {},
     };
 

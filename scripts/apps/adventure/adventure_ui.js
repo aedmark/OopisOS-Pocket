@@ -5,6 +5,9 @@ window.TextAdventureModal = class TextAdventureModal {
     this.callbacks = callbacks;
     this.dependencies = dependencies;
 
+    // Bind the event handler once to have a stable reference
+    this._boundHandleInput = this._handleInput.bind(this);
+
     this._buildLayout(scriptingContext);
   }
 
@@ -16,7 +19,7 @@ window.TextAdventureModal = class TextAdventureModal {
     const { Utils } = this.dependencies;
     this._createElements();
 
-    this.elements.input.addEventListener("keydown", (e) => this._handleInput(e));
+    this.elements.input.addEventListener("keydown", this._boundHandleInput);
 
     if (scriptingContext?.isScripting) {
       this.elements.input.style.display = "none";
@@ -27,13 +30,15 @@ window.TextAdventureModal = class TextAdventureModal {
 
   hideAndReset() {
     if (this.elements.input) {
-      this.elements.input.removeEventListener("keydown", this._handleInput);
+      // Use the stable reference to remove the listener
+      this.elements.input.removeEventListener("keydown", this._boundHandleInput);
     }
     if (this.elements.container) {
       this.elements.container.remove();
     }
     this.elements = {};
     this.callbacks = {};
+    this.dependencies = {};
   }
 
   _createElements() {
@@ -86,7 +91,7 @@ window.TextAdventureModal = class TextAdventureModal {
     }
   }
 
-  requestInput(prompt) {
+  requestInput(_prompt) {
     return new Promise((resolve) => {
       if (this.callbacks.onScriptedInput) {
         const command = this.callbacks.onScriptedInput();
@@ -99,11 +104,11 @@ window.TextAdventureModal = class TextAdventureModal {
             this.elements.input.value = '';
             this.appendOutput(`> ${command}`, 'system');
             this.elements.input.removeEventListener('keydown', handleOneTimeInput);
-            this.elements.input.addEventListener('keydown', (e) => this._handleInput(e)); // Re-attach the original listener
+            this.elements.input.addEventListener('keydown', this._boundHandleInput); // Re-attach the original listener
             resolve(command);
           }
         };
-        this.elements.input.removeEventListener('keydown', this._handleInput);
+        this.elements.input.removeEventListener('keydown', this._boundHandleInput);
         this.elements.input.addEventListener('keydown', handleOneTimeInput);
       }
     });
