@@ -1,18 +1,18 @@
 // scripts/apps/gemini_chat/gemini_chat_ui.js
-window.GeminiChatUI = (() => {
-  "use strict";
+"use strict";
 
-  let elements = {};
-  let managerCallbacks = {};
-  let dependencies = {};
+window.GeminiChatUI = {
+  elements: {},
+  managerCallbacks: {},
+  dependencies: {},
 
-  function buildAndShow(callbacks, deps) {
-    managerCallbacks = callbacks;
-    dependencies = deps;
-    const { Utils } = dependencies;
+  buildAndShow(callbacks, deps) {
+    this.managerCallbacks = callbacks;
+    this.dependencies = deps;
+    const { Utils } = this.dependencies;
 
     // Create DOM elements
-    elements.container = Utils.createElement("div", {
+    this.elements.container = Utils.createElement("div", {
       id: "gemini-chat-container",
     });
     const title = Utils.createElement("h2", { textContent: "Gemini Chat" });
@@ -25,10 +25,10 @@ window.GeminiChatUI = (() => {
         { className: "gemini-chat-header" },
         [title, exitBtn]
     );
-    elements.messageDisplay = Utils.createElement("div", {
+    this.elements.messageDisplay = Utils.createElement("div", {
       className: "gemini-chat-messages",
     });
-    elements.loader = Utils.createElement(
+    this.elements.loader = Utils.createElement(
         "div",
         { className: "gemini-chat-loader hidden" },
         [
@@ -37,7 +37,7 @@ window.GeminiChatUI = (() => {
           Utils.createElement("span"),
         ]
     );
-    elements.input = Utils.createElement("input", {
+    this.elements.input = Utils.createElement("input", {
       type: "text",
       placeholder: "Type your message...",
       className: "gemini-chat-input",
@@ -49,45 +49,45 @@ window.GeminiChatUI = (() => {
     const form = Utils.createElement(
         "form",
         { className: "gemini-chat-form" },
-        [elements.input, sendBtn]
+        [this.elements.input, sendBtn]
     );
 
-    elements.container.append(
+    this.elements.container.append(
         header,
-        elements.messageDisplay,
-        elements.loader,
+        this.elements.messageDisplay,
+        this.elements.loader,
         form
     );
 
     // Add event listeners
-    exitBtn.addEventListener("click", () => managerCallbacks.onExit());
+    exitBtn.addEventListener("click", () => this.managerCallbacks.onExit());
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      await managerCallbacks.onSendMessage(elements.input.value);
-      elements.input.value = "";
+      await this.managerCallbacks.onSendMessage(this.elements.input.value);
+      this.elements.input.value = "";
     });
-    elements.input.addEventListener("keydown", (e) => {
+    this.elements.input.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         form.requestSubmit();
       }
     });
 
-    elements.input.focus();
-    return elements.container;
-  }
+    this.elements.input.focus();
+    return this.elements.container;
+  },
 
-  function hideAndReset() {
-    if (elements.container) {
-      elements.container.remove();
+  hideAndReset() {
+    if (this.elements.container) {
+      this.elements.container.remove();
     }
-    elements = {};
-    managerCallbacks = {};
-  }
+    this.elements = {};
+    this.managerCallbacks = {};
+  },
 
-  function appendMessage(message, sender, processMarkdown) {
-    if (!elements.messageDisplay) return;
-    const { Utils } = dependencies;
+  appendMessage(message, sender, processMarkdown) {
+    if (!this.elements.messageDisplay) return;
+    const { Utils } = this.dependencies;
 
     const messageDiv = Utils.createElement("div", {
       className: `gemini-chat-message ${sender}`,
@@ -130,7 +130,7 @@ window.GeminiChatUI = (() => {
             style: "display: block; margin-top: 10px;",
           });
           runButton.addEventListener("click", () =>
-              managerCallbacks.onRunCommand(commandText)
+              this.managerCallbacks.onRunCommand(commandText)
           );
           codeBlock.parentElement.insertAdjacentElement("afterend", runButton);
         }
@@ -139,20 +139,13 @@ window.GeminiChatUI = (() => {
       messageDiv.textContent = message;
     }
 
-    elements.messageDisplay.appendChild(messageDiv);
-    elements.messageDisplay.scrollTop = elements.messageDisplay.scrollHeight;
-  }
+    this.elements.messageDisplay.appendChild(messageDiv);
+    this.elements.messageDisplay.scrollTop = this.elements.messageDisplay.scrollHeight;
+  },
 
-  function toggleLoader(show) {
-    if (elements.loader) {
-      elements.loader.classList.toggle("hidden", !show);
+  toggleLoader(show) {
+    if (this.elements.loader) {
+      this.elements.loader.classList.toggle("hidden", !show);
     }
-  }
-
-  return {
-    buildAndShow,
-    hideAndReset,
-    appendMessage,
-    toggleLoader,
-  };
-})();
+  },
+};

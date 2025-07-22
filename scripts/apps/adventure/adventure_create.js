@@ -1,25 +1,24 @@
 // scripts/apps/adventure/adventure_create.js
-window.Adventure_create = (() => {
-  "use strict";
+"use strict";
 
-  let state = {
+window.Adventure_create = {
+  state: {
     isActive: false,
     adventureData: {},
     targetFilename: "",
     isDirty: false,
     commandContext: null,
     editContext: null,
-  };
+  },
 
-  let dependencies = {};
+  dependencies: {},
 
-  function enter(filename, initialData, commandContext) {
-    if (state.isActive) return;
+  enter(filename, initialData, commandContext) {
+    if (this.state.isActive) return;
 
-    // Inject dependencies from the command context
-    dependencies = commandContext.dependencies;
+    this.dependencies = commandContext.dependencies;
 
-    state = {
+    this.state = {
       isActive: true,
       adventureData: initialData,
       targetFilename: filename,
@@ -28,90 +27,87 @@ window.Adventure_create = (() => {
       editContext: null,
     };
 
-    dependencies.OutputManager.appendToOutput(
+    this.dependencies.OutputManager.appendToOutput(
         "Entering Adventure Creator. Type 'help' for commands, 'exit' to quit.",
         { typeClass: "text-success" }
     );
 
-    _requestNextCommand();
-  }
+    this._requestNextCommand();
+  },
 
-  function _requestNextCommand() {
-    if (!state.isActive) return;
+  _requestNextCommand() {
+    if (!this.state.isActive) return;
 
     let prompt = `(creator)> `;
-    if (state.editContext) {
-      prompt = `(editing ${state.editContext.type} '${state.editContext.name}')> `;
+    if (this.state.editContext) {
+      prompt = `(editing ${this.state.editContext.type} '${this.state.editContext.name}')> `;
     }
 
-    dependencies.ModalManager.request({
+    this.dependencies.ModalManager.request({
       context: "terminal",
       type: "input",
       messageLines: [prompt],
       onConfirm: async (input) => {
-        await _processCreatorCommand(input);
-        if (state.isActive) {
-          _requestNextCommand();
+        await this._processCreatorCommand(input);
+        if (this.state.isActive) {
+          this._requestNextCommand();
         }
       },
       onCancel: () => {
-        if (state.isActive) _requestNextCommand();
+        if (this.state.isActive) this._requestNextCommand();
       },
-      options: state.commandContext.options,
+      options: this.state.commandContext.options,
     });
-  }
+  },
 
-  // Command parser and dispatcher
-  async function _processCreatorCommand(input) {
+  async _processCreatorCommand(input) {
     const [command, ...args] = input.trim().split(/\s+/);
     const joinedArgs = args.join(" ");
 
     switch (command.toLowerCase()) {
       case "create":
-        await _handleCreate(args);
+        await this._handleCreate(args);
         break;
       case "edit":
-        await _handleEdit(joinedArgs);
+        await this._handleEdit(joinedArgs);
         break;
       case "set":
-        await _handleSet(joinedArgs);
+        await this._handleSet(joinedArgs);
         break;
       case "link":
-        await _handleLink(args);
+        await this._handleLink(args);
         break;
       case "status":
-        await _handleStatus();
+        await this._handleStatus();
         break;
       case "save":
-        await _handleSave();
+        await this._handleSave();
         break;
       case "exit":
-        await exit();
+        await this.exit();
         break;
       case "help":
-        await _handleHelp();
+        await this._handleHelp();
         break;
       case "":
         break;
       default:
-        await dependencies.OutputManager.appendToOutput(
+        await this.dependencies.OutputManager.appendToOutput(
             `Unknown command: '${command}'. Type 'help'.`,
             { typeClass: "text-error" }
         );
     }
-  }
+  },
 
-  // --- Command Handler Implementations ---
-
-  function _generateId(name) {
+  _generateId(name) {
     return name
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "_")
         .replace(/^_|_$/g, "");
-  }
+  },
 
-  async function _handleCreate(args) {
-    const { OutputManager } = dependencies;
+  async _handleCreate(args) {
+    const { OutputManager } = this.dependencies;
     const type = args.shift()?.toLowerCase();
     const name = args.join(" ").replace(/["']/g, "");
 
@@ -130,28 +126,28 @@ window.Adventure_create = (() => {
       return;
     }
 
-    let id = _generateId(name);
+    let id = this._generateId(name);
     let counter = 1;
     while (
-        state.adventureData[type + "s"] &&
-        state.adventureData[type + "s"][id]
+        this.state.adventureData[type + "s"] &&
+        this.state.adventureData[type + "s"][id]
         ) {
-      id = `${_generateId(name)}_${counter++}`;
+      id = `${this._generateId(name)}_${counter++}`;
     }
 
     const newEntity = { id, name, description: `A brand new ${name}.` };
 
     if (type === "room") {
-      state.adventureData.rooms[id] = { ...newEntity, exits: {} };
+      this.state.adventureData.rooms[id] = { ...newEntity, exits: {} };
     } else if (type === "item") {
-      state.adventureData.items[id] = {
+      this.state.adventureData.items[id] = {
         ...newEntity,
         noun: name.split(" ").pop().toLowerCase(),
         location: "void",
         canTake: true,
       };
     } else if (type === "npc") {
-      state.adventureData.npcs[id] = {
+      this.state.adventureData.npcs[id] = {
         ...newEntity,
         noun: name.split(" ").pop().toLowerCase(),
         location: "void",
@@ -159,16 +155,16 @@ window.Adventure_create = (() => {
       };
     }
 
-    state.isDirty = true;
+    this.state.isDirty = true;
     await OutputManager.appendToOutput(
         `Created ${type} '${name}' with ID '${id}'.`,
         { typeClass: "text-success" }
     );
-    await _handleEdit(`${type} "${name}"`);
-  }
+    await this._handleEdit(`${type} "${name}"`);
+  },
 
-  function _findEntity(type, name) {
-    const collection = state.adventureData[type + "s"];
+  _findEntity(type, name) {
+    const collection = this.state.adventureData[type + "s"];
     if (!collection) return null;
     let entity = Object.values(collection).find(
         (e) => e.name.toLowerCase() === name.toLowerCase()
@@ -178,22 +174,22 @@ window.Adventure_create = (() => {
     if (entity) return entity;
 
     return null;
-  }
+  },
 
-  async function _handleEdit(argString) {
-    const { OutputManager } = dependencies;
+  async _handleEdit(argString) {
+    const { OutputManager } = this.dependencies;
     const typeMatch = argString.match(/^(room|item|npc)\s+/i);
     if (!typeMatch) {
-      state.editContext = null;
+      this.state.editContext = null;
       return;
     }
     const type = typeMatch[1].toLowerCase();
     const name = argString.substring(type.length).trim().replace(/["']/g, "");
 
-    const entity = _findEntity(type, name);
+    const entity = this._findEntity(type, name);
 
     if (entity) {
-      state.editContext = { type, id: entity.id, name: entity.name };
+      this.state.editContext = { type, id: entity.id, name: entity.name };
       await OutputManager.appendToOutput(
           `Now editing ${type} '${entity.name}'. Use 'set <prop> "<value>"'. Type 'edit' to stop editing.`,
           { typeClass: "text-info" }
@@ -204,11 +200,11 @@ window.Adventure_create = (() => {
           { typeClass: "text-error" }
       );
     }
-  }
+  },
 
-  async function _handleSet(argString) {
-    const { OutputManager } = dependencies;
-    if (!state.editContext) {
+  async _handleSet(argString) {
+    const { OutputManager } = this.dependencies;
+    if (!this.state.editContext) {
       await OutputManager.appendToOutput(
           "Error: You must 'edit' an entity before you can 'set' its properties.",
           { typeClass: "text-error" }
@@ -229,13 +225,13 @@ window.Adventure_create = (() => {
     const value = match[2].replace(/["']/g, "");
 
     const entity =
-        state.adventureData[state.editContext.type + "s"][state.editContext.id];
+        this.state.adventureData[this.state.editContext.type + "s"][this.state.editContext.id];
     if (!entity) {
       await OutputManager.appendToOutput(
           "Error: Current entity context is invalid. Exiting edit mode.",
           { typeClass: "text-error" }
       );
-      state.editContext = null;
+      this.state.editContext = null;
       return;
     }
 
@@ -247,21 +243,21 @@ window.Adventure_create = (() => {
       } else {
         entity[prop] = value;
       }
-      state.isDirty = true;
+      this.state.isDirty = true;
       await OutputManager.appendToOutput(
           `Set ${prop} to "${entity[prop]}" for ${entity.name}.`,
           { typeClass: "text-success" }
       );
     } else {
       await OutputManager.appendToOutput(
-          `Error: '${prop}' is not a valid property for type '${state.editContext.type}'.`,
+          `Error: '${prop}' is not a valid property for type '${this.state.editContext.type}'.`,
           { typeClass: "text-error" }
       );
     }
-  }
+  },
 
-  async function _handleLink(args) {
-    const { OutputManager } = dependencies;
+  async _handleLink(args) {
+    const { OutputManager } = this.dependencies;
     if (args.length < 3) {
       await OutputManager.appendToOutput(
           'Error: Invalid format. Use: link "<room1>" <direction> "<room2>"',
@@ -274,8 +270,8 @@ window.Adventure_create = (() => {
         arg.replace(/["']/g, "")
     );
 
-    const room1 = _findEntity("room", room1Name);
-    const room2 = _findEntity("room", room2Name);
+    const room1 = this._findEntity("room", room1Name);
+    const room2 = this._findEntity("room", room2Name);
 
     if (!room1 || !room2) {
       await OutputManager.appendToOutput(
@@ -304,28 +300,28 @@ window.Adventure_create = (() => {
     room1.exits[direction] = room2.id;
     room2.exits[oppositeDirection] = room1.id;
 
-    state.isDirty = true;
+    this.state.isDirty = true;
     await OutputManager.appendToOutput(
         `Linked ${room1.name} (${direction}) <-> ${room2.name} (${oppositeDirection}).`,
         { typeClass: "text-success" }
     );
-  }
+  },
 
-  async function _handleStatus() {
-    const rooms = Object.keys(state.adventureData.rooms || {}).length;
-    const items = Object.keys(state.adventureData.items || {}).length;
-    const npcs = Object.keys(state.adventureData.npcs || {}).length;
-    let status = `Adventure: ${state.adventureData.title || "Untitled"}
-File: ${state.targetFilename} (${state.isDirty ? "UNSAVED CHANGES" : "saved"})
+  async _handleStatus() {
+    const rooms = Object.keys(this.state.adventureData.rooms || {}).length;
+    const items = Object.keys(this.state.adventureData.items || {}).length;
+    const npcs = Object.keys(this.state.adventureData.npcs || {}).length;
+    let status = `Adventure: ${this.state.adventureData.title || "Untitled"}
+File: ${this.state.targetFilename} (${this.state.isDirty ? "UNSAVED CHANGES" : "saved"})
 - Rooms: ${rooms}
 - Items: ${items}
 - NPCs: ${npcs}`;
-    await dependencies.OutputManager.appendToOutput(status);
-  }
+    await this.dependencies.OutputManager.appendToOutput(status);
+  },
 
-  async function _handleSave() {
-    const { OutputManager, UserManager, FileSystemManager } = dependencies;
-    const jsonContent = JSON.stringify(state.adventureData, null, 2);
+  async _handleSave() {
+    const { OutputManager, UserManager, FileSystemManager } = this.dependencies;
+    const jsonContent = JSON.stringify(this.state.adventureData, null, 2);
     const currentUser = UserManager.getCurrentUser().name;
     const primaryGroup = UserManager.getPrimaryGroupForUser(currentUser);
 
@@ -338,7 +334,7 @@ File: ${state.targetFilename} (${state.isDirty ? "UNSAVED CHANGES" : "saved"})
     }
 
     const saveResult = await FileSystemManager.createOrUpdateFile(
-        FileSystemManager.getAbsolutePath(state.targetFilename),
+        FileSystemManager.getAbsolutePath(this.state.targetFilename),
         jsonContent,
         { currentUser, primaryGroup }
     );
@@ -352,9 +348,9 @@ File: ${state.targetFilename} (${state.isDirty ? "UNSAVED CHANGES" : "saved"})
     }
 
     if (await FileSystemManager.save()) {
-      state.isDirty = false;
+      this.state.isDirty = false;
       await OutputManager.appendToOutput(
-          `Adventure saved successfully to '${state.targetFilename}'.`,
+          `Adventure saved successfully to '${this.state.targetFilename}'.`,
           { typeClass: "text-success" }
       );
     } else {
@@ -363,9 +359,9 @@ File: ${state.targetFilename} (${state.isDirty ? "UNSAVED CHANGES" : "saved"})
           { typeClass: "text-error" }
       );
     }
-  }
+  },
 
-  async function _handleHelp() {
+  async _handleHelp() {
     const helpText = `Adventure Creator Commands:
   create <type> "<name>"   - Create a new room, item, or npc.
   edit <type> "<name>"     - Select an entity to modify its properties.
@@ -375,19 +371,19 @@ File: ${state.targetFilename} (${state.isDirty ? "UNSAVED CHANGES" : "saved"})
   status                   - Show a summary of the current adventure data.
   save                     - Save your work to the file.
   exit                     - Exit the creator (will prompt if unsaved).`;
-    await dependencies.OutputManager.appendToOutput(helpText);
-  }
+    await this.dependencies.OutputManager.appendToOutput(helpText);
+  },
 
-  async function exit() {
-    const { ModalManager, OutputManager } = dependencies;
-    if (state.isDirty) {
+  async exit() {
+    const { ModalManager, OutputManager } = this.dependencies;
+    if (this.state.isDirty) {
       const confirmed = await new Promise((resolve) => {
         ModalManager.request({
           context: "terminal",
           messageLines: ["You have unsaved changes. Exit without saving?"],
           onConfirm: () => resolve(true),
           onCancel: () => resolve(false),
-          options: state.commandContext.options,
+          options: this.state.commandContext.options,
         });
       });
       if (!confirmed) {
@@ -398,7 +394,7 @@ File: ${state.targetFilename} (${state.isDirty ? "UNSAVED CHANGES" : "saved"})
       }
     }
 
-    state.isActive = false;
+    this.state.isActive = false;
     ModalManager.request({
       context: "terminal",
       type: "input",
@@ -416,11 +412,7 @@ File: ${state.targetFilename} (${state.isDirty ? "UNSAVED CHANGES" : "saved"})
     await OutputManager.appendToOutput("Exiting Adventure Creator.", {
       typeClass: "text-success",
     });
-  }
+  },
 
-  return {
-    enter,
-    exit,
-    isActive: () => state.isActive,
-  };
-})();
+  isActive: () => this.state.isActive,
+};
