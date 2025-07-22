@@ -1,13 +1,10 @@
 // scripts/commands/history.js
-(() => {
-  "use strict";
-
-    class HistoryCommand extends Command {
+class HistoryCommand extends Command {
     constructor() {
-      super({
-      commandName: "history",
-      description: "Displays or clears the command history.",
-      helpText: `Usage: history [-c]
+        super({
+            commandName: "history",
+            description: "Displays or clears the command history.",
+            helpText: `Usage: history [-c]
       Display or clear the command history.
       DESCRIPTION
       The history command displays the list of previously executed
@@ -18,37 +15,32 @@
       OPTIONS
       -c, --clear
       Clear the entire command history for the current session.`,
-      flagDefinitions: [
-      {
-      name: "clear",
-      short: "-c",
-      long: "--clear",
-      },
-      ],
-      });
+            flagDefinitions: [
+                {
+                    name: "clear",
+                    short: "-c",
+                    long: "--clear",
+                },
+            ],
+        });
     }
 
     async coreLogic(context) {
-      
-            const { flags, dependencies } = context;
-            const { ErrorHandler, HistoryManager, Config } = dependencies;
-            if (flags.clear) {
-              HistoryManager.clearHistory();
-              return ErrorHandler.createSuccess("Command history cleared.");
-            }
-            const history = HistoryManager.getFullHistory();
-            if (history.length === 0)
-              return ErrorHandler.createSuccess(
-                  Config.MESSAGES.NO_COMMANDS_IN_HISTORY
-              );
-      
-            const output = history
-                .map((cmd, i) => `  ${String(i + 1).padStart(3)}  ${cmd}`)
-                .join("\n");
-            return ErrorHandler.createSuccess(output);
-          
-    }
-  }
+        const { flags, dependencies } = context;
+        const { ErrorHandler, HistoryManager, Config } = dependencies;
+        if (flags.clear) {
+            HistoryManager.clearHistory();
+            return ErrorHandler.createSuccess("Command history cleared.");
+        }
+        const history = HistoryManager.getFullHistory();
+        if (history.length === 0)
+            return ErrorHandler.createSuccess(
+                Config.MESSAGES.NO_COMMANDS_IN_HISTORY
+            );
 
-  CommandRegistry.register(new HistoryCommand());
-})();
+        const output = history
+            .map((cmd, i) => `  ${String(i + 1).padStart(3)}  ${cmd}`)
+            .join("\n");
+        return ErrorHandler.createSuccess(output);
+    }
+}

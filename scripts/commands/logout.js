@@ -1,10 +1,7 @@
 // scripts/commands/logout.js
-(() => {
-  "use strict";
-
-    class LogoutCommand extends Command {
-    constructor() {
-      super({
+class LogoutCommand extends Command {
+  constructor() {
+    super({
       commandName: "logout",
       description: "Logs out of the current user session.",
       helpText: `Usage: logout
@@ -23,37 +20,32 @@
       logout
       Returns to the original user's session.`,
       validations: {
-      args: {
-      exact: 0
-      }
+        args: {
+          exact: 0
+        }
       },
-      });
-    }
-
-    async coreLogic(context) {
-      
-            const { dependencies } = context;
-            const { UserManager, ErrorHandler, Config } = dependencies;
-            const result = await UserManager.logout();
-      
-            if (result.success) {
-              const resultData = result.data || {};
-              if (resultData.isLogout) {
-                return ErrorHandler.createSuccess(
-                    `${Config.MESSAGES.WELCOME_PREFIX} ${resultData.newUser}${Config.MESSAGES.WELCOME_SUFFIX}`,
-                    { effect: "clear_screen" }
-                );
-              }
-              if (resultData.noAction) {
-                return ErrorHandler.createSuccess(resultData.message);
-              }
-              return ErrorHandler.createSuccess(null);
-            } else {
-              return result;
-            }
-          
-    }
+    });
   }
 
-  CommandRegistry.register(new LogoutCommand());
-})();
+  async coreLogic(context) {
+    const { dependencies } = context;
+    const { UserManager, ErrorHandler, Config } = dependencies;
+    const result = await UserManager.logout();
+
+    if (result.success) {
+      const resultData = result.data || {};
+      if (resultData.isLogout) {
+        return ErrorHandler.createSuccess(
+            `${Config.MESSAGES.WELCOME_PREFIX} ${resultData.newUser}${Config.MESSAGES.WELCOME_SUFFIX}`,
+            { effect: "clear_screen" }
+        );
+      }
+      if (resultData.noAction) {
+        return ErrorHandler.createSuccess(resultData.message);
+      }
+      return ErrorHandler.createSuccess(null);
+    } else {
+      return result;
+    }
+  }
+}

@@ -1,10 +1,7 @@
 // scripts/commands/pwd.js
-(() => {
-  "use strict";
-
-    class PwdCommand extends Command {
-    constructor() {
-      super({
+class PwdCommand extends Command {
+  constructor() {
+    super({
       commandName: "pwd",
       description: "Prints the current working directory.",
       helpText: `Usage: pwd
@@ -13,21 +10,16 @@
       The pwd (print working directory) command writes the full, absolute
       pathname of the current working directory to the standard output.`,
       validations: {
-      args: {
-      exact: 0
-      }
+        args: {
+          exact: 0
+        }
       },
-      });
-    }
-
-    async coreLogic(context) {
-      
-            const { dependencies } = context;
-            const { ErrorHandler, FileSystemManager } = dependencies;
-            return ErrorHandler.createSuccess(FileSystemManager.getCurrentPath());
-          
-    }
+    });
   }
 
-  CommandRegistry.register(new PwdCommand());
-})();
+  async coreLogic(context) {
+    const { dependencies } = context;
+    const { ErrorHandler, FileSystemManager } = dependencies;
+    return ErrorHandler.createSuccess(FileSystemManager.getCurrentPath());
+  }
+}

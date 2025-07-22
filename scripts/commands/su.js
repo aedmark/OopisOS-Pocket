@@ -1,13 +1,10 @@
 // scripts/commands/su.js
-(() => {
-  "use strict";
-
-    class SuCommand extends Command {
+class SuCommand extends Command {
     constructor() {
-      super({
-      commandName: "su",
-      description: "Switches to another user, stacking the session.",
-      helpText: `Usage: su [username] [password]
+        super({
+            commandName: "su",
+            description: "Switches to another user, stacking the session.",
+            helpText: `Usage: su [username] [password]
       Change the current user ID to another user.
       DESCRIPTION
       The su (substitute user) command allows you to run a new shell
@@ -24,40 +21,35 @@
       Switches to the 'root' user (will prompt for password).
       su Guest
       Switches to the 'Guest' user.`,
-      completionType: "users",
-      argValidation: {
-      max: 2,
-      },
-      });
+            completionType: "users",
+            argValidation: {
+                max: 2,
+            },
+        });
     }
 
     async coreLogic(context) {
-      
-            const { args, options, dependencies } = context;
-            const { UserManager, ErrorHandler, Config } = dependencies;
-            const targetUser = args.length > 0 ? args[0] : "root";
-            const providedPassword = args.length > 1 ? args[1] : null;
-      
-            const result = await UserManager.su(
-                targetUser,
-                providedPassword,
-                options
-            );
-            if (result.success) {
-              const resultData = result.data || {};
-              if (!resultData.noAction) {
+        const { args, options, dependencies } = context;
+        const { UserManager, ErrorHandler, Config } = dependencies;
+        const targetUser = args.length > 0 ? args[0] : "root";
+        const providedPassword = args.length > 1 ? args[1] : null;
+
+        const result = await UserManager.su(
+            targetUser,
+            providedPassword,
+            options
+        );
+        if (result.success) {
+            const resultData = result.data || {};
+            if (!resultData.noAction) {
                 return ErrorHandler.createSuccess(
                     `${Config.MESSAGES.WELCOME_PREFIX} ${targetUser}${Config.MESSAGES.WELCOME_SUFFIX}`,
                     { effect: "clear_screen" }
                 );
-              }
-              return ErrorHandler.createSuccess(resultData.message);
-            } else {
-              return result;
             }
-          
+            return ErrorHandler.createSuccess(resultData.message);
+        } else {
+            return result;
+        }
     }
-  }
-
-  CommandRegistry.register(new SuCommand());
-})();
+}
