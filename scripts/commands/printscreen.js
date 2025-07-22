@@ -34,8 +34,11 @@ window.PrintscreenCommand = class PrintscreenCommand extends Command {
             const terminalElement = document.getElementById("terminal");
             const screenText = terminalElement ? terminalElement.textContent || "" : "Error: Could not find terminal element.";
 
+            // Resolve the output path to an absolute path
+            const absolutePath = FileSystemManager.getAbsolutePath(outputFilename);
+
             const saveResult = await FileSystemManager.createOrUpdateFile(
-                outputFilename,
+                absolutePath, // Use the resolved absolute path
                 screenText,
                 {
                     currentUser: currentUser,
@@ -45,7 +48,7 @@ window.PrintscreenCommand = class PrintscreenCommand extends Command {
 
             if (saveResult.success) {
                 await FileSystemManager.save();
-                return ErrorHandler.createSuccess(`Screen content saved to '${outputFilename}'`, { stateModified: true });
+                return ErrorHandler.createSuccess(`Screen content saved to '${absolutePath}'`, { stateModified: true });
             } else {
                 return ErrorHandler.createError(`printscreen: ${saveResult.error}`);
             }
