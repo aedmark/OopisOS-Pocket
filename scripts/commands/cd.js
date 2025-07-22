@@ -1,13 +1,10 @@
 // scripts/commands/cd.js
-(() => {
-  "use strict";
-
-    class CdCommand extends Command {
+class CdCommand extends Command {
     constructor() {
-      super({
-      commandName: "cd",
-      description: "Changes the current working directory.",
-      helpText: `Usage: cd <directory>
+        super({
+            commandName: "cd",
+            description: "Changes the current working directory.",
+            helpText: `Usage: cd <directory>
       Change the current working directory.
       DESCRIPTION
       The cd command changes the current working directory of the shell
@@ -24,39 +21,34 @@
       PERMISSIONS
       To change into a directory, the user must have 'execute' (x)
       permissions on that directory.`,
-      completionType: "paths",
-      validations: {
-      args: { exact: 1, error: "incorrect number of arguments" },
-      paths: [
-      {
-      argIndex: 0,
-      options: { expectedType: 'directory', permissions: ['execute'] }
-      }
-      ]
-      },
-      });
+            completionType: "paths",
+            validations: {
+                args: { exact: 1, error: "incorrect number of arguments" },
+                paths: [
+                    {
+                        argIndex: 0,
+                        options: { expectedType: 'directory', permissions: ['execute'] }
+                    }
+                ]
+            },
+        });
     }
 
     async coreLogic(context) {
-      
-            const { options, validatedPaths, dependencies } = context;
-            const { FileSystemManager, TerminalUI, ErrorHandler } = dependencies;
-            const { resolvedPath } = validatedPaths[0];
-      
-            if (FileSystemManager.getCurrentPath() === resolvedPath) {
-              return ErrorHandler.createSuccess("");
-            }
-      
-            FileSystemManager.setCurrentPath(resolvedPath);
-      
-            if (options.isInteractive) {
-              TerminalUI.updatePrompt();
-            }
-      
-            return ErrorHandler.createSuccess("");
-          
-    }
-  }
+        const { options, validatedPaths, dependencies } = context;
+        const { FileSystemManager, TerminalUI, ErrorHandler } = dependencies;
+        const { resolvedPath } = validatedPaths[0];
 
-  CommandRegistry.register(new CdCommand());
-})();
+        if (FileSystemManager.getCurrentPath() === resolvedPath) {
+            return ErrorHandler.createSuccess("");
+        }
+
+        FileSystemManager.setCurrentPath(resolvedPath);
+
+        if (options.isInteractive) {
+            TerminalUI.updatePrompt();
+        }
+
+        return ErrorHandler.createSuccess("");
+    }
+}

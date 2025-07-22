@@ -1,13 +1,10 @@
 // scripts/commands/cat.js
-(() => {
-  "use strict";
-
-    class CatCommand extends Command {
+class CatCommand extends Command {
     constructor() {
-      super({
-      commandName: "cat",
-      description: "Concatenate and display the content of files.",
-      helpText: `Usage: cat [FILE]...
+        super({
+            commandName: "cat",
+            description: "Concatenate and display the content of files.",
+            helpText: `Usage: cat [FILE]...
       Concatenate and print files to the standard output.
       DESCRIPTION
       The cat utility reads files sequentially, writing them to the standard
@@ -26,45 +23,40 @@
       ls -l | cat
       Displays the output of the 'ls -l' command, demonstrating
       how cat handles piped input.`,
-      completionType: "paths",
-      isInputStream: true,
-      flagDefinitions: [{ name: "numberLines", short: "-n", long: "--number" }],
-      });
+            completionType: "paths",
+            isInputStream: true,
+            flagDefinitions: [{ name: "numberLines", short: "-n", long: "--number" }],
+        });
     }
 
     async coreLogic(context) {
-      
-            const { flags, inputItems, inputError, dependencies } = context;
-            const { ErrorHandler } = dependencies;
-            if (inputError) {
-              return ErrorHandler.createError(
-                  "cat: One or more files could not be read."
-              );
-            }
-      
-            if (!inputItems || inputItems.length === 0) {
-              return ErrorHandler.createSuccess("");
-            }
-      
-            const content = inputItems.map((item) => item.content).join("\n");
-      
-            if (flags.numberLines) {
-              let lineCounter = 1;
-              const lines = content.split("\n");
-              const processedLines =
-                  lines.length > 0 && lines[lines.length - 1] === ""
-                      ? lines.slice(0, -1)
-                      : lines;
-              const numberedOutput = processedLines
-                  .map((line) => `     ${String(lineCounter++).padStart(5)}  ${line}`)
-                  .join("\n");
-              return ErrorHandler.createSuccess(numberedOutput);
-            }
-      
-            return ErrorHandler.createSuccess(content);
-          
-    }
-  }
+        const { flags, inputItems, inputError, dependencies } = context;
+        const { ErrorHandler } = dependencies;
+        if (inputError) {
+            return ErrorHandler.createError(
+                "cat: One or more files could not be read."
+            );
+        }
 
-  CommandRegistry.register(new CatCommand());
-})();
+        if (!inputItems || inputItems.length === 0) {
+            return ErrorHandler.createSuccess("");
+        }
+
+        const content = inputItems.map((item) => item.content).join("\n");
+
+        if (flags.numberLines) {
+            let lineCounter = 1;
+            const lines = content.split("\n");
+            const processedLines =
+                lines.length > 0 && lines[lines.length - 1] === ""
+                    ? lines.slice(0, -1)
+                    : lines;
+            const numberedOutput = processedLines
+                .map((line) => `     ${String(lineCounter++).padStart(5)}  ${line}`)
+                .join("\n");
+            return ErrorHandler.createSuccess(numberedOutput);
+        }
+
+        return ErrorHandler.createSuccess(content);
+    }
+}

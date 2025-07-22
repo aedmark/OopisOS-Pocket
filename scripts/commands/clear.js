@@ -1,13 +1,10 @@
 // scripts/commands/clear.js
-(() => {
-  "use strict";
-
-    class ClearCommand extends Command {
+class ClearCommand extends Command {
     constructor() {
-      super({
-      commandName: "clear",
-      description: "Clears the terminal screen of all previous output.",
-      helpText: `Usage: clear
+        super({
+            commandName: "clear",
+            description: "Clears the terminal screen of all previous output.",
+            helpText: `Usage: clear
       Clear the terminal screen.
       DESCRIPTION
       The clear command clears your screen, removing all previous output
@@ -15,25 +12,20 @@
       This does not clear your command history, which can still be
       accessed with the up and down arrow keys. To clear history, use
       the 'history -c' command.`,
-      validations: {
-      args: {
-      exact: 0
-      }
-      },
-      });
+            validations: {
+                args: {
+                    exact: 0
+                }
+            },
+        });
     }
 
     async coreLogic(context) {
-      
-            const { dependencies } = context;
-            const { ErrorHandler } = dependencies;
-            if (context.options.isInteractive) {
-              return ErrorHandler.createSuccess(null, { effect: "clear_screen" });
-            }
-            return ErrorHandler.createSuccess("");
-          
+        const { dependencies } = context;
+        const { ErrorHandler } = dependencies;
+        if (context.options.isInteractive) {
+            return ErrorHandler.createSuccess(null, { effect: "clear_screen" });
+        }
+        return ErrorHandler.createSuccess("");
     }
-  }
-
-  CommandRegistry.register(new ClearCommand());
-})();
+}
