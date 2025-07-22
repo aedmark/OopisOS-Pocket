@@ -1,93 +1,86 @@
 // scripts/commands/xor.js
-(() => {
-  "use strict";
-
-  function xorCipher(data, key) {
-    let output = "";
-    for (let i = 0; i < data.length; i++) {
-      const charCode = data.charCodeAt(i) ^ key.charCodeAt(i % key.length);
-      output += String.fromCharCode(charCode);
-    }
-    return output;
-  }
-
-    class XorCommand extends Command {
+class XorCommand extends Command {
     constructor() {
-      super({
-      commandName: "xor",
-      description:
-      "Simple symmetric XOR cipher for data obfuscation (educational).",
-      helpText: `Usage: xor [password] [FILE]
-      cat [FILE] | xor [password]
-      Obfuscate data using a simple password-based XOR cipher.
+        super({
+            commandName: "xor",
+            description: "Applies a simple XOR cipher to a file.",
+            helpText: `Usage: xor -k <key> -i <inputfile> -o <outputfile>
+      Apply a simple XOR cipher to a file.
       DESCRIPTION
-      xor transforms data from a FILE or standard input using a symmetric
-      XOR cipher. The same command and password are used for both obfuscation
-      and reversal.
-      WARNING: This utility is for educational purposes only. It provides
-      NO REAL SECURITY and should not be used to protect sensitive data.
-      PIPELINE SECURITY
-      For enhanced security, use the new 'ocrypt' command which implements
-      strong, modern encryption. 'xor' can be combined with 'base64' to make
-      its binary output safe for text-based storage.
-      Obfuscate: cat secret.txt | xor "my-pass" | base64 > safe.txt
-      De-obfuscate: cat safe.txt | base64 -d | xor "my-pass" > secret.txt`,
-      isInputStream: true,
-      completionType: "paths",
-      firstFileArgIndex: 1,
-      });
+      xor is a simple symmetric encryption utility that uses a repeating
+      key XOR cipher. It is intended for educational/demonstration
+      purposes and is NOT cryptographically secure.
+      The same command and key are used for both encryption and decryption.
+      OPTIONS
+      -k, --key=<key>
+      The secret key (string) for the operation.
+      -i, --input=<inputfile>
+      The file to read data from.
+      -o, --output=<outputfile>
+      The file to write the resulting data to.
+      All options are required.`,
+            flagDefinitions: [
+                { name: "key", short: "-k", long: "--key", takesValue: true },
+                { name: "input", short: "-i", long: "--input", takesValue: true },
+                { name: "output", short: "-o", long: "--output", takesValue: true },
+            ],
+        });
     }
 
     async coreLogic(context) {
-      
-            const { args, options, inputItems, inputError, dependencies } = context;
-            const { ErrorHandler, ModalManager } = dependencies;
-      
-            if (inputError) {
-              return ErrorHandler.createError(
-                  "xor: No readable input provided or permission denied."
-              );
-            }
-      
-            if (!inputItems || inputItems.length === 0) {
-              return ErrorHandler.createSuccess("");
-            }
-      
-            const inputData = inputItems.map((item) => item.content).join("\n");
-      
-            let password = args[0];
-      
-            if (password === null || password === undefined) {
-              if (!options.isInteractive) {
-                return ErrorHandler.createError(
-                    "xor: password must be provided as an argument in non-interactive mode."
-                );
-              }
-              password = await new Promise((resolve) => {
-                ModalManager.request({
-                  context: "terminal",
-                  type: "input",
-                  messageLines: ["Enter password for xor:"],
-                  obscured: true,
-                  onConfirm: (pw) => resolve(pw),
-                  onCancel: () => resolve(null),
-                });
-              });
-      
-              if (password === null) {
-                return ErrorHandler.createSuccess("Operation cancelled.");
-              }
-            }
-      
-            if (!password) {
-              return ErrorHandler.createError("xor: password cannot be empty.");
-            }
-      
-            const processedData = xorCipher(inputData, password);
-            return ErrorHandler.createSuccess(processedData);
-          
-    }
-  }
+        const { flags, currentUser, dependencies } = context;
+        const { FileSystemManager, UserManager, ErrorHandler } = dependencies;
 
-  CommandRegistry.register(new XorCommand());
-})();
+        if (!flags.key || !flags.input || !flags.output) {
+            return ErrorHandler.createError("xor: all options are required");
+        }
+
+        const inputValidation = FileSystemManager.validatePath(flags.input, {
+            expectedType: "file",
+            permissions: ["read"],
+        });
+        if (!inputValidation.success) {
+            return ErrorHandler.createError(
+                `xor: input file: ${inputValidation.error}`
+            );
+        }
+        const inputFileNode = inputValidation.data.node;
+
+        const outputValidation = FileSystemManager.validatePath(flags.output, {
+            allowMissing: true,
+            expectedType: "file",
+        });
+        if (
+            !outputValidation.success &&
+            outputValidation.data?.node !== null
+        ) {
+            return ErrorHandler.createError(
+                `xor: output file: ${outputValidation.error}`
+            );
+        }
+        const outputPath = outputValidation.data.resolvedPath;
+
+        const key = flags.key;
+        const inputContent = inputFileNode.content || "";
+        let outputContent = "";
+
+        for (let i = 0; i < inputContent.length; i++) {
+            const charCode = inputContent.charCodeAt(i);
+            const keyCode = key.charCodeAt(i % key.length);
+            outputContent += String.fromCharCode(charCode ^ keyCode);
+        }
+
+        const primaryGroup = UserManager.getPrimaryGroupForUser(currentUser);
+        const saveResult = await FileSystemManager.createOrUpdateFile(
+            outputPath,
+            outputContent,
+            { currentUser, primaryGroup }
+        );
+
+        if (!saveResult.success) {
+            return ErrorHandler.createError(`xor: ${saveResult.error}`);
+        }
+
+        return ErrorHandler.createSuccess("", { stateModified: true });
+    }
+}
