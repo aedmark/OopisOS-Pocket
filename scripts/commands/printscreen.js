@@ -3,53 +3,68 @@ window.PrintscreenCommand = class PrintscreenCommand extends Command {
     constructor() {
         super({
             commandName: "printscreen",
-            description: "Captures a screenshot of the entire OopisOS screen.",
-            helpText: `Usage: printscreen
+            description: "Captures the screen content as an image or text.",
+            helpText: `Usage: printscreen [output_file]
       Capture a screenshot of the current OopisOS screen.
       DESCRIPTION
-      The printscreen command generates an image of the current state of
-      the OopisOS terminal and initiates a browser download for the image.
-      The filename will be 'OopisOS_Screenshot' followed by the date and time.
-      NOTE: This command may not work on all browsers due to varying
+      - Interactive Mode (no arguments): Generates an image of the
+        terminal and initiates a browser download.
+      - Non-Interactive Mode (with output_file): Dumps the visible
+        text content of the terminal to the specified file for testing.
+      NOTE: Image capture may not work on all browsers due to varying
       support for the necessary rendering technologies.`,
             validations: {
                 args: {
-                    exact: 0
+                    max: 1
                 }
             },
         });
     }
 
     async coreLogic(context) {
-        const { options, dependencies } = context;
-        const { Utils, OutputManager, ErrorHandler, Config } = dependencies;
+        const { args, options, currentUser, dependencies } = context;
+        const { Utils, OutputManager, ErrorHandler, Config, FileSystemManager, UserManager } = dependencies;
+        const outputFilename = args[0];
 
-        if (!options.isInteractive) {
-            return ErrorHandler.createError(
-                "printscreen: Can only be run in interactive mode."
+        // Non-interactive mode for testing
+        if (!options.isInteractive || outputFilename) {
+            if (!outputFilename) {
+                return ErrorHandler.createError("printscreen: output file is required in non-interactive mode.");
+            }
+            const terminalElement = document.getElementById("terminal");
+            const screenText = terminalElement ? terminalElement.textContent || "" : "Error: Could not find terminal element.";
+
+            const saveResult = await FileSystemManager.createOrUpdateFile(
+                outputFilename,
+                screenText,
+                {
+                    currentUser: currentUser,
+                    primaryGroup: UserManager.getPrimaryGroupForUser(currentUser),
+                }
             );
+
+            if (saveResult.success) {
+                await FileSystemManager.save();
+                return ErrorHandler.createSuccess(`Screen content saved to '${outputFilename}'`, { stateModified: true });
+            } else {
+                return ErrorHandler.createError(`printscreen: ${saveResult.error}`);
+            }
         }
 
+        // Interactive mode (original functionality)
         try {
-            // Temporarily remove the blinking cursor for a clean screenshot
             const terminalElement = document.getElementById("terminal");
             if (terminalElement) {
                 terminalElement.classList.add("no-cursor");
             }
 
             await OutputManager.appendToOutput("Generating screenshot...");
-
-            // Allow the DOM to update
             await new Promise((resolve) => setTimeout(resolve, 50));
 
             const { html2canvas } = window;
             if (typeof html2canvas === "undefined") {
-                if (terminalElement) {
-                    terminalElement.classList.remove("no-cursor");
-                }
-                return ErrorHandler.createError(
-                    "printscreen: html2canvas library not loaded. Screenshot failed."
-                );
+                if (terminalElement) terminalElement.classList.remove("no-cursor");
+                return ErrorHandler.createError("printscreen: html2canvas library not loaded.");
             }
 
             const canvas = await html2canvas(terminalElement, {
@@ -57,14 +72,6 @@ window.PrintscreenCommand = class PrintscreenCommand extends Command {
                 logging: false,
                 useCORS: true,
                 allowTaint: true,
-                onclone: (doc) => {
-                    // In the cloned document, ensure we don't have the "no-cursor" class
-                    // so the caret is present if needed, but we can also hide it.
-                    const clonedTerminal = doc.getElementById("terminal");
-                    if (clonedTerminal) {
-                        clonedTerminal.classList.add("no-cursor-force");
-                    }
-                },
             });
 
             const fileName = `OopisOS_Screenshot_${new Date().toISOString().replace(/:/g, "-")}.png`;
@@ -81,17 +88,12 @@ window.PrintscreenCommand = class PrintscreenCommand extends Command {
                 terminalElement.classList.remove("no-cursor");
             }
 
-            return ErrorHandler.createSuccess(
-                `${Config.MESSAGES.SCREENSHOT_PREFIX}${fileName}`
-            );
+            return ErrorHandler.createSuccess(`Screenshot saved as '${fileName}'`);
         } catch (e) {
-            const terminalElement = document.getElementById("terminal");
-            if (terminalElement) {
-                terminalElement.classList.remove("no-cursor");
+            if (document.getElementById("terminal")) {
+                document.getElementById("terminal").classList.remove("no-cursor");
             }
-            return ErrorHandler.createError(
-                `printscreen: Failed to capture screen. ${e.message}`
-            );
+            return ErrorHandler.createError(`printscreen: Failed to capture screen. ${e.message}`);
         }
     }
 }

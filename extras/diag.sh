@@ -281,7 +281,7 @@ echo "xor tests complete."
 delay 400
 echo "--- Test: ocrypt (secure encrypt/decrypt) ---"
 echo "A truly secure message." > ocrypt_test.txt
-ocrypt -e diag_secure_pass ocrypt_test.txt
+ocrypt diag_secure_pass ocrypt_test.txt
 ocrypt -d diag_secure_pass ocrypt_test.txt | grep "A truly secure message."
 rm ocrypt_test.txt
 echo "ocrypt secure tests complete."
