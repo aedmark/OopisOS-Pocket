@@ -219,6 +219,33 @@ class CommandExecutor {
     );
   }
 
+  async executeScript(lines, options = {}) {
+    const {ErrorHandler} = this.dependencies;
+    const scriptingContext = {
+      isScripting: true,
+      lines: lines,
+      currentLineIndex: -1,
+      args: options.args || [],
+    };
+
+    for (let i = 0; i < lines.length; i++) {
+      scriptingContext.currentLineIndex = i;
+      const line = lines[i].trim();
+      if (line && !line.startsWith("#")) {
+        const result = await this.processSingleCommand(line, {
+          ...options,
+          scriptingContext,
+        });
+        if (!result.success) {
+          return ErrorHandler.createError(
+              `Error in script on line ${i + 1}: ${result.error}`
+          );
+        }
+      }
+    }
+    return ErrorHandler.createSuccess("Script finished successfully.");
+  }
+
   async _executeCommandHandler(
       segment,
       execCtxOpts,
