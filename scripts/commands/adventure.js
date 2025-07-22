@@ -178,135 +178,138 @@
     },
   };
 
-  const adventureCommandDefinition = {
-    commandName: "adventure",
-    dependencies: [
+    class AdventureCommand extends Command {
+    constructor() {
+      super({
+      commandName: "adventure",
+      dependencies: [
       "apps/adventure/adventure_ui.js",
       "apps/adventure/adventure_manager.js",
       "apps/adventure/adventure_create.js",
       "pager.js",
-    ],
-    applicationModules: ["AdventureManager", "TextAdventureModal", "App", "Adventure_create"],
-    description: "Starts an interactive text adventure game or creation tool.",
-    helpText: `Usage: adventure [--create] [path_to_game.json]
-
-Launches the OopisOS interactive text adventure engine.
-
-MODES
-       Play Mode (default)
-       Launches the game. If no file is provided, starts the default adventure.
-
-       Creation Mode
-       Use 'adventure --create <file.json>' to enter an interactive shell
-       for building or editing an adventure file.
-
-GAMEPLAY COMMANDS
-       look, go, take, drop, use, inventory, save, load, quit, etc.
-       Type 'help' inside the game for a full list of gameplay commands.
-
-CREATION COMMANDS
-       create <type> "<name>"
-       edit <type> "<name>"
-       set <property> "<value>"
-       link "<room1>" <dir> "<room2>"
-       save
-       exit
-       Type 'help' inside the creator for a full list of building commands.`,
-    completionType: "paths",
-    flagDefinitions: [{ name: "create", short: "--create" }],
-    validations: {
+      ],
+      applicationModules: ["AdventureManager", "TextAdventureModal", "App", "Adventure_create"],
+      description: "Starts an interactive text adventure game or creation tool.",
+      helpText: `Usage: adventure [--create] [path_to_game.json]
+      Launches the OopisOS interactive text adventure engine.
+      MODES
+      Play Mode (default)
+      Launches the game. If no file is provided, starts the default adventure.
+      Creation Mode
+      Use 'adventure --create <file.json>' to enter an interactive shell
+      for building or editing an adventure file.
+      GAMEPLAY COMMANDS
+      look, go, take, drop, use, inventory, save, load, quit, etc.
+      Type 'help' inside the game for a full list of gameplay commands.
+      CREATION COMMANDS
+      create <type> "<name>"
+      edit <type> "<name>"
+      set <property> "<value>"
+      link "<room1>" <dir> "<room2>"
+      save
+      exit
+      Type 'help' inside the creator for a full list of building commands.`,
+      completionType: "paths",
+      flagDefinitions: [{ name: "create", short: "--create" }],
+      validations: {
       args: {
-        max: 1
+      max: 1
       },
-    },
-    coreLogic: async (context) => {
-      const { args, options, flags, dependencies } = context;
-      const { ErrorHandler, AppLayerManager, FileSystemManager, AdventureManager, TextAdventureModal, App, Adventure_create } = dependencies;
+      },
+      });
+    }
 
-      try {
-        if (flags.create) {
-          const filename = args[0];
-          if (!filename) {
-            return ErrorHandler.createError(
-                "Usage: adventure --create <filename.json>"
-            );
-          }
-          if (!filename.endsWith(".json")) {
-            return ErrorHandler.createError("Filename must end with .json");
-          }
-
-          if (typeof Adventure_create === 'undefined') {
-            return ErrorHandler.createError("Adventure Creator module is not properly loaded.");
-          }
-
-          let initialData = {};
-          const pathInfoResult = FileSystemManager.validatePath(filename, { allowMissing: true, expectedType: 'file', permissions: ['read'] });
-          if (!pathInfoResult.success && pathInfoResult.data.node) {
-            return ErrorHandler.createError(`adventure: ${pathInfoResult.error}`);
-          }
-          const pathInfo = pathInfoResult.data;
-
-          if (pathInfo && pathInfo.node) {
+    async coreLogic(context) {
+      
+            const { args, options, flags, dependencies } = context;
+            const { ErrorHandler, AppLayerManager, FileSystemManager, AdventureManager, TextAdventureModal, App, Adventure_create } = dependencies;
+      
             try {
-              initialData = JSON.parse(pathInfo.node.content || "{}");
+              if (flags.create) {
+                const filename = args[0];
+                if (!filename) {
+                  return ErrorHandler.createError(
+                      "Usage: adventure --create <filename.json>"
+                  );
+                }
+                if (!filename.endsWith(".json")) {
+                  return ErrorHandler.createError("Filename must end with .json");
+                }
+      
+                if (typeof Adventure_create === 'undefined') {
+                  return ErrorHandler.createError("Adventure Creator module is not properly loaded.");
+                }
+      
+                let initialData = {};
+                const pathInfoResult = FileSystemManager.validatePath(filename, { allowMissing: true, expectedType: 'file', permissions: ['read'] });
+                if (!pathInfoResult.success && pathInfoResult.data.node) {
+                  return ErrorHandler.createError(`adventure: ${pathInfoResult.error}`);
+                }
+                const pathInfo = pathInfoResult.data;
+      
+                if (pathInfo && pathInfo.node) {
+                  try {
+                    initialData = JSON.parse(pathInfo.node.content || "{}");
+                  } catch (e) {
+                    return ErrorHandler.createError(
+                        `Could not parse existing file '${filename}'. It may be corrupt.`
+                    );
+                  }
+                } else {
+                  initialData = {
+                    title: "New Adventure",
+                    rooms: {},
+                    items: {},
+                    npcs: {},
+                    daemons: {},
+                  };
+                }
+                await Adventure_create.enter(filename, initialData, context);
+                return ErrorHandler.createSuccess("");
+              }
+      
+              if (
+                  typeof AdventureManager === "undefined" ||
+                  typeof TextAdventureModal === "undefined" ||
+                  typeof App === "undefined"
+              ) {
+                return ErrorHandler.createError(
+                    "Adventure module is not properly loaded."
+                );
+              }
+      
+              let adventureToLoad;
+              if (args.length > 0) {
+                const pathValidationResult = FileSystemManager.validatePath(args[0], { expectedType: 'file', permissions: ['read'] });
+                if (!pathValidationResult.success) {
+                  return ErrorHandler.createError(`adventure: ${pathValidationResult.error}`);
+                }
+                try {
+                  adventureToLoad = JSON.parse(pathValidationResult.data.node.content);
+                } catch (e) {
+                  return ErrorHandler.createError(
+                      `adventure: Error parsing adventure file '${args[0]}': ${e.message}`
+                  );
+                }
+              } else {
+                adventureToLoad = defaultAdventureData;
+              }
+      
+              AppLayerManager.show(new AdventureManager(), {
+                adventureData: adventureToLoad,
+                scriptingContext: options.scriptingContext,
+                dependencies
+              });
+      
+              return ErrorHandler.createSuccess("");
             } catch (e) {
               return ErrorHandler.createError(
-                  `Could not parse existing file '${filename}'. It may be corrupt.`
+                  `adventure: An unexpected error occurred: ${e.message}`
               );
             }
-          } else {
-            initialData = {
-              title: "New Adventure",
-              rooms: {},
-              items: {},
-              npcs: {},
-              daemons: {},
-            };
-          }
-          await Adventure_create.enter(filename, initialData, context);
-          return ErrorHandler.createSuccess("");
-        }
+          
+    }
+  }
 
-        if (
-            typeof AdventureManager === "undefined" ||
-            typeof TextAdventureModal === "undefined" ||
-            typeof App === "undefined"
-        ) {
-          return ErrorHandler.createError(
-              "Adventure module is not properly loaded."
-          );
-        }
-
-        let adventureToLoad;
-        if (args.length > 0) {
-          const pathValidationResult = FileSystemManager.validatePath(args[0], { expectedType: 'file', permissions: ['read'] });
-          if (!pathValidationResult.success) {
-            return ErrorHandler.createError(`adventure: ${pathValidationResult.error}`);
-          }
-          try {
-            adventureToLoad = JSON.parse(pathValidationResult.data.node.content);
-          } catch (e) {
-            return ErrorHandler.createError(
-                `adventure: Error parsing adventure file '${args[0]}': ${e.message}`
-            );
-          }
-        } else {
-          adventureToLoad = defaultAdventureData;
-        }
-
-        AppLayerManager.show(new AdventureManager(), {
-          adventureData: adventureToLoad,
-          scriptingContext: options.scriptingContext,
-          dependencies
-        });
-
-        return ErrorHandler.createSuccess("");
-      } catch (e) {
-        return ErrorHandler.createError(
-            `adventure: An unexpected error occurred: ${e.message}`
-        );
-      }
-    },
-  };
-  CommandRegistry.register(adventureCommandDefinition);
+  CommandRegistry.register(new AdventureCommand());
 })();

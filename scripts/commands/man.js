@@ -57,51 +57,56 @@
     return output.join("\n");
   }
 
-  const manCommandDefinition = {
-    commandName: "man",
-    description: "Formats and displays the manual page for a command.",
-    helpText: `Usage: man <command>
-
-Displays the manual page for a given command.
-
-DESCRIPTION
-       The man command formats and displays the manual page for a specified
-       command. Manual pages include a command's synopsis, a detailed
-       description of its function, and a list of its available options.
-
-EXAMPLES
-       man ls
-              Displays the comprehensive manual page for the 'ls' command.`,
-    completionType: "commands",
-    validations: {
+    class ManCommand extends Command {
+    constructor() {
+      super({
+      commandName: "man",
+      description: "Formats and displays the manual page for a command.",
+      helpText: `Usage: man <command>
+      Displays the manual page for a given command.
+      DESCRIPTION
+      The man command formats and displays the manual page for a specified
+      command. Manual pages include a command's synopsis, a detailed
+      description of its function, and a list of its available options.
+      EXAMPLES
+      man ls
+      Displays the comprehensive manual page for the 'ls' command.`,
+      completionType: "commands",
+      validations: {
       args: {
-        exact: 1,
-        error: "what manual page do you want?"
+      exact: 1,
+      error: "what manual page do you want?"
       }
-    },
-    coreLogic: async (context) => {
-      const { args, dependencies } = context;
-      const { CommandExecutor, CommandRegistry, ErrorHandler } = dependencies;
-      const commandName = args[0];
+      },
+      });
+    }
 
-      const isLoaded =
-          await CommandExecutor._ensureCommandLoaded(commandName);
+    async coreLogic(context) {
+      
+            const { args, dependencies } = context;
+            const { CommandExecutor, CommandRegistry, ErrorHandler } = dependencies;
+            const commandName = args[0];
+      
+            const isLoaded =
+                await CommandExecutor._ensureCommandLoaded(commandName);
+      
+            if (!isLoaded) {
+              return ErrorHandler.createError(`No manual entry for ${commandName}`);
+            }
+      
+            const allCommands = CommandRegistry.getDefinitions();
+            const commandData = allCommands[commandName];
+      
+            if (!commandData) {
+              return ErrorHandler.createError(`No manual entry for ${commandName}`);
+            }
+      
+            const manPage = formatManPage(commandName, commandData);
+      
+            return ErrorHandler.createSuccess(manPage);
+          
+    }
+  }
 
-      if (!isLoaded) {
-        return ErrorHandler.createError(`No manual entry for ${commandName}`);
-      }
-
-      const allCommands = CommandRegistry.getDefinitions();
-      const commandData = allCommands[commandName];
-
-      if (!commandData) {
-        return ErrorHandler.createError(`No manual entry for ${commandName}`);
-      }
-
-      const manPage = formatManPage(commandName, commandData);
-
-      return ErrorHandler.createSuccess(manPage);
-    },
-  };
-  CommandRegistry.register(manCommandDefinition);
+  CommandRegistry.register(new ManCommand());
 })();

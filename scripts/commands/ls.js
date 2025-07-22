@@ -228,35 +228,34 @@
     });
   }
 
-  const lsCommandDefinition = {
-    commandName: "ls",
-    description: "Lists directory contents and file information.",
-    helpText: `Usage: ls [OPTION]... [FILE]...
-
-List information about the FILEs (the current directory by default).
-Sort entries alphabetically if none of -tSUXU is specified.
-
-DESCRIPTION
-       The ls command lists files and directories. By default, it lists
-       the contents of the current directory. If one or more files or
-       directories are given, it lists information about them. When the
-       output is not a terminal (e.g., a pipe), it defaults to a single
-       column format.
-
-OPTIONS
-       -l              Use a long listing format.
-       -a              Do not ignore entries starting with .
-       -R              List subdirectories recursively.
-       -r              Reverse order while sorting.
-       -t              Sort by modification time, newest first.
-       -S              Sort by file size, largest first.
-       -X              Sort alphabetically by entry extension.
-       -U              Do not sort; list entries in directory order.
-       -d              List directories themselves, not their contents.
-       -1              List one file per line.
-       -h              With -l, print sizes in human-readable format.`,
-    completionType: "paths",
-    flagDefinitions: [
+    class LsCommand extends Command {
+    constructor() {
+      super({
+      commandName: "ls",
+      description: "Lists directory contents and file information.",
+      helpText: `Usage: ls [OPTION]... [FILE]...
+      List information about the FILEs (the current directory by default).
+      Sort entries alphabetically if none of -tSUXU is specified.
+      DESCRIPTION
+      The ls command lists files and directories. By default, it lists
+      the contents of the current directory. If one or more files or
+      directories are given, it lists information about them. When the
+      output is not a terminal (e.g., a pipe), it defaults to a single
+      column format.
+      OPTIONS
+      -l              Use a long listing format.
+      -a              Do not ignore entries starting with .
+      -R              List subdirectories recursively.
+      -r              Reverse order while sorting.
+      -t              Sort by modification time, newest first.
+      -S              Sort by file size, largest first.
+      -X              Sort alphabetically by entry extension.
+      -U              Do not sort; list entries in directory order.
+      -d              List directories themselves, not their contents.
+      -1              List one file per line.
+      -h              With -l, print sizes in human-readable format.`,
+      completionType: "paths",
+      flagDefinitions: [
       { name: "long", short: "-l" },
       { name: "all", short: "-a" },
       { name: "recursive", short: "-R" },
@@ -268,142 +267,148 @@ OPTIONS
       { name: "dirsOnly", short: "-d" },
       { name: "oneColumn", short: "-1" },
       { name: "humanReadable", short: "-h" },
-    ],
-    coreLogic: async (context) => {
-      const { args, flags, currentUser, options, dependencies } = context;
-      const { ErrorHandler, FileSystemManager } = dependencies;
+      ],
+      });
+    }
 
-      const effectiveFlags = { ...flags };
-      if (
-          options &&
-          !options.isInteractive &&
-          !effectiveFlags.long &&
-          !effectiveFlags.oneColumn
-      ) {
-        effectiveFlags.oneColumn = true;
-      }
-
-      const pathsToList = args.length > 0 ? args : ["."];
-      let outputBlocks = [];
-      let overallSuccess = true;
-
-      if (effectiveFlags.recursive) {
-        async function displayRecursive(currentPath, depth = 0) {
-          if (depth > 0 || pathsToList.length > 1) {
-            outputBlocks.push(`\n${currentPath}:`);
-          }
-          const listResult = await listSinglePathContents(
-              currentPath,
-              effectiveFlags,
-              currentUser,
-              options,
-              dependencies
-          );
-          if (!listResult.success) {
-            outputBlocks.push(listResult.error);
-            overallSuccess = false;
-          } else {
-            const { output, items, isDir } = listResult.data;
-            if (output) {
-              outputBlocks.push(output);
+    async coreLogic(context) {
+      
+            const { args, flags, currentUser, options, dependencies } = context;
+            const { ErrorHandler, FileSystemManager } = dependencies;
+      
+            const effectiveFlags = { ...flags };
+            if (
+                options &&
+                !options.isInteractive &&
+                !effectiveFlags.long &&
+                !effectiveFlags.oneColumn
+            ) {
+              effectiveFlags.oneColumn = true;
             }
-
-            if (items && isDir) {
-              const subdirectories = items.filter(
-                  (item) =>
-                      item.type === "directory" && !item.name.startsWith(".")
-              );
-              for (const dirItem of subdirectories) {
-                await displayRecursive(dirItem.path, depth + 1);
+      
+            const pathsToList = args.length > 0 ? args : ["."];
+            let outputBlocks = [];
+            let overallSuccess = true;
+      
+            if (effectiveFlags.recursive) {
+              async function displayRecursive(currentPath, depth = 0) {
+                if (depth > 0 || pathsToList.length > 1) {
+                  outputBlocks.push(`\n${currentPath}:`);
+                }
+                const listResult = await listSinglePathContents(
+                    currentPath,
+                    effectiveFlags,
+                    currentUser,
+                    options,
+                    dependencies
+                );
+                if (!listResult.success) {
+                  outputBlocks.push(listResult.error);
+                  overallSuccess = false;
+                } else {
+                  const { output, items, isDir } = listResult.data;
+                  if (output) {
+                    outputBlocks.push(output);
+                  }
+      
+                  if (items && isDir) {
+                    const subdirectories = items.filter(
+                        (item) =>
+                            item.type === "directory" && !item.name.startsWith(".")
+                    );
+                    for (const dirItem of subdirectories) {
+                      await displayRecursive(dirItem.path, depth + 1);
+                    }
+                  }
+                }
               }
+              for (const path of pathsToList) {
+                await displayRecursive(path);
+              }
+            } else {
+              const fileArgs = [];
+              const dirArgs = [];
+              const errorOutputs = [];
+      
+              for (const path of pathsToList) {
+                const pathValidationResult = FileSystemManager.validatePath(path);
+                if (!pathValidationResult.success) {
+                  errorOutputs.push(
+                      `ls: cannot access '${path}': ${pathValidationResult.error.replace(path + ":", "").trim()}`
+                  );
+                  overallSuccess = false;
+                } else if (
+                    pathValidationResult.data.node.type === "directory" &&
+                    !effectiveFlags.dirsOnly
+                ) {
+                  dirArgs.push(path);
+                } else {
+                  fileArgs.push(path);
+                }
+              }
+      
+              if (fileArgs.length > 0) {
+                const fileDetailsList = [];
+                for (const filePath of fileArgs) {
+                  const pathValidationResult =
+                      FileSystemManager.validatePath(filePath);
+                  if (pathValidationResult.success) {
+                    const details = getItemDetails(
+                        filePath,
+                        pathValidationResult.data.node,
+                        pathValidationResult.data.resolvedPath,
+                        dependencies
+                    );
+                    if (details) fileDetailsList.push(details);
+                  }
+                }
+      
+                const sortedFileItems = sortItems(fileDetailsList, effectiveFlags);
+      
+                if (effectiveFlags.long) {
+                  sortedFileItems.forEach((item) =>
+                      outputBlocks.push(formatLongListItem(item, effectiveFlags, dependencies))
+                  );
+                } else if (effectiveFlags.oneColumn) {
+                  sortedFileItems.forEach((item) => outputBlocks.push(item.name));
+                } else {
+                  outputBlocks.push(
+                      formatToColumns(sortedFileItems.map((item) => item.name), options, dependencies)
+                  );
+                }
+              }
+      
+              for (let i = 0; i < dirArgs.length; i++) {
+                if (fileArgs.length > 0 || i > 0 || errorOutputs.length > 0) {
+                  outputBlocks.push("");
+                }
+                if (pathsToList.length > 1) {
+                  outputBlocks.push(`${dirArgs[i]}:`);
+                }
+                const listResult = await listSinglePathContents(
+                    dirArgs[i],
+                    effectiveFlags,
+                    currentUser,
+                    options,
+                    dependencies
+                );
+                if (listResult.success) {
+                  outputBlocks.push(listResult.data.output);
+                } else {
+                  errorOutputs.push(listResult.error);
+                  overallSuccess = false;
+                }
+              }
+              outputBlocks = [...errorOutputs, ...outputBlocks];
             }
-          }
-        }
-        for (const path of pathsToList) {
-          await displayRecursive(path);
-        }
-      } else {
-        const fileArgs = [];
-        const dirArgs = [];
-        const errorOutputs = [];
-
-        for (const path of pathsToList) {
-          const pathValidationResult = FileSystemManager.validatePath(path);
-          if (!pathValidationResult.success) {
-            errorOutputs.push(
-                `ls: cannot access '${path}': ${pathValidationResult.error.replace(path + ":", "").trim()}`
-            );
-            overallSuccess = false;
-          } else if (
-              pathValidationResult.data.node.type === "directory" &&
-              !effectiveFlags.dirsOnly
-          ) {
-            dirArgs.push(path);
-          } else {
-            fileArgs.push(path);
-          }
-        }
-
-        if (fileArgs.length > 0) {
-          const fileDetailsList = [];
-          for (const filePath of fileArgs) {
-            const pathValidationResult =
-                FileSystemManager.validatePath(filePath);
-            if (pathValidationResult.success) {
-              const details = getItemDetails(
-                  filePath,
-                  pathValidationResult.data.node,
-                  pathValidationResult.data.resolvedPath,
-                  dependencies
-              );
-              if (details) fileDetailsList.push(details);
+      
+            if (!overallSuccess) {
+              return ErrorHandler.createError(outputBlocks.join("\n"));
             }
-          }
+            return ErrorHandler.createSuccess(outputBlocks.join("\n"));
+          
+    }
+  }
 
-          const sortedFileItems = sortItems(fileDetailsList, effectiveFlags);
-
-          if (effectiveFlags.long) {
-            sortedFileItems.forEach((item) =>
-                outputBlocks.push(formatLongListItem(item, effectiveFlags, dependencies))
-            );
-          } else if (effectiveFlags.oneColumn) {
-            sortedFileItems.forEach((item) => outputBlocks.push(item.name));
-          } else {
-            outputBlocks.push(
-                formatToColumns(sortedFileItems.map((item) => item.name), options, dependencies)
-            );
-          }
-        }
-
-        for (let i = 0; i < dirArgs.length; i++) {
-          if (fileArgs.length > 0 || i > 0 || errorOutputs.length > 0) {
-            outputBlocks.push("");
-          }
-          if (pathsToList.length > 1) {
-            outputBlocks.push(`${dirArgs[i]}:`);
-          }
-          const listResult = await listSinglePathContents(
-              dirArgs[i],
-              effectiveFlags,
-              currentUser,
-              options,
-              dependencies
-          );
-          if (listResult.success) {
-            outputBlocks.push(listResult.data.output);
-          } else {
-            errorOutputs.push(listResult.error);
-            overallSuccess = false;
-          }
-        }
-        outputBlocks = [...errorOutputs, ...outputBlocks];
-      }
-
-      if (!overallSuccess) {
-        return ErrorHandler.createError(outputBlocks.join("\n"));
-      }
-      return ErrorHandler.createSuccess(outputBlocks.join("\n"));
-    },
-  };
-  CommandRegistry.register(lsCommandDefinition);
+  CommandRegistry.register(new LsCommand());
 })();
