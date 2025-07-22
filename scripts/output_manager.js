@@ -1,41 +1,38 @@
 // scripts/output_manager.js
-const OutputManager = (() => {
-  "use strict";
-
-  let isEditorActive = false;
-  let cachedOutputDiv = null;
-  let cachedInputLineContainerDiv = null;
-
-  let dependencies = {};
-
-  const originalConsoleLog = console.log;
-  const originalConsoleWarn = console.warn;
-  const originalConsoleError = console.error;
-
-  function initialize(dom) {
-    cachedOutputDiv = dom.outputDiv;
-    cachedInputLineContainerDiv = dom.inputLineContainerDiv;
+class OutputManager {
+  constructor() {
+    this.isEditorActive = false;
+    this.cachedOutputDiv = null;
+    this.cachedInputLineContainerDiv = null;
+    this.dependencies = {};
+    this.originalConsoleLog = console.log;
+    this.originalConsoleWarn = console.warn;
+    this.originalConsoleError = console.error;
   }
 
-  function setDependencies(injectedDependencies) {
-    dependencies = injectedDependencies;
+  initialize(dom) {
+    this.cachedOutputDiv = dom.outputDiv;
+    this.cachedInputLineContainerDiv = dom.inputLineContainerDiv;
   }
 
-  function setEditorActive(status) {
-    isEditorActive = status;
+  setDependencies(injectedDependencies) {
+    this.dependencies = injectedDependencies;
   }
 
-  async function appendToOutput(text, options = {}) {
-    // This check is now safe because dependencies are injected before this is called.
-    const { Config, TerminalUI, Utils } = dependencies;
+  setEditorActive(status) {
+    this.isEditorActive = status;
+  }
+
+  async appendToOutput(text, options = {}) {
+    const { Config, TerminalUI, Utils } = this.dependencies;
     if (
-        isEditorActive &&
+        this.isEditorActive &&
         options.typeClass !== Config.CSS_CLASSES.EDITOR_MSG &&
         !options.isCompletionSuggestion
     )
       return;
-    if (!cachedOutputDiv) {
-      originalConsoleError(
+    if (!this.cachedOutputDiv) {
+      this.originalConsoleError(
           "OutputManager.appendToOutput: cachedOutputDiv is not defined. Message:",
           text
       );
@@ -45,17 +42,16 @@ const OutputManager = (() => {
 
     if (
         isBackground &&
-        cachedInputLineContainerDiv &&
-        !cachedInputLineContainerDiv.classList.contains(Config.CSS_CLASSES.HIDDEN)
+        this.cachedInputLineContainerDiv &&
+        !this.cachedInputLineContainerDiv.classList.contains(Config.CSS_CLASSES.HIDDEN)
     ) {
       const promptText = TerminalUI.getPromptText() || "> ";
-
       const currentInputVal = TerminalUI.getCurrentInputValue();
       const echoLine = Utils.createElement("div", {
         className: Config.CSS_CLASSES.OUTPUT_LINE,
         textContent: `${promptText}${currentInputVal}`,
       });
-      cachedOutputDiv.appendChild(echoLine);
+      this.cachedOutputDiv.appendChild(echoLine);
     }
 
     const lines = String(text).split("\n");
@@ -77,78 +73,69 @@ const OutputManager = (() => {
       fragment.appendChild(Utils.createElement("div", lineAttributes));
     }
 
-    cachedOutputDiv.appendChild(fragment);
-    cachedOutputDiv.scrollTop = cachedOutputDiv.scrollHeight;
+    this.cachedOutputDiv.appendChild(fragment);
+    this.cachedOutputDiv.scrollTop = this.cachedOutputDiv.scrollHeight;
   }
 
-  function clearOutput() {
-    if (!isEditorActive && cachedOutputDiv) {
-      while (cachedOutputDiv.firstChild) {
-        cachedOutputDiv.removeChild(cachedOutputDiv.firstChild);
+  clearOutput() {
+    if (!this.isEditorActive && this.cachedOutputDiv) {
+      while (this.cachedOutputDiv.firstChild) {
+        this.cachedOutputDiv.removeChild(this.cachedOutputDiv.firstChild);
       }
     }
   }
 
-  function _consoleLogOverride(...args) {
-    const { Config, Utils } = dependencies;
+  _consoleLogOverride(...args) {
+    const { Config, Utils } = this.dependencies;
     if (
-        cachedOutputDiv &&
+        this.cachedOutputDiv &&
         typeof Utils !== "undefined" &&
         typeof Utils.formatConsoleArgs === "function"
     )
-      void appendToOutput(`LOG: ${Utils.formatConsoleArgs(args)}`, {
+      void this.appendToOutput(`LOG: ${Utils.formatConsoleArgs(args)}`, {
         typeClass: Config.CSS_CLASSES.CONSOLE_LOG_MSG,
       });
-    originalConsoleLog.apply(console, args);
+    this.originalConsoleLog.apply(console, args);
   }
 
-  function _consoleWarnOverride(...args) {
-    const { Config, Utils } = dependencies;
+  _consoleWarnOverride(...args) {
+    const { Config, Utils } = this.dependencies;
     if (
-        cachedOutputDiv &&
+        this.cachedOutputDiv &&
         typeof Utils !== "undefined" &&
         typeof Utils.formatConsoleArgs === "function"
     )
-      void appendToOutput(`WARN: ${Utils.formatConsoleArgs(args)}`, {
+      void this.appendToOutput(`WARN: ${Utils.formatConsoleArgs(args)}`, {
         typeClass: Config.CSS_CLASSES.WARNING_MSG,
       });
-    originalConsoleWarn.apply(console, args);
+    this.originalConsoleWarn.apply(console, args);
   }
 
-  function _consoleErrorOverride(...args) {
-    const { Config, Utils } = dependencies;
+  _consoleErrorOverride(...args) {
+    const { Config, Utils } = this.dependencies;
     if (
-        cachedOutputDiv &&
+        this.cachedOutputDiv &&
         typeof Utils !== "undefined" &&
         typeof Utils.formatConsoleArgs === "function"
     )
-      void appendToOutput(`ERROR: ${Utils.formatConsoleArgs(args)}`, {
+      void this.appendToOutput(`ERROR: ${Utils.formatConsoleArgs(args)}`, {
         typeClass: Config.CSS_CLASSES.ERROR_MSG,
       });
-    originalConsoleError.apply(console, args);
+    this.originalConsoleError.apply(console, args);
   }
 
-  function initializeConsoleOverrides() {
+  initializeConsoleOverrides() {
     if (
-        typeof dependencies.Utils === "undefined" ||
-        typeof dependencies.Utils.formatConsoleArgs !== "function"
+        typeof this.dependencies.Utils === "undefined" ||
+        typeof this.dependencies.Utils.formatConsoleArgs !== "function"
     ) {
-      originalConsoleError(
+      this.originalConsoleError(
           "OutputManager: Cannot initialize console overrides, Utils or Utils.formatConsoleArgs is not defined."
       );
       return;
     }
-    console.log = _consoleLogOverride;
-    console.warn = _consoleWarnOverride;
-    console.error = _consoleErrorOverride;
+    console.log = this._consoleLogOverride.bind(this);
+    console.warn = this._consoleWarnOverride.bind(this);
+    console.error = this._consoleErrorOverride.bind(this);
   }
-
-  return {
-    initialize,
-    setDependencies, // Expose the new method
-    setEditorActive,
-    appendToOutput,
-    clearOutput,
-    initializeConsoleOverrides,
-  };
-})();
+}

@@ -1,9 +1,15 @@
 // scripts/ui_components.js
-const UIComponents = (() => {
-  "use strict";
+class UIComponents {
+  constructor() {
+    this.dependencies = {};
+  }
 
-  function createAppHeader(title, onExit) {
-    const { Utils } = dependencies;
+  setDependencies(dependencies) {
+    this.dependencies = dependencies;
+  }
+
+  createAppHeader(title, onExit) {
+    const { Utils } = this.dependencies;
     const exitBtn = Utils.createElement("button", {
       className: "btn btn--cancel",
       textContent: "Exit",
@@ -17,8 +23,8 @@ const UIComponents = (() => {
     );
   }
 
-  function createButton(text, options = {}) {
-    const { Utils } = dependencies;
+  createButton(text, options = {}) {
+    const { Utils } = this.dependencies;
     const { onClick, classes = [], id = null, title = null } = options;
     const btnClasses = ["btn", ...classes];
     const attributes = {
@@ -31,9 +37,4 @@ const UIComponents = (() => {
 
     return Utils.createElement("button", attributes);
   }
-
-  return {
-    createAppHeader,
-    createButton,
-  };
-})();
+}

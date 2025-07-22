@@ -1,5 +1,8 @@
 // scripts/main.js
-function initializeTerminalEventListeners(domElements, commandExecutor) {
+function initializeTerminalEventListeners(domElements, commandExecutor, dependencies) {
+  // Destructure dependencies needed in this function
+  const { AppLayerManager, ModalManager, TerminalUI, TabCompletionManager, HistoryManager } = dependencies;
+
   if (!domElements.terminalDiv || !domElements.editableInputDiv) {
     console.error(
         "Terminal event listeners cannot be initialized: Core DOM elements not found."
@@ -132,6 +135,7 @@ window.onload = async () => {
     appLayer: document.getElementById("app-layer"),
   };
 
+  // Instantiate all manager classes
   const configManager = new ConfigManager();
   const storageManager = new StorageManager();
   const indexedDBManager = new IndexedDBManager();
@@ -142,7 +146,16 @@ window.onload = async () => {
   const sudoManager = new SudoManager();
   const environmentManager = new EnvironmentManager();
   const commandExecutor = new CommandExecutor();
-  const messageBusManager = MessageBusManager;
+  const messageBusManager = new MessageBusManager();
+  const outputManager = new OutputManager();
+  const terminalUI = new TerminalUI();
+  const modalManager = new ModalManager();
+  const appLayerManager = new AppLayerManager();
+  const aliasManager = new AliasManager();
+  const historyManager = new HistoryManager();
+  const tabCompletionManager = new TabCompletionManager();
+  const uiComponents = new UIComponents();
+
 
   const dependencies = {
     Config: configManager,
@@ -155,13 +168,13 @@ window.onload = async () => {
     SudoManager: sudoManager,
     GroupManager: groupManager,
     EnvironmentManager: environmentManager,
-    OutputManager: OutputManager,
-    TerminalUI: TerminalUI,
-    ModalManager: ModalManager,
-    AppLayerManager: AppLayerManager,
-    AliasManager: AliasManager,
-    HistoryManager: HistoryManager,
-    TabCompletionManager: TabCompletionManager,
+    OutputManager: outputManager,
+    TerminalUI: terminalUI,
+    ModalManager: modalManager,
+    AppLayerManager: appLayerManager,
+    AliasManager: aliasManager,
+    HistoryManager: historyManager,
+    TabCompletionManager: tabCompletionManager,
     Utils: Utils,
     ErrorHandler: ErrorHandler,
     Lexer: Lexer,
@@ -172,39 +185,43 @@ window.onload = async () => {
     PatchUtils: PatchUtils,
     AIManager: AIManager,
     MessageBusManager: messageBusManager,
-    UIComponents: UIComponents,
+    UIComponents: uiComponents,
   };
 
   const pagerManager = new PagerManager(dependencies);
   dependencies.PagerManager = pagerManager;
 
+  // Set dependencies for all managers that need them
   configManager.setDependencies(dependencies);
   storageManager.setDependencies(dependencies);
   indexedDBManager.setDependencies(dependencies);
   fsManager.setDependencies(dependencies);
-  userManager.setDependencies(sessionManager, sudoManager, commandExecutor, ModalManager, storageManager);
-  sessionManager.setDependencies(configManager, fsManager, userManager, environmentManager, domElements, OutputManager, TerminalUI, storageManager);
+  userManager.setDependencies(sessionManager, sudoManager, commandExecutor, modalManager, storageManager);
+  sessionManager.setDependencies(configManager, fsManager, userManager, environmentManager, domElements, outputManager, terminalUI, storageManager);
   sudoManager.setDependencies(fsManager, groupManager, configManager);
   environmentManager.setDependencies(userManager, fsManager, configManager);
   commandExecutor.setDependencies(dependencies);
   groupManager.setDependencies(dependencies);
+  outputManager.setDependencies(dependencies);
+  terminalUI.setDependencies(dependencies);
+  modalManager.setDependencies(dependencies);
+  appLayerManager.setDependencies(dependencies);
+  aliasManager.setDependencies(dependencies);
+  historyManager.setDependencies(dependencies);
+  tabCompletionManager.setDependencies(dependencies);
+  uiComponents.setDependencies(dependencies);
 
-  OutputManager.initialize(domElements);
-  OutputManager.setDependencies(dependencies);
-  TerminalUI.initialize(domElements);
-  TerminalUI.setDependencies(dependencies);
-  ModalManager.initialize(domElements);
-  ModalManager.setDependencies(dependencies);
-  AppLayerManager.initialize(domElements);
-  AppLayerManager.setDependencies(dependencies);
-  AliasManager.setDependencies(dependencies);
-  HistoryManager.setDependencies(dependencies);
-  TabCompletionManager.setDependencies(dependencies);
 
   try {
+    // Initialization sequence
+    outputManager.initialize(domElements); // Initialize with DOM elements first
+    terminalUI.initialize(domElements);
+    modalManager.initialize(domElements);
+    appLayerManager.initialize(domElements);
+
     await indexedDBManager.init();
-    AliasManager.initialize();
-    OutputManager.initializeConsoleOverrides();
+    aliasManager.initialize();
+    outputManager.initializeConsoleOverrides();
     await fsManager.load();
     await userManager.initializeDefaultUsers();
     await configManager.loadFromFile();
@@ -222,10 +239,10 @@ window.onload = async () => {
       );
     }
 
-    initializeTerminalEventListeners(domElements, commandExecutor);
+    initializeTerminalEventListeners(domElements, commandExecutor, dependencies);
 
-    TerminalUI.updatePrompt();
-    TerminalUI.focusInput();
+    terminalUI.updatePrompt();
+    terminalUI.focusInput();
     console.log(
         `${configManager.OS.NAME} v.${configManager.OS.VERSION} loaded successfully!`
     );
