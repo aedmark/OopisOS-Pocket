@@ -394,7 +394,7 @@ var TabCompletionManager = (() => {
     let suggestions = [];
 
     // Use injected dependencies
-    const { CommandExecutor, Config, StorageManager, FileSystemManager, UserManager, CommandRegistry } = dependencies;
+    const { CommandExecutor, Config, StorageManager, FileSystemManager, UserManager } = dependencies;
 
     if (isCompletingCommand) {
       suggestions = Config.COMMANDS_MANIFEST.filter((cmd) =>
@@ -402,12 +402,7 @@ var TabCompletionManager = (() => {
       ).sort();
     } else {
 
-      const commandLoaded = await CommandExecutor._ensureCommandLoaded(commandName);
-      if (!commandLoaded) return [];
-
-
-      const commandDefinition =
-          CommandRegistry.getDefinitions()[commandName];
+      const commandDefinition = await CommandExecutor._ensureCommandLoaded(commandName);
       if (!commandDefinition) return [];
 
       if (commandDefinition.completionType === "commands") {
@@ -471,8 +466,7 @@ var TabCompletionManager = (() => {
   }
 
   async function handleTab(fullInput, cursorPos) {
-
-    const { FileSystemManager, UserManager, OutputManager, TerminalUI } = dependencies;
+    const { FileSystemManager, OutputManager, TerminalUI } = dependencies;
 
     if (fullInput !== lastCompletionInput) {
       resetCycle();
@@ -493,7 +487,8 @@ var TabCompletionManager = (() => {
         );
         const isDirectory =
             completedNode &&
-            completedNode.type === FileSystemManager.config.FILESYSTEM.DEFAULT_DIRECTORY_TYPE; // Use FileSystemManager.config
+            completedNode.type ===
+            FileSystemManager.config.FILESYSTEM.DEFAULT_DIRECTORY_TYPE;
 
         const finalCompletion = completion + (isDirectory ? "/" : " ");
         const textBefore = fullInput.substring(0, context.startOfWordIndex);
@@ -521,8 +516,6 @@ var TabCompletionManager = (() => {
         };
       } else {
         suggestionsCache = suggestions;
-        cycleIndex = -1;
-        lastCompletionInput = fullInput;
         const promptText = `${TerminalUI.getPromptText()} `;
         void OutputManager.appendToOutput(`${promptText}${fullInput}`, {
           isCompletionSuggestion: true,
@@ -531,9 +524,28 @@ var TabCompletionManager = (() => {
           typeClass: "text-subtle",
           isCompletionSuggestion: true,
         });
-
         TerminalUI.scrollOutputToEnd();
-        return { textToInsert: null };
+
+        cycleIndex = 0; // Start cycle immediately
+        const firstSuggestion = suggestionsCache[cycleIndex];
+        const completedNode = FileSystemManager.getNodeByPath(
+            FileSystemManager.getAbsolutePath(firstSuggestion)
+        );
+        const isDirectory =
+            completedNode &&
+            completedNode.type ===
+            FileSystemManager.config.FILESYSTEM.DEFAULT_DIRECTORY_TYPE;
+
+        const textBefore = fullInput.substring(0, context.startOfWordIndex);
+        const textAfter = fullInput.substring(cursorPos);
+        const completionText = firstSuggestion + (isDirectory ? "/" : " ");
+        let newText = textBefore + completionText + textAfter;
+
+        lastCompletionInput = newText; // Set this so the next tab press cycles correctly
+        return {
+          textToInsert: newText,
+          newCursorPos: (textBefore + completionText).length,
+        };
       }
     } else {
       cycleIndex = (cycleIndex + 1) % suggestionsCache.length;
@@ -543,7 +555,8 @@ var TabCompletionManager = (() => {
       );
       const isDirectory =
           completedNode &&
-          completedNode.type === FileSystemManager.config.FILESYSTEM.DEFAULT_DIRECTORY_TYPE; // Use FileSystemManager.config
+          completedNode.type ===
+          FileSystemManager.config.FILESYSTEM.DEFAULT_DIRECTORY_TYPE;
 
       const textBefore = fullInput.substring(0, context.startOfWordIndex);
       const textAfter = fullInput.substring(cursorPos);

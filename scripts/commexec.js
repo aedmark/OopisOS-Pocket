@@ -33,11 +33,11 @@ class CommandExecutor {
 
   async _ensureCommandLoaded(commandName) {
     const { Config, OutputManager, CommandRegistry } = this.dependencies;
-    if (!commandName || typeof commandName !== "string") return false;
-    if (this.commands[commandName]) return true;
+    if (!commandName || typeof commandName !== "string") return null;
+    if (this.commands[commandName]) return this.commands[commandName].definition;
 
     if (!Config.COMMANDS_MANIFEST.includes(commandName)) {
-      return false;
+      return null;
     }
 
     const commandScriptPath = `commands/${commandName}.js`;
@@ -50,7 +50,7 @@ class CommandExecutor {
             `Error: Script loaded but command '${commandName}' not found in registry.`,
             { typeClass: Config.CSS_CLASSES.ERROR_MSG }
         );
-        return false;
+        return null;
       }
 
       if (definition.dependencies && Array.isArray(definition.dependencies)) {
@@ -60,13 +60,13 @@ class CommandExecutor {
       }
       this.commands[commandName] =
           definition instanceof Command ? definition : new Command(definition);
-      return true;
+      return definition;
     } catch (error) {
       await OutputManager.appendToOutput(
           `Error: Command '${commandName}' could not be loaded. ${error.message}`,
           { typeClass: Config.CSS_CLASSES.ERROR_MSG }
       );
-      return false;
+      return null;
     }
   }
 
