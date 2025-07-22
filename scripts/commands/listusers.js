@@ -1,13 +1,10 @@
 // scripts/commands/listusers.js
-(() => {
-  "use strict";
-
-    class ListusersCommand extends Command {
+class ListusersCommand extends Command {
     constructor() {
-      super({
-      commandName: "listusers",
-      description: "Lists all registered users on the system.",
-      helpText: `Usage: listusers
+        super({
+            commandName: "listusers",
+            description: "Lists all registered users on the system.",
+            helpText: `Usage: listusers
       List all registered users.
       DESCRIPTION
       The listusers command displays a list of all user accounts that
@@ -18,40 +15,35 @@
       Guest
       root
       userDiag`,
-      validations: {
-      args: {
-      exact: 0
-      }
-      },
-      });
+            validations: {
+                args: {
+                    exact: 0
+                }
+            },
+        });
     }
 
     async coreLogic(context) {
-      
-            const { dependencies } = context;
-            const { StorageManager, Config, ErrorHandler } = dependencies;
-            const users = StorageManager.loadItem(
-                Config.STORAGE_KEYS.USER_CREDENTIALS,
-                "User list",
-                {}
-            );
-            let userNames = Object.keys(users);
-      
-            if (!userNames.includes(Config.USER.DEFAULT_NAME)) {
-              userNames.push(Config.USER.DEFAULT_NAME);
-            }
-      
-            userNames.sort();
-      
-            if (userNames.length === 0)
-              return ErrorHandler.createSuccess("No users registered.");
-      
-            const output =
-                "Registered users:\n" + userNames.map((u) => `  ${u}`).join("\n");
-            return ErrorHandler.createSuccess(output);
-          
-    }
-  }
+        const { dependencies } = context;
+        const { StorageManager, Config, ErrorHandler } = dependencies;
+        const users = StorageManager.loadItem(
+            Config.STORAGE_KEYS.USER_CREDENTIALS,
+            "User list",
+            {}
+        );
+        let userNames = Object.keys(users);
 
-  CommandRegistry.register(new ListusersCommand());
-})();
+        if (!userNames.includes(Config.USER.DEFAULT_NAME)) {
+            userNames.push(Config.USER.DEFAULT_NAME);
+        }
+
+        userNames.sort();
+
+        if (userNames.length === 0)
+            return ErrorHandler.createSuccess("No users registered.");
+
+        const output =
+            "Registered users:\n" + userNames.map((u) => `  ${u}`).join("\n");
+        return ErrorHandler.createSuccess(output);
+    }
+}

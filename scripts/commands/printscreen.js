@@ -1,100 +1,97 @@
 // scripts/commands/printscreen.js
-(() => {
-  "use strict";
-
-    class PrintscreenCommand extends Command {
+class PrintscreenCommand extends Command {
     constructor() {
-      super({
-      commandName: "printscreen",
-      description: "Saves the visible terminal output to a file.",
-      helpText: `Usage: printscreen <filepath>
-      Save the visible terminal output to a file.
+        super({
+            commandName: "printscreen",
+            description: "Captures a screenshot of the entire OopisOS screen.",
+            helpText: `Usage: printscreen
+      Capture a screenshot of the current OopisOS screen.
       DESCRIPTION
-      The printscreen command captures all text currently visible in the
-      terminal's output area and saves it as plain text to the specified
-      <filepath>.
-      This is useful for creating logs or saving the results of a series
-      of commands for later review. If the file already exists, it will be
-      overwritten.
-      EXAMPLES
-      ls -la /
-      printscreen /home/Guest/root_listing.txt
-      Saves the output of the 'ls -la /' command into a new file.`,
-      completionType: "paths",
-      argValidation: {
-      exact: 1,
-      error: "Usage: printscreen <filepath>",
-      },
-      });
+      The printscreen command generates an image of the current state of
+      the OopisOS terminal and initiates a browser download for the image.
+      The filename will be 'OopisOS_Screenshot' followed by the date and time.
+      NOTE: This command may not work on all browsers due to varying
+      support for the necessary rendering technologies.`,
+            validations: {
+                args: {
+                    exact: 0
+                }
+            },
+        });
     }
 
     async coreLogic(context) {
-      
-            const { args, currentUser, dependencies } = context;
-            const { FileSystemManager, UserManager, ErrorHandler } = dependencies;
-            const filePathArg = args[0];
-      
-            const pathValidationResult = FileSystemManager.validatePath(
-                filePathArg,
-                {
-                  allowMissing: true,
-                  expectedType: "file",
-                  disallowRoot: true,
-                }
-            );
-      
-            if (
-                !pathValidationResult.success &&
-                pathValidationResult.data?.node !== null
-            ) {
-              return ErrorHandler.createError(
-                  `printscreen: ${pathValidationResult.error}`
-              );
-            }
-            const pathValidation = pathValidationResult.data;
-      
-            if (pathValidation.node && pathValidation.node.type === "directory") {
-              return ErrorHandler.createError(
-                  `printscreen: cannot overwrite directory '${filePathArg}' with a file.`
-              );
-            }
-      
-            if (
-                pathValidation.node &&
-                !FileSystemManager.hasPermission(
-                    pathValidation.node,
-                    currentUser,
-                    "write"
-                )
-            ) {
-              return ErrorHandler.createError(
-                  `printscreen: '${filePathArg}': Permission denied`
-              );
-            }
-      
-            const outputDiv = document.getElementById("output");
-            const outputContent = outputDiv ? outputDiv.innerText : "";
-      
-            const saveResult = await FileSystemManager.createOrUpdateFile(
-                pathValidation.resolvedPath,
-                outputContent,
-                {
-                  currentUser,
-                  primaryGroup: UserManager.getPrimaryGroupForUser(currentUser),
-                }
-            );
-      
-            if (!saveResult.success) {
-              return ErrorHandler.createError(`printscreen: ${saveResult.error}`);
-            }
-      
-            return ErrorHandler.createSuccess(
-                `Terminal output saved to '${pathValidation.resolvedPath}'`,
-                { stateModified: true }
-            );
-          
-    }
-  }
+        const { options, dependencies } = context;
+        const { Utils, OutputManager, ErrorHandler, Config } = dependencies;
 
-  CommandRegistry.register(new PrintscreenCommand());
-})();
+        if (!options.isInteractive) {
+            return ErrorHandler.createError(
+                "printscreen: Can only be run in interactive mode."
+            );
+        }
+
+        try {
+            // Temporarily remove the blinking cursor for a clean screenshot
+            const terminalElement = document.getElementById("terminal");
+            if (terminalElement) {
+                terminalElement.classList.add("no-cursor");
+            }
+
+            await OutputManager.appendToOutput("Generating screenshot...");
+
+            // Allow the DOM to update
+            await new Promise((resolve) => setTimeout(resolve, 50));
+
+            const { html2canvas } = window;
+            if (typeof html2canvas === "undefined") {
+                if (terminalElement) {
+                    terminalElement.classList.remove("no-cursor");
+                }
+                return ErrorHandler.createError(
+                    "printscreen: html2canvas library not loaded. Screenshot failed."
+                );
+            }
+
+            const canvas = await html2canvas(terminalElement, {
+                backgroundColor: "#000",
+                logging: false,
+                useCORS: true,
+                allowTaint: true,
+                onclone: (doc) => {
+                    // In the cloned document, ensure we don't have the "no-cursor" class
+                    // so the caret is present if needed, but we can also hide it.
+                    const clonedTerminal = doc.getElementById("terminal");
+                    if (clonedTerminal) {
+                        clonedTerminal.classList.add("no-cursor-force");
+                    }
+                },
+            });
+
+            const fileName = `OopisOS_Screenshot_${new Date().toISOString().replace(/:/g, "-")}.png`;
+            const a = Utils.createElement("a", {
+                href: canvas.toDataURL("image/png"),
+                download: fileName,
+            });
+
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            if (terminalElement) {
+                terminalElement.classList.remove("no-cursor");
+            }
+
+            return ErrorHandler.createSuccess(
+                `${Config.MESSAGES.SCREENSHOT_PREFIX}${fileName}`
+            );
+        } catch (e) {
+            const terminalElement = document.getElementById("terminal");
+            if (terminalElement) {
+                terminalElement.classList.remove("no-cursor");
+            }
+            return ErrorHandler.createError(
+                `printscreen: Failed to capture screen. ${e.message}`
+            );
+        }
+    }
+}

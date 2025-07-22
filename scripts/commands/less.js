@@ -1,13 +1,11 @@
 // scripts/commands/less.js
-(() => {
-  "use strict";
-    class LessCommand extends Command {
+class LessCommand extends Command {
     constructor() {
-      super({
-      commandName: "less",
-      dependencies: ["utils.js", "pager.js"],
-      description: "An improved pager for displaying content.",
-      helpText: `Usage: less [file]
+        super({
+            commandName: "less",
+            dependencies: ["utils.js", "pager.js"],
+            description: "An improved pager for displaying content.",
+            helpText: `Usage: less [file]
       Displays file content or standard input one screen at a time.
       DESCRIPTION
       less is a program similar to 'more', but it allows backward
@@ -21,38 +19,33 @@
       EXAMPLES
       less very_long_document.txt
       Displays the document and allows scrolling in both directions.`,
-      isInputStream: true,
-      completionType: "paths",
-      });
+            isInputStream: true,
+            completionType: "paths",
+        });
     }
 
     async coreLogic(context) {
-      
-            const { options, inputItems, inputError, dependencies } = context;
-            const { ErrorHandler, PagerManager } = dependencies;
-      
-            if (inputError) {
-              return ErrorHandler.createError(
-                  "less: Could not read one or more sources."
-              );
-            }
-      
-            if (!inputItems || inputItems.length === 0) {
-              return ErrorHandler.createSuccess("");
-            }
-      
-            const content = inputItems.map((item) => item.content).join("\\n");
-      
-            if (!options.isInteractive) {
-              return ErrorHandler.createSuccess(content);
-            }
-      
-            await PagerManager.enter(content, { mode: "less" });
-      
-            return ErrorHandler.createSuccess("");
-          
-    }
-  }
+        const { options, inputItems, inputError, dependencies } = context;
+        const { ErrorHandler, PagerManager } = dependencies;
 
-  CommandRegistry.register(new LessCommand());
-})();
+        if (inputError) {
+            return ErrorHandler.createError(
+                "less: Could not read one or more sources."
+            );
+        }
+
+        if (!inputItems || inputItems.length === 0) {
+            return ErrorHandler.createSuccess("");
+        }
+
+        const content = inputItems.map((item) => item.content).join("\\n");
+
+        if (!options.isInteractive) {
+            return ErrorHandler.createSuccess(content);
+        }
+
+        await PagerManager.enter(content, { mode: "less" });
+
+        return ErrorHandler.createSuccess("");
+    }
+}
