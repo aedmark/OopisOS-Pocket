@@ -127,12 +127,14 @@ window.AdventureManager = class AdventureManager extends App {
     const engine = {
       initializeState: (adventureData, scriptingContext) => {
         const adventure = JSON.parse(JSON.stringify(adventureData));
+        const startingRoom = adventure.rooms[adventure.startingRoomId];
+        const initialScore = startingRoom && startingRoom.points ? startingRoom.points : 0;
         manager.state = {
           adventure,
           player: {
             currentLocation: adventure.startingRoomId,
             inventory: adventure.player?.inventory || [],
-            score: 0,
+            score: initialScore,
             moves: 0,
           },
           scriptingContext: scriptingContext || null,
@@ -292,7 +294,22 @@ window.AdventureManager = class AdventureManager extends App {
         } else {
           manager.state.lastPlayerCommand = commandToProcess;
         }
-        manager.state.player.moves++;
+        const metaCommands = ["save", "load", "score", "help", "quit", "inventory", "again"];
+        const parsedAction = engine._parseSingleCommand(commandToProcess);
+        if (parsedAction.verb && !metaCommands.includes(parsedAction.verb.action)) {
+          manager.state.player.moves++;
+        } else if (!parsedAction.verb && commandToProcess) {
+          // Increment for unknown commands
+          manager.state.player.moves++;
+        }
+
+        // Always update the status line after a move is registered.
+        manager.ui.updateStatusLine(
+            manager.state.adventure.rooms[manager.state.player.currentLocation].name,
+            manager.state.player.score,
+            manager.state.player.moves
+        );
+
         const parsedCommands = engine._parseMultiCommand(commandToProcess);
         let stopProcessing = false;
 
@@ -671,6 +688,18 @@ window.AdventureManager = class AdventureManager extends App {
           item.location = "player";
           manager.state.player.inventory.push(item.id);
           manager.ui.appendOutput(`You take the ${item.name}.`);
+
+          // Check for and award points
+          if (item.points) {
+            manager.state.player.score += item.points;
+            manager.ui.appendOutput(`[Your score has gone up by ${item.points} points!]`, "system");
+            delete item.points; // Prevent scoring again
+            manager.ui.updateStatusLine(
+                manager.state.adventure.rooms[manager.state.player.currentLocation].name,
+                manager.state.player.score,
+                manager.state.player.moves
+            );
+          }
         }
       },
 
