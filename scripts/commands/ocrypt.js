@@ -45,7 +45,7 @@ function _generateKeyMatrix(keyString, size) {
   return matrix;
 }
 
-window.OcruptCommand = class OcryptCommand extends Command {
+window.OcryptCommand = class OcryptCommand extends Command {
   constructor() {
     super({
       commandName: "ocrypt",

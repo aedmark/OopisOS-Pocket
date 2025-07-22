@@ -1,5 +1,5 @@
 // scripts/commands/clear.js
-windiow.ClearCommand = class ClearCommand extends Command {
+window.ClearCommand = class ClearCommand extends Command {
     constructor() {
         super({
             commandName: "clear",
