@@ -88,157 +88,157 @@
     }
   }
 
-  const ocryptCommandDefinition = {
-    commandName: "ocrypt",
-    description: "Securely encrypts or decrypts a file using AES-GCM.",
-    helpText: `Usage: ocrypt <-e|-d> [password] <file>
-
-Encrypt or decrypt a file using a password.
-
-DESCRIPTION
-       ocrypt provides strong, password-based encryption for files using the
-       AES-GCM standard. This is a secure method for protecting sensitive data.
-
-       You must specify either -e to encrypt or -d to decrypt.
-
-       If a password is not provided on the command line, you will be prompted
-       for one in interactive sessions.
-
-OPTIONS
-       -e, --encrypt
-              Encrypt the specified file. If the file exists, it will be
-              overwritten with the encrypted content. If it does not exist,
-              it will be created.
-
-       -d, --decrypt
-              Decrypt the specified file and print its contents to standard
-              output. This does not modify the original encrypted file.
-
-EXAMPLES
-       ocrypt -e mySecretPass /home/Guest/secrets.txt
-              Encrypts the contents of secrets.txt, saving the result back
-              to the same file.
-
-       ocrypt -d mySecretPass /home/Guest/secrets.txt
-              Decrypts secrets.txt and prints the original content to the
-              terminal.`,
-    completionType: "paths",
-    flagDefinitions: [
+    class OcryptCommand extends Command {
+    constructor() {
+      super({
+      commandName: "ocrypt",
+      description: "Securely encrypts or decrypts a file using AES-GCM.",
+      helpText: `Usage: ocrypt <-e|-d> [password] <file>
+      Encrypt or decrypt a file using a password.
+      DESCRIPTION
+      ocrypt provides strong, password-based encryption for files using the
+      AES-GCM standard. This is a secure method for protecting sensitive data.
+      You must specify either -e to encrypt or -d to decrypt.
+      If a password is not provided on the command line, you will be prompted
+      for one in interactive sessions.
+      OPTIONS
+      -e, --encrypt
+      Encrypt the specified file. If the file exists, it will be
+      overwritten with the encrypted content. If it does not exist,
+      it will be created.
+      -d, --decrypt
+      Decrypt the specified file and print its contents to standard
+      output. This does not modify the original encrypted file.
+      EXAMPLES
+      ocrypt -e mySecretPass /home/Guest/secrets.txt
+      Encrypts the contents of secrets.txt, saving the result back
+      to the same file.
+      ocrypt -d mySecretPass /home/Guest/secrets.txt
+      Decrypts secrets.txt and prints the original content to the
+      terminal.`,
+      completionType: "paths",
+      flagDefinitions: [
       { name: "encrypt", short: "-e", long: "--encrypt" },
       { name: "decrypt", short: "-d", long: "--decrypt" },
-    ],
-    coreLogic: async (context) => {
-      const { args, flags, options, currentUser, dependencies } = context;
-      const { ErrorHandler, FileSystemManager, UserManager, ModalManager } = dependencies;
+      ],
+      });
+    }
 
-      try {
-        if (
-            (!flags.encrypt && !flags.decrypt) ||
-            (flags.encrypt && flags.decrypt)
-        ) {
-          return ErrorHandler.createError(
-              "ocrypt: You must specify exactly one of -e (encrypt) or -d (decrypt)."
-          );
-        }
-
-        let password = args[0];
-        const filePath = args[1];
-
-        if (!filePath) {
-          return ErrorHandler.createError("ocrypt: File path is required.");
-        }
-
-        if (!password) {
-          if (!options.isInteractive) {
-            return ErrorHandler.createError(
-                "ocrypt: password must be provided as an argument in non-interactive mode."
-            );
-          }
-          password = await new Promise((resolve) => {
-            ModalManager.request({
-              context: "terminal",
-              type: "input",
-              messageLines: ["Enter password for ocrypt:"],
-              obscured: true,
-              onConfirm: (pw) => resolve(pw),
-              onCancel: () => resolve(null),
-            });
-          });
-
-          if (password === null)
-            return ErrorHandler.createSuccess("Operation cancelled.");
-          if (!password)
-            return ErrorHandler.createError(
-                "ocrypt: password cannot be empty."
-            );
-        }
-
-        const pathValidationResult = FileSystemManager.validatePath(filePath, {
-          allowMissing: flags.encrypt,
-          expectedType: "file",
-        });
-
-        if (!pathValidationResult.success && !pathValidationResult.data.node) {
-          return ErrorHandler.createError(
-              `ocrypt: ${pathValidationResult.error}`
-          );
-        }
-        const pathValidation = pathValidationResult.data;
-
-        if (flags.encrypt) {
-          const contentToEncrypt = pathValidation.node?.content || "";
-          const encryptedString = await encryptData(contentToEncrypt, password);
-
-          const saveResult = await FileSystemManager.createOrUpdateFile(
-              pathValidation.resolvedPath,
-              encryptedString,
-              {
-                currentUser,
-                primaryGroup: UserManager.getPrimaryGroupForUser(currentUser),
+    async coreLogic(context) {
+      
+            const { args, flags, options, currentUser, dependencies } = context;
+            const { ErrorHandler, FileSystemManager, UserManager, ModalManager } = dependencies;
+      
+            try {
+              if (
+                  (!flags.encrypt && !flags.decrypt) ||
+                  (flags.encrypt && flags.decrypt)
+              ) {
+                return ErrorHandler.createError(
+                    "ocrypt: You must specify exactly one of -e (encrypt) or -d (decrypt)."
+                );
               }
-          );
+      
+              let password = args[0];
+              const filePath = args[1];
+      
+              if (!filePath) {
+                return ErrorHandler.createError("ocrypt: File path is required.");
+              }
+      
+              if (!password) {
+                if (!options.isInteractive) {
+                  return ErrorHandler.createError(
+                      "ocrypt: password must be provided as an argument in non-interactive mode."
+                  );
+                }
+                password = await new Promise((resolve) => {
+                  ModalManager.request({
+                    context: "terminal",
+                    type: "input",
+                    messageLines: ["Enter password for ocrypt:"],
+                    obscured: true,
+                    onConfirm: (pw) => resolve(pw),
+                    onCancel: () => resolve(null),
+                  });
+                });
+      
+                if (password === null)
+                  return ErrorHandler.createSuccess("Operation cancelled.");
+                if (!password)
+                  return ErrorHandler.createError(
+                      "ocrypt: password cannot be empty."
+                  );
+              }
+      
+              const pathValidationResult = FileSystemManager.validatePath(filePath, {
+                allowMissing: flags.encrypt,
+                expectedType: "file",
+              });
+      
+              if (!pathValidationResult.success && !pathValidationResult.data.node) {
+                return ErrorHandler.createError(
+                    `ocrypt: ${pathValidationResult.error}`
+                );
+              }
+              const pathValidation = pathValidationResult.data;
+      
+              if (flags.encrypt) {
+                const contentToEncrypt = pathValidation.node?.content || "";
+                const encryptedString = await encryptData(contentToEncrypt, password);
+      
+                const saveResult = await FileSystemManager.createOrUpdateFile(
+                    pathValidation.resolvedPath,
+                    encryptedString,
+                    {
+                      currentUser,
+                      primaryGroup: UserManager.getPrimaryGroupForUser(currentUser),
+                    }
+                );
+      
+                if (!saveResult.success) {
+                  return ErrorHandler.createError(`ocrypt: ${saveResult.error}`);
+                }
+                return ErrorHandler.createSuccess(
+                    `File '${filePath}' encrypted successfully.`,
+                    { stateModified: true }
+                );
+              } else {
+                // Decrypt
+                if (!pathValidation.node) {
+                  return ErrorHandler.createError(
+                      `ocrypt: file not found: ${filePath}`
+                  );
+                }
+                if (
+                    !FileSystemManager.hasPermission(
+                        pathValidation.node,
+                        currentUser,
+                        "read"
+                    )
+                ) {
+                  return ErrorHandler.createError(
+                      `ocrypt: cannot read '${filePath}': Permission denied`
+                  );
+                }
+                try {
+                  const decryptedContent = await decryptData(
+                      pathValidation.node.content,
+                      password
+                  );
+                  return ErrorHandler.createSuccess(decryptedContent);
+                } catch (e) {
+                  return ErrorHandler.createError(e.message);
+                }
+              }
+            } catch (e) {
+              return ErrorHandler.createError(
+                  `ocrypt: An unexpected error occurred: ${e.message}`
+              );
+            }
+          
+    }
+  }
 
-          if (!saveResult.success) {
-            return ErrorHandler.createError(`ocrypt: ${saveResult.error}`);
-          }
-          return ErrorHandler.createSuccess(
-              `File '${filePath}' encrypted successfully.`,
-              { stateModified: true }
-          );
-        } else {
-          // Decrypt
-          if (!pathValidation.node) {
-            return ErrorHandler.createError(
-                `ocrypt: file not found: ${filePath}`
-            );
-          }
-          if (
-              !FileSystemManager.hasPermission(
-                  pathValidation.node,
-                  currentUser,
-                  "read"
-              )
-          ) {
-            return ErrorHandler.createError(
-                `ocrypt: cannot read '${filePath}': Permission denied`
-            );
-          }
-          try {
-            const decryptedContent = await decryptData(
-                pathValidation.node.content,
-                password
-            );
-            return ErrorHandler.createSuccess(decryptedContent);
-          } catch (e) {
-            return ErrorHandler.createError(e.message);
-          }
-        }
-      } catch (e) {
-        return ErrorHandler.createError(
-            `ocrypt: An unexpected error occurred: ${e.message}`
-        );
-      }
-    },
-  };
-  CommandRegistry.register(ocryptCommandDefinition);
+  CommandRegistry.register(new OcryptCommand());
 })();
