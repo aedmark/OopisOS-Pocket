@@ -1,5 +1,5 @@
 // scripts/commands/reset.js
-class ResetCommand extends Command {
+window.ResetCommand = class ResetCommand extends Command {
     constructor() {
         super({
             commandName: "reset",

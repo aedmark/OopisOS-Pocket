@@ -1,5 +1,5 @@
 // scripts/commands/upload.js
-class UploadCommand extends Command {
+window.UploadCommand = class UploadCommand extends Command {
     constructor() {
         super({
             commandName: "upload",

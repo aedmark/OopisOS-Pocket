@@ -1,5 +1,5 @@
 // scripts/commands/wget.js
-class WgetCommand extends Command {
+window.WgetCommand = class WgetCommand extends Command {
   constructor() {
     super({
       commandName: "wget",

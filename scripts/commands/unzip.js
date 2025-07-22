@@ -29,7 +29,7 @@ async function _restoreNode(name, data, parentPath, dependencies, currentUser) {
     }
 }
 
-class UnzipCommand extends Command {
+window.UnzipCommand = class UnzipCommand extends Command {
     constructor() {
         super({
             commandName: "unzip",
