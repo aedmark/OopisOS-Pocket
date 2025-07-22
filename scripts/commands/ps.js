@@ -24,7 +24,7 @@ window.PsCommand = class PsCommand extends Command {
     async coreLogic(context) {
         const { dependencies } = context;
         const { CommandExecutor, ErrorHandler } = dependencies;
-        const jobs = CommandExecutor.listJobs();
+        const jobs = CommandExecutor.getActiveJobs();
 
         if (Object.keys(jobs).length === 0) {
             return ErrorHandler.createSuccess("");
@@ -32,7 +32,7 @@ window.PsCommand = class PsCommand extends Command {
 
         let output = "  PID  COMMAND\n";
         for (const pid in jobs) {
-            const command = jobs[pid];
+            const command = jobs[pid].command;
             output += `  ${String(pid).padEnd(4)} ${command}\n`;
         }
 

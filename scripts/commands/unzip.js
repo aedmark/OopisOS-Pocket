@@ -66,9 +66,14 @@ window.UnzipCommand = class UnzipCommand extends Command {
     async coreLogic(context) {
         const { currentUser, validatedPaths, dependencies } = context;
         const { ErrorHandler, FileSystemManager } = dependencies;
+
+        if (!validatedPaths || validatedPaths.length === 0) {
+            return ErrorHandler.createError("unzip: missing file operand");
+        }
+
         const { node: archiveNode } = validatedPaths[0];
 
-        if (!archiveNode.name.endsWith(".zip")) {
+        if (!archiveNode || !archiveNode.name.endsWith(".zip")) {
             return ErrorHandler.createError(
                 "unzip: provided file is not a .zip archive."
             );
