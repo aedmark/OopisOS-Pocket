@@ -1,28 +1,29 @@
 // scripts/terminal_ui.js
-var TerminalUI = (() => {
-  "use strict";
-  let isNavigatingHistory = false;
-  let _isObscuredInputMode = false;
-  let elements = {};
-  let originalInputForObscure = "";
-  let dependencies = {}; // Central dependencies object
-
-  function initialize(dom) {
-    elements = dom;
+class TerminalUI {
+  constructor() {
+    this.isNavigatingHistory = false;
+    this._isObscuredInputMode = false;
+    this.elements = {};
+    this.originalInputForObscure = "";
+    this.dependencies = {};
   }
 
-  function setDependencies(injectedDependencies) {
-    dependencies = injectedDependencies;
+  initialize(dom) {
+    this.elements = dom;
   }
 
-  function updatePrompt() {
-    const { UserManager, FileSystemManager, EnvironmentManager, Config } = dependencies;
+  setDependencies(injectedDependencies) {
+    this.dependencies = injectedDependencies;
+  }
+
+  updatePrompt() {
+    const { UserManager, FileSystemManager, EnvironmentManager, Config } = this.dependencies;
     const user = UserManager.getCurrentUser() || {
       name: Config.USER.DEFAULT_NAME,
     };
     const ps1 = EnvironmentManager.get("PS1");
 
-    if (!elements.promptContainer) return;
+    if (!this.elements.promptContainer) return;
 
     if (ps1) {
       const host =
@@ -42,94 +43,94 @@ var TerminalUI = (() => {
           .replace(/\\s/g, "OopisOS")
           .replace(/\\\\/g, "\\");
 
-      elements.promptContainer.textContent = parsedPrompt;
+      this.elements.promptContainer.textContent = parsedPrompt;
     } else {
       const path = FileSystemManager.getCurrentPath();
       const promptChar =
           user.name === "root" ? "#" : Config.TERMINAL.PROMPT_CHAR;
-      elements.promptContainer.textContent = `${user.name}${Config.TERMINAL.PROMPT_AT}${Config.OS.DEFAULT_HOST_NAME}${Config.TERMINAL.PROMPT_SEPARATOR}${path}${promptChar} `;
+      this.elements.promptContainer.textContent = `${user.name}${Config.TERMINAL.PROMPT_AT}${Config.OS.DEFAULT_HOST_NAME}${Config.TERMINAL.PROMPT_SEPARATOR}${path}${promptChar} `;
     }
   }
 
-  function getPromptText() {
-    return elements.promptContainer ? elements.promptContainer.textContent : "";
+  getPromptText() {
+    return this.elements.promptContainer ? this.elements.promptContainer.textContent : "";
   }
 
-  function focusInput() {
+  focusInput() {
     if (
-        elements.editableInputDiv &&
-        elements.editableInputDiv.contentEditable === "true"
+        this.elements.editableInputDiv &&
+        this.elements.editableInputDiv.contentEditable === "true"
     ) {
-      elements.editableInputDiv.focus();
-      if (elements.editableInputDiv.textContent.length === 0)
-        setCaretToEnd(elements.editableInputDiv);
+      this.elements.editableInputDiv.focus();
+      if (this.elements.editableInputDiv.textContent.length === 0)
+        this.setCaretToEnd(this.elements.editableInputDiv);
     }
   }
 
-  function clearInput() {
-    if (elements.editableInputDiv) elements.editableInputDiv.textContent = "";
-    originalInputForObscure = "";
+  clearInput() {
+    if (this.elements.editableInputDiv) this.elements.editableInputDiv.textContent = "";
+    this.originalInputForObscure = "";
   }
 
-  function getCurrentInputValue() {
-    return _isObscuredInputMode
-        ? originalInputForObscure
-        : elements.editableInputDiv
-            ? elements.editableInputDiv.textContent
+  getCurrentInputValue() {
+    return this._isObscuredInputMode
+        ? this.originalInputForObscure
+        : this.elements.editableInputDiv
+            ? this.elements.editableInputDiv.textContent
             : "";
   }
 
-  function setCurrentInputValue(value, setAtEnd = true) {
-    if (elements.editableInputDiv) {
-      if (_isObscuredInputMode) {
-        originalInputForObscure = value;
-        elements.editableInputDiv.textContent = "*".repeat(value.length);
+  setCurrentInputValue(value, setAtEnd = true) {
+    if (this.elements.editableInputDiv) {
+      if (this._isObscuredInputMode) {
+        this.originalInputForObscure = value;
+        this.elements.editableInputDiv.textContent = "*".repeat(value.length);
       } else {
-        elements.editableInputDiv.textContent = value;
+        this.elements.editableInputDiv.textContent = value;
       }
-      if (setAtEnd) setCaretToEnd(elements.editableInputDiv);
+      if (setAtEnd) this.setCaretToEnd(this.elements.editableInputDiv);
     }
   }
-  function updateInputForObscure(key) {
-    const selection = getSelection();
+  updateInputForObscure(key) {
+    const selection = this.getSelection();
     let { start, end } = selection;
 
     if (key === "Backspace") {
       if (start === end && start > 0) {
-        originalInputForObscure =
-            originalInputForObscure.slice(0, start - 1) +
-            originalInputForObscure.slice(start);
+        this.originalInputForObscure =
+            this.originalInputForObscure.slice(0, start - 1) +
+            this.originalInputForObscure.slice(start);
         start--;
       } else if (start !== end) {
-        originalInputForObscure =
-            originalInputForObscure.slice(0, start) +
-            originalInputForObscure.slice(end);
+        this.originalInputForObscure =
+            this.originalInputForObscure.slice(0, start) +
+            this.originalInputForObscure.slice(end);
       }
     } else if (key === "Delete") {
-      if (start === end && start < originalInputForObscure.length) {
-        originalInputForObscure =
-            originalInputForObscure.slice(0, start) +
-            originalInputForObscure.slice(start + 1);
+      if (start === end && start < this.originalInputForObscure.length) {
+        this.originalInputForObscure =
+            this.originalInputForObscure.slice(0, start) +
+            this.originalInputForObscure.slice(start + 1);
       } else if (start !== end) {
-        originalInputForObscure =
-            originalInputForObscure.slice(0, start) +
-            originalInputForObscure.slice(end);
+        this.originalInputForObscure =
+            this.originalInputForObscure.slice(0, start) +
+            this.originalInputForObscure.slice(end);
       }
     } else if (key.length === 1) {
-      originalInputForObscure =
-          originalInputForObscure.slice(0, start) +
+      this.originalInputForObscure =
+          this.originalInputForObscure.slice(0, start) +
           key +
-          originalInputForObscure.slice(end);
+          this.originalInputForObscure.slice(end);
       start += key.length;
     }
 
-    elements.editableInputDiv.textContent = "*".repeat(
-        originalInputForObscure.length
+    this.elements.editableInputDiv.textContent = "*".repeat(
+        this.originalInputForObscure.length
     );
-    setCaretPosition(elements.editableInputDiv, start);
+    this.setCaretPosition(this.elements.editableInputDiv, start);
   }
 
-  function setCaretToEnd(element) {
+  setCaretToEnd(element) {
     if (
         !element ||
         typeof window.getSelection === "undefined" ||
@@ -147,7 +148,7 @@ var TerminalUI = (() => {
     element.focus();
   }
 
-  function setCaretPosition(element, position) {
+  setCaretPosition(element, position) {
     if (
         !element ||
         typeof position !== "number" ||
@@ -187,90 +188,91 @@ var TerminalUI = (() => {
     if (foundNode) {
       sel.removeAllRanges();
       sel.addRange(range);
-    } else setCaretToEnd(element);
+    } else this.setCaretToEnd(element);
     element.focus();
   }
 
-  function setInputState(isEditable, obscured = false) {
-    if (elements.editableInputDiv) {
-      elements.editableInputDiv.contentEditable = isEditable ? "true" : "false";
-      elements.editableInputDiv.style.opacity = isEditable ? "1" : "0.5";
-      _isObscuredInputMode = obscured;
+  setInputState(isEditable, obscured = false) {
+    if (this.elements.editableInputDiv) {
+      this.elements.editableInputDiv.contentEditable = isEditable ? "true" : "false";
+      this.elements.editableInputDiv.style.opacity = isEditable ? "1" : "0.5";
+      this._isObscuredInputMode = obscured;
       if (isEditable && obscured) {
-        originalInputForObscure = "";
-        elements.editableInputDiv.textContent = "";
+        this.originalInputForObscure = "";
+        this.elements.editableInputDiv.textContent = "";
       }
-      if (!isEditable) elements.editableInputDiv.blur();
+      if (!isEditable) this.elements.editableInputDiv.blur();
     }
   }
-  function isObscured() {
-    return _isObscuredInputMode;
+
+  isObscured() {
+    return this._isObscuredInputMode;
   }
 
-  function setIsNavigatingHistory(status) {
-    isNavigatingHistory = status;
+  setIsNavigatingHistory(status) {
+    this.isNavigatingHistory = status;
   }
 
-  function getIsNavigatingHistory() {
-    return isNavigatingHistory;
+  getIsNavigatingHistory() {
+    return this.isNavigatingHistory;
   }
 
-  function getSelection() {
+  getSelection() {
     const sel = window.getSelection();
     let start, end;
     if (sel && sel.rangeCount > 0) {
       const range = sel.getRangeAt(0);
       if (
-          elements.editableInputDiv &&
-          elements.editableInputDiv.contains(range.commonAncestorContainer)
+          this.elements.editableInputDiv &&
+          this.elements.editableInputDiv.contains(range.commonAncestorContainer)
       ) {
         const preSelectionRange = range.cloneRange();
-        preSelectionRange.selectNodeContents(elements.editableInputDiv);
+        preSelectionRange.selectNodeContents(this.elements.editableInputDiv);
         preSelectionRange.setEnd(range.startContainer, range.startOffset);
         start = preSelectionRange.toString().length;
         end = start + range.toString().length;
       } else {
-        start = end = getCurrentInputValue().length;
+        start = end = this.getCurrentInputValue().length;
       }
     } else {
-      start = end = getCurrentInputValue().length;
+      start = end = this.getCurrentInputValue().length;
     }
     return { start, end };
   }
 
-  function showInputLine() {
-    if (elements.inputLineContainerDiv) {
-      elements.inputLineContainerDiv.classList.remove(
-          dependencies.Config.CSS_CLASSES.HIDDEN // Use dependencies.Config
+  showInputLine() {
+    if (this.elements.inputLineContainerDiv) {
+      this.elements.inputLineContainerDiv.classList.remove(
+          this.dependencies.Config.CSS_CLASSES.HIDDEN
       );
     }
   }
 
-  function hideInputLine() {
-    if (elements.inputLineContainerDiv) {
-      elements.inputLineContainerDiv.classList.add(
-          dependencies.Config.CSS_CLASSES.HIDDEN // Use dependencies.Config
+  hideInputLine() {
+    if (this.elements.inputLineContainerDiv) {
+      this.elements.inputLineContainerDiv.classList.add(
+          this.dependencies.Config.CSS_CLASSES.HIDDEN
       );
     }
   }
 
-  function scrollOutputToEnd() {
-    if (elements.outputDiv) {
-      elements.outputDiv.scrollTop = elements.outputDiv.scrollHeight;
+  scrollOutputToEnd() {
+    if (this.elements.outputDiv) {
+      this.elements.outputDiv.scrollTop = this.elements.outputDiv.scrollHeight;
     }
   }
-  function handlePaste(pastedText) {
-    if (isObscured()) {
-      const selection = getSelection();
+  handlePaste(pastedText) {
+    if (this.isObscured()) {
+      const selection = this.getSelection();
       let { start, end } = selection;
-      originalInputForObscure =
-          originalInputForObscure.slice(0, start) +
+      this.originalInputForObscure =
+          this.originalInputForObscure.slice(0, start) +
           pastedText +
-          originalInputForObscure.slice(end);
-      elements.editableInputDiv.textContent = "*".repeat(
-          originalInputForObscure.length
+          this.originalInputForObscure.slice(end);
+      this.elements.editableInputDiv.textContent = "*".repeat(
+          this.originalInputForObscure.length
       );
-      setCaretPosition(elements.editableInputDiv, start + pastedText.length);
+      this.setCaretPosition(this.elements.editableInputDiv, start + pastedText.length);
     } else {
       const selection = window.getSelection();
       if (!selection.rangeCount) return;
@@ -284,48 +286,27 @@ var TerminalUI = (() => {
       selection.addRange(range);
     }
   }
+}
 
-  return {
-    initialize,
-    setDependencies,
-    updatePrompt,
-    getPromptText,
-    focusInput,
-    clearInput,
-    setCurrentInputValue,
-    getCurrentInputValue,
-    setIsNavigatingHistory,
-    getIsNavigatingHistory,
-    setCaretPosition,
-    setInputState,
-    getSelection,
-    showInputLine,
-    hideInputLine,
-    scrollOutputToEnd,
-    isObscured,
-    updateInputForObscure,
-    handlePaste,
-  };
-})();
-
-var TabCompletionManager = (() => {
-  "use strict";
-  let suggestionsCache = [];
-  let cycleIndex = -1;
-  let lastCompletionInput = null;
-  let dependencies = {};
-
-  function setDependencies(injectedDependencies) {
-    dependencies = injectedDependencies;
+class TabCompletionManager {
+  constructor() {
+    this.suggestionsCache = [];
+    this.cycleIndex = -1;
+    this.lastCompletionInput = null;
+    this.dependencies = {};
   }
 
-  function resetCycle() {
-    suggestionsCache = [];
-    cycleIndex = -1;
-    lastCompletionInput = null;
+  setDependencies(injectedDependencies) {
+    this.dependencies = injectedDependencies;
   }
 
-  function findLongestCommonPrefix(strs) {
+  resetCycle() {
+    this.suggestionsCache = [];
+    this.cycleIndex = -1;
+    this.lastCompletionInput = null;
+  }
+
+  findLongestCommonPrefix(strs) {
     if (!strs || strs.length === 0) return "";
     if (strs.length === 1) return strs[0];
     let prefix = strs[0];
@@ -338,7 +319,7 @@ var TabCompletionManager = (() => {
     return prefix;
   }
 
-  function _getCompletionContext(fullInput, cursorPos) {
+  _getCompletionContext(fullInput, cursorPos) {
     const tokens = fullInput.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g) || [];
     const commandName = tokens.length > 0 ? tokens[0].replace(/["']/g, "") : "";
     const textBeforeCursor = fullInput.substring(0, cursorPos);
@@ -389,12 +370,11 @@ var TabCompletionManager = (() => {
     };
   }
 
-  async function _getSuggestionsFromProvider(context) {
+  async _getSuggestionsFromProvider(context) {
     const { currentWordPrefix, isCompletingCommand, commandName } = context;
     let suggestions = [];
 
-    // Use injected dependencies
-    const { CommandExecutor, Config, StorageManager, FileSystemManager, UserManager } = dependencies;
+    const { CommandExecutor, Config, StorageManager, FileSystemManager, UserManager } = this.dependencies;
 
     if (isCompletingCommand) {
       suggestions = Config.COMMANDS_MANIFEST.filter((cmd) =>
@@ -465,19 +445,19 @@ var TabCompletionManager = (() => {
     return suggestions;
   }
 
-  async function handleTab(fullInput, cursorPos) {
-    const { FileSystemManager, OutputManager, TerminalUI } = dependencies;
+  async handleTab(fullInput, cursorPos) {
+    const { FileSystemManager, OutputManager, TerminalUI } = this.dependencies;
 
-    if (fullInput !== lastCompletionInput) {
-      resetCycle();
+    if (fullInput !== this.lastCompletionInput) {
+      this.resetCycle();
     }
 
-    const context = _getCompletionContext(fullInput, cursorPos);
+    const context = this._getCompletionContext(fullInput, cursorPos);
 
-    if (suggestionsCache.length === 0) {
-      const suggestions = await _getSuggestionsFromProvider(context);
+    if (this.suggestionsCache.length === 0) {
+      const suggestions = await this._getSuggestionsFromProvider(context);
       if (!suggestions || suggestions.length === 0) {
-        resetCycle();
+        this.resetCycle();
         return { textToInsert: null };
       }
       if (suggestions.length === 1) {
@@ -496,38 +476,38 @@ var TabCompletionManager = (() => {
 
         let newText = textBefore + finalCompletion + textAfter;
 
-        resetCycle();
+        this.resetCycle();
         return {
           textToInsert: newText,
           newCursorPos: (textBefore + finalCompletion).length,
         };
       }
 
-      const lcp = findLongestCommonPrefix(suggestions);
+      const lcp = this.findLongestCommonPrefix(suggestions);
       if (lcp && lcp.length > context.currentWordPrefix.length) {
         const textBefore = fullInput.substring(0, context.startOfWordIndex);
         const textAfter = fullInput.substring(cursorPos);
         let newText = textBefore + lcp + textAfter;
 
-        lastCompletionInput = newText;
+        this.lastCompletionInput = newText;
         return {
           textToInsert: newText,
           newCursorPos: (textBefore + lcp).length,
         };
       } else {
-        suggestionsCache = suggestions;
+        this.suggestionsCache = suggestions;
         const promptText = `${TerminalUI.getPromptText()} `;
         void OutputManager.appendToOutput(`${promptText}${fullInput}`, {
           isCompletionSuggestion: true,
         });
-        void OutputManager.appendToOutput(suggestionsCache.join("    "), {
+        void OutputManager.appendToOutput(this.suggestionsCache.join("    "), {
           typeClass: "text-subtle",
           isCompletionSuggestion: true,
         });
         TerminalUI.scrollOutputToEnd();
 
-        cycleIndex = 0; // Start cycle immediately
-        const firstSuggestion = suggestionsCache[cycleIndex];
+        this.cycleIndex = 0; // Start cycle immediately
+        const firstSuggestion = this.suggestionsCache[this.cycleIndex];
         const completedNode = FileSystemManager.getNodeByPath(
             FileSystemManager.getAbsolutePath(firstSuggestion)
         );
@@ -541,15 +521,15 @@ var TabCompletionManager = (() => {
         const completionText = firstSuggestion + (isDirectory ? "/" : " ");
         let newText = textBefore + completionText + textAfter;
 
-        lastCompletionInput = newText; // Set this so the next tab press cycles correctly
+        this.lastCompletionInput = newText; // Set this so the next tab press cycles correctly
         return {
           textToInsert: newText,
           newCursorPos: (textBefore + completionText).length,
         };
       }
     } else {
-      cycleIndex = (cycleIndex + 1) % suggestionsCache.length;
-      const nextSuggestion = suggestionsCache[cycleIndex];
+      this.cycleIndex = (this.cycleIndex + 1) % this.suggestionsCache.length;
+      const nextSuggestion = this.suggestionsCache[this.cycleIndex];
       const completedNode = FileSystemManager.getNodeByPath(
           FileSystemManager.getAbsolutePath(nextSuggestion)
       );
@@ -563,43 +543,39 @@ var TabCompletionManager = (() => {
       const completionText = nextSuggestion + (isDirectory ? "/" : " ");
       let newText = textBefore + completionText + textAfter;
 
-      lastCompletionInput = newText;
+      this.lastCompletionInput = newText;
       return {
         textToInsert: newText,
         newCursorPos: (textBefore + completionText).length,
       };
     }
   }
+}
 
-  return {
-    handleTab,
-    resetCycle,
-    setDependencies,
-  };
-})();
-
-var AppLayerManager = (() => {
-  "use strict";
-  let cachedAppLayer = null;
-  let activeApp = null;
-  let dependencies = {}; // Central dependencies object
-
-  function initialize(dom) {
-    cachedAppLayer = dom.appLayer;
+class AppLayerManager {
+  constructor() {
+    this.cachedAppLayer = null;
+    this.activeApp = null;
+    this.dependencies = {};
+    this._boundHandleGlobalKeyDown = this._handleGlobalKeyDown.bind(this);
   }
 
-  function setDependencies(injectedDependencies) { // Add setDependencies
-    dependencies = injectedDependencies;
+  initialize(dom) {
+    this.cachedAppLayer = dom.appLayer;
   }
 
-  function _handleGlobalKeyDown(event) {
-    if (activeApp && typeof activeApp.handleKeyDown === "function") {
-      activeApp.handleKeyDown(event);
+  setDependencies(injectedDependencies) {
+    this.dependencies = injectedDependencies;
+  }
+
+  _handleGlobalKeyDown(event) {
+    if (this.activeApp && typeof this.activeApp.handleKeyDown === "function") {
+      this.activeApp.handleKeyDown(event);
     }
   }
 
-  function show(appInstance, options = {}) {
-    const { TerminalUI, OutputManager } = dependencies; // Use dependencies
+  show(appInstance, options = {}) {
+    const { TerminalUI, OutputManager } = this.dependencies;
     if (!(appInstance instanceof App)) {
       console.error(
           "AppLayerManager: Attempted to show an object that is not an instance of App."
@@ -607,44 +583,44 @@ var AppLayerManager = (() => {
       return;
     }
 
-    if (activeApp) {
-      activeApp.exit();
+    if (this.activeApp) {
+      this.activeApp.exit();
     }
 
-    activeApp = appInstance;
+    this.activeApp = appInstance;
 
-    activeApp.enter(cachedAppLayer, options);
+    appInstance.enter(this.cachedAppLayer, options);
 
-    cachedAppLayer.classList.remove("hidden");
-    document.addEventListener("keydown", _handleGlobalKeyDown, true);
+    this.cachedAppLayer.classList.remove("hidden");
+    document.addEventListener("keydown", this._boundHandleGlobalKeyDown, true);
 
     TerminalUI.setInputState(false);
     OutputManager.setEditorActive(true);
 
     if (
-        activeApp.container &&
-        typeof activeApp.container.focus === "function"
+        appInstance.container &&
+        typeof appInstance.container.focus === "function"
     ) {
-      activeApp.container.focus();
+      appInstance.container.focus();
     }
   }
 
-  function hide(appInstance) {
-    const { TerminalUI, OutputManager } = dependencies; // Use dependencies
-    if (activeApp !== appInstance) {
+  hide(appInstance) {
+    const { TerminalUI, OutputManager } = this.dependencies;
+    if (this.activeApp !== appInstance) {
       return;
     }
 
     if (
         appInstance.container &&
-        appInstance.container.parentNode === cachedAppLayer
+        appInstance.container.parentNode === this.cachedAppLayer
     ) {
-      cachedAppLayer.removeChild(appInstance.container);
+      this.cachedAppLayer.removeChild(appInstance.container);
     }
-    cachedAppLayer.classList.add("hidden");
-    document.removeEventListener("keydown", _handleGlobalKeyDown, true);
+    this.cachedAppLayer.classList.add("hidden");
+    document.removeEventListener("keydown", this._boundHandleGlobalKeyDown, true);
 
-    activeApp = null;
+    this.activeApp = null;
 
     TerminalUI.showInputLine();
     TerminalUI.setInputState(true);
@@ -652,11 +628,7 @@ var AppLayerManager = (() => {
     TerminalUI.focusInput();
   }
 
-  return {
-    initialize,
-    setDependencies, // Expose setDependencies
-    show,
-    hide,
-    isActive: () => !!activeApp,
-  };
-})();
+  isActive() {
+    return !!this.activeApp;
+  }
+}

@@ -1,20 +1,21 @@
 // scripts/modal_manager.js
-var ModalManager = (() => {
-  "use strict";
-  let isAwaitingTerminalInput = false;
-  let activeModalContext = null;
-  let cachedTerminalBezel = null;
-  let dependencies = {};
-
-  function initialize(dom) {
-    cachedTerminalBezel = dom.terminalBezel;
+class ModalManager {
+  constructor() {
+    this.isAwaitingTerminalInput = false;
+    this.activeModalContext = null;
+    this.cachedTerminalBezel = null;
+    this.dependencies = {};
   }
 
-  function setDependencies(injectedDependencies) {
-    dependencies = injectedDependencies;
+  initialize(dom) {
+    this.cachedTerminalBezel = dom.terminalBezel;
   }
 
-  function _createModalDOM(options) {
+  setDependencies(injectedDependencies) {
+    this.dependencies = injectedDependencies;
+  }
+
+  _createModalDOM(options) {
     const {
       messageLines,
       onConfirm,
@@ -26,9 +27,9 @@ var ModalManager = (() => {
       obscured = false,
       data = {},
     } = options;
-    const { Utils } = dependencies; // Destructure from the dependencies object
+    const { Utils } = this.dependencies;
 
-    if (!cachedTerminalBezel) {
+    if (!this.cachedTerminalBezel) {
       console.error(
           "ModalManager: Cannot find terminal-bezel to attach modal."
       );
@@ -115,23 +116,23 @@ var ModalManager = (() => {
         [modalDialog]
     );
 
-    cachedTerminalBezel.appendChild(modalOverlay);
+    this.cachedTerminalBezel.appendChild(modalOverlay);
 
     if (inputField) {
       inputField.focus();
     }
   }
 
-  function _renderTerminalPrompt(options) {
+  _renderTerminalPrompt(options) {
     const { messageLines, onConfirm, onCancel, type, obscured, data } = options;
-    const { OutputManager, TerminalUI, Config } = dependencies; // Destructure from the dependencies object
+    const { OutputManager, TerminalUI, Config } = this.dependencies;
 
-    if (isAwaitingTerminalInput) {
+    if (this.isAwaitingTerminalInput) {
       if (onCancel) onCancel(data);
       return;
     }
-    isAwaitingTerminalInput = true;
-    activeModalContext = { onConfirm, onCancel, data, type, obscured };
+    this.isAwaitingTerminalInput = true;
+    this.activeModalContext = { onConfirm, onCancel, data, type, obscured };
     messageLines.forEach(
         (line) =>
             void OutputManager.appendToOutput(line, { typeClass: Config.CSS_CLASSES.WARNING_MSG })
@@ -150,8 +151,8 @@ var ModalManager = (() => {
     TerminalUI.scrollOutputToEnd();
   }
 
-  function request(options) {
-    const { OutputManager, TerminalUI, Config } = dependencies; // Destructure from the dependencies object
+  request(options) {
+    const { OutputManager, TerminalUI, Config } = this.dependencies;
     const finalOptions = {
       type: "confirm",
       context: "terminal",
@@ -221,25 +222,25 @@ var ModalManager = (() => {
     }
 
     if (context === "graphical") {
-      _createModalDOM(finalOptions);
+      this._createModalDOM(finalOptions);
     } else {
       // context === 'terminal'
-      _renderTerminalPrompt(finalOptions);
+      this._renderTerminalPrompt(finalOptions);
     }
   }
 
-  async function handleTerminalInput(input) {
-    if (!isAwaitingTerminalInput) return false;
+  async handleTerminalInput(input) {
+    if (!this.isAwaitingTerminalInput) return false;
 
-    const { onConfirm, onCancel, data, type, obscured } = activeModalContext;
-    const { OutputManager, TerminalUI, Config } = dependencies; // Destructure from the dependencies object
+    const { onConfirm, onCancel, data, type, obscured } = this.activeModalContext;
+    const { OutputManager, TerminalUI, Config } = this.dependencies;
 
     const promptString = `${TerminalUI.getPromptText()}`;
     const echoInput = obscured ? "*".repeat(input.length) : input.trim();
     await OutputManager.appendToOutput(`${promptString}${echoInput}`);
 
-    isAwaitingTerminalInput = false;
-    activeModalContext = null;
+    this.isAwaitingTerminalInput = false;
+    this.activeModalContext = null;
     TerminalUI.setInputState(true, false); // Reset obscured mode
     TerminalUI.clearInput();
 
@@ -264,11 +265,7 @@ var ModalManager = (() => {
     return true;
   }
 
-  return {
-    initialize,
-    setDependencies, // <-- EXPOSE THE NEW METHOD
-    request,
-    handleTerminalInput,
-    isAwaiting: () => isAwaitingTerminalInput,
-  };
-})();
+  isAwaiting() {
+    return this.isAwaitingTerminalInput;
+  }
+}

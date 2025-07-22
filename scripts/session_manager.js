@@ -1,3 +1,4 @@
+// scripts/session_manager.js
 class EnvironmentManager {
   constructor() {
     this.envStack = [{}];
@@ -73,141 +74,151 @@ class EnvironmentManager {
   }
 }
 
-const HistoryManager = (() => {
-  "use strict";
-  let commandHistory = [];
-  let historyIndex = 0;
-  let dependencies = {};
-  let config = null;
+class HistoryManager {
+  constructor() {
+    this.commandHistory = [];
+    this.historyIndex = 0;
+    this.dependencies = {};
+    this.config = null;
+  }
 
-  return {
-    setDependencies: (injectedDependencies) => {
-      dependencies = injectedDependencies;
-      config = injectedDependencies.Config;
-    },
-    add: (command) => {
-      const trimmedCommand = command.trim();
-      if (
-          trimmedCommand &&
-          (commandHistory.length === 0 ||
-              commandHistory[commandHistory.length - 1] !== trimmedCommand)
-      ) {
-        commandHistory.push(trimmedCommand);
-        if (commandHistory.length > config.TERMINAL.MAX_HISTORY_SIZE)
-          commandHistory.shift();
-      }
-      historyIndex = commandHistory.length;
-    },
-    getPrevious: () => {
-      if (commandHistory.length > 0 && historyIndex > 0) {
-        historyIndex--;
-        return commandHistory[historyIndex];
-      }
-      return null;
-    },
-    getNext: () => {
-      if (historyIndex < commandHistory.length - 1) {
-        historyIndex++;
-        return commandHistory[historyIndex];
-      } else if (historyIndex >= commandHistory.length - 1) {
-        historyIndex = commandHistory.length;
-        return "";
-      }
-      return null;
-    },
-    resetIndex: () => {
-      historyIndex = commandHistory.length;
-    },
-    getFullHistory: () => {
-      return [...commandHistory];
-    },
-    clearHistory: () => {
-      commandHistory = [];
-      historyIndex = 0;
-    },
-    setHistory: (newHistory) => {
-      commandHistory = Array.isArray(newHistory) ? [...newHistory] : [];
-      if (commandHistory.length > config.TERMINAL.MAX_HISTORY_SIZE)
-        commandHistory = commandHistory.slice(
-            commandHistory.length - config.TERMINAL.MAX_HISTORY_SIZE
-        );
-      historyIndex = commandHistory.length;
-    },
-  };
-})();
+  setDependencies(injectedDependencies) {
+    this.dependencies = injectedDependencies;
+    this.config = injectedDependencies.Config;
+  }
 
+  add(command) {
+    const trimmedCommand = command.trim();
+    if (
+        trimmedCommand &&
+        (this.commandHistory.length === 0 ||
+            this.commandHistory[this.commandHistory.length - 1] !== trimmedCommand)
+    ) {
+      this.commandHistory.push(trimmedCommand);
+      if (this.commandHistory.length > this.config.TERMINAL.MAX_HISTORY_SIZE)
+        this.commandHistory.shift();
+    }
+    this.historyIndex = this.commandHistory.length;
+  }
 
-const AliasManager = (() => {
-  "use strict";
-  let aliases = {};
-  let dependencies = {};
-  let config = null;
+  getPrevious() {
+    if (this.commandHistory.length > 0 && this.historyIndex > 0) {
+      this.historyIndex--;
+      return this.commandHistory[this.historyIndex];
+    }
+    return null;
+  }
 
-  function _save() {
-    const { StorageManager } = dependencies;
+  getNext() {
+    if (this.historyIndex < this.commandHistory.length - 1) {
+      this.historyIndex++;
+      return this.commandHistory[this.historyIndex];
+    } else if (this.historyIndex >= this.commandHistory.length - 1) {
+      this.historyIndex = this.commandHistory.length;
+      return "";
+    }
+    return null;
+  }
+
+  resetIndex() {
+    this.historyIndex = this.commandHistory.length;
+  }
+
+  getFullHistory() {
+    return [...this.commandHistory];
+  }
+
+  clearHistory() {
+    this.commandHistory = [];
+    this.historyIndex = 0;
+  }
+
+  setHistory(newHistory) {
+    this.commandHistory = Array.isArray(newHistory) ? [...newHistory] : [];
+    if (this.commandHistory.length > this.config.TERMINAL.MAX_HISTORY_SIZE)
+      this.commandHistory = this.commandHistory.slice(
+          this.commandHistory.length - this.config.TERMINAL.MAX_HISTORY_SIZE
+      );
+    this.historyIndex = this.commandHistory.length;
+  }
+}
+
+class AliasManager {
+  constructor() {
+    this.aliases = {};
+    this.dependencies = {};
+    this.config = null;
+  }
+
+  setDependencies(injectedDependencies) {
+    this.dependencies = injectedDependencies;
+    this.config = injectedDependencies.Config;
+  }
+
+  _save() {
+    const { StorageManager } = this.dependencies;
     StorageManager.saveItem(
-        config.STORAGE_KEYS.ALIAS_DEFINITIONS,
-        aliases,
+        this.config.STORAGE_KEYS.ALIAS_DEFINITIONS,
+        this.aliases,
         "Aliases"
     );
   }
 
-  return {
-    setDependencies: (injectedDependencies) => {
-      dependencies = injectedDependencies;
-      config = injectedDependencies.Config;
-    },
-    initialize: () => {
-      const { StorageManager } = dependencies;
-      aliases = StorageManager.loadItem(
-          config.STORAGE_KEYS.ALIAS_DEFINITIONS,
-          "Aliases",
-          {}
-      );
-    },
-    setAlias: (name, value) => {
-      if (!name || typeof value !== "string") return false;
-      aliases[name] = value;
-      _save();
-      return true;
-    },
-    removeAlias: (name) => {
-      if (!aliases[name]) return false;
-      delete aliases[name];
-      _save();
-      return true;
-    },
-    getAlias: (name) => {
-      return aliases[name] || null;
-    },
-    getAllAliases: () => {
-      return { ...aliases };
-    },
-    resolveAlias: (commandString) => {
-      const parts = commandString.split(/\s+/);
-      let commandName = parts[0];
-      const remainingArgs = parts.slice(1).join(" ");
-      const MAX_RECURSION = 10;
-      let count = 0;
-      while (aliases[commandName] && count < MAX_RECURSION) {
-        const aliasValue = aliases[commandName];
-        const aliasParts = aliasValue.split(/\s+/);
-        commandName = aliasParts[0];
-        const aliasArgs = aliasParts.slice(1).join(" ");
-        commandString = `${commandName} ${aliasArgs} ${remainingArgs}`.trim();
-        count++;
-      }
-      if (count === MAX_RECURSION) {
-        return {
-          error: `Alias loop detected for '${parts[0]}'`,
-        };
-      }
+  initialize() {
+    const { StorageManager } = this.dependencies;
+    this.aliases = StorageManager.loadItem(
+        this.config.STORAGE_KEYS.ALIAS_DEFINITIONS,
+        "Aliases",
+        {}
+    );
+  }
+
+  setAlias(name, value) {
+    if (!name || typeof value !== "string") return false;
+    this.aliases[name] = value;
+    this._save();
+    return true;
+  }
+
+  removeAlias(name) {
+    if (!this.aliases[name]) return false;
+    delete this.aliases[name];
+    this._save();
+    return true;
+  }
+
+  getAlias(name) {
+    return this.aliases[name] || null;
+  }
+
+  getAllAliases() {
+    return { ...this.aliases };
+  }
+
+  resolveAlias(commandString) {
+    const parts = commandString.split(/\s+/);
+    let commandName = parts[0];
+    const remainingArgs = parts.slice(1).join(" ");
+    const MAX_RECURSION = 10;
+    let count = 0;
+    while (this.aliases[commandName] && count < MAX_RECURSION) {
+      const aliasValue = this.aliases[commandName];
+      const aliasParts = aliasValue.split(/\s+/);
+      commandName = aliasParts[0];
+      const aliasArgs = aliasParts.slice(1).join(" ");
+      commandString = `${commandName} ${aliasArgs} ${remainingArgs}`.trim();
+      count++;
+    }
+    if (count === MAX_RECURSION) {
       return {
-        newCommand: commandString,
+        error: `Alias loop detected for '${parts[0]}'`,
       };
-    },
-  };
-})();
+    }
+    return {
+      newCommand: commandString,
+    };
+  }
+}
 
 class SessionManager {
   constructor() {
@@ -297,7 +308,7 @@ class SessionManager {
           ? this.elements.outputDiv.innerHTML
           : "",
       currentInput: currentInput,
-      commandHistory: HistoryManager.getFullHistory(),
+      commandHistory: this.dependencies.HistoryManager.getFullHistory(),
       environmentVariables: this.environmentManager.getAll(),
     };
     this.storageManager.saveItem(
@@ -315,7 +326,7 @@ class SessionManager {
       if (this.elements.outputDiv) this.elements.outputDiv.innerHTML = "";
       this.terminalUI.setCurrentInputValue("");
       this.fsManager.setCurrentPath(this.config.FILESYSTEM.ROOT_PATH);
-      HistoryManager.clearHistory();
+      this.dependencies.HistoryManager.clearHistory();
       void this.outputManager.appendToOutput(
           `${this.config.MESSAGES.WELCOME_PREFIX} ${this.config.USER.DEFAULT_NAME}${this.config.MESSAGES.WELCOME_SUFFIX}`
       );
@@ -344,7 +355,7 @@ class SessionManager {
         }
       }
       this.terminalUI.setCurrentInputValue(autoState.currentInput || "");
-      HistoryManager.setHistory(autoState.commandHistory || []);
+      this.dependencies.HistoryManager.setHistory(autoState.commandHistory || []);
       this.environmentManager.load(autoState.environmentVariables);
     } else {
       if (this.elements.outputDiv) this.elements.outputDiv.innerHTML = "";
@@ -355,7 +366,7 @@ class SessionManager {
       } else {
         this.fsManager.setCurrentPath(this.config.FILESYSTEM.ROOT_PATH);
       }
-      HistoryManager.clearHistory();
+      this.dependencies.HistoryManager.clearHistory();
 
       const newEnv = {};
       newEnv["USER"] = username;
@@ -386,11 +397,11 @@ class SessionManager {
           ? this.elements.outputDiv.innerHTML
           : "",
       currentInput: currentInput,
-      fsDataSnapshot: Utils.deepCopyNode(this.fsManager.getFsData()),
-      commandHistory: HistoryManager.getFullHistory(),
+      fsDataSnapshot: this.dependencies.Utils.deepCopyNode(this.fsManager.getFsData()),
+      commandHistory: this.dependencies.HistoryManager.getFullHistory(),
     };
     if (
-        this.storageManager.saveItem( // Use this.storageManager
+        this.storageManager.saveItem(
             this._getManualUserTerminalStateKey(currentUser),
             manualStateData,
             `Manual save for ${currentUser.name}`
@@ -441,14 +452,14 @@ class SessionManager {
     }
 
     return new Promise((resolve) => {
-      ModalManager.request({
+      this.dependencies.ModalManager.request({
         context: "terminal",
         messageLines: [
           `Load manually saved state for '${currentUser.name}'? This overwrites current session & filesystem.`,
         ],
         onConfirm: async () => {
           this.fsManager.setFsData(
-              Utils.deepCopyNode(manualStateData.fsDataSnapshot) || {
+              this.dependencies.Utils.deepCopyNode(manualStateData.fsDataSnapshot) || {
                 [this.config.FILESYSTEM.ROOT_PATH]: {
                   type: this.config.FILESYSTEM.DEFAULT_DIRECTORY_TYPE,
                   children: {},
@@ -467,7 +478,7 @@ class SessionManager {
           this.terminalUI.setCurrentInputValue(
               manualStateData.currentInput || ""
           );
-          HistoryManager.setHistory(manualStateData.commandHistory || []);
+          this.dependencies.HistoryManager.setHistory(manualStateData.commandHistory || []);
           await this.fsManager.save(manualStateData.user);
           await this.outputManager.appendToOutput(
               this.config.MESSAGES.SESSION_LOADED_MSG,

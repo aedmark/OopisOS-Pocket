@@ -1,48 +1,36 @@
 // /scripts/message_bus_manager.js
+class MessageBusManager {
+  static #jobQueues = new Map();
 
-const MessageBusManager = (() => {
-  "use strict";
-
-  // A simple in-memory store for message queues.
-  const jobQueues = new Map();
-
-  function registerJob(jobId) {
-    if (!jobQueues.has(jobId)) {
-      jobQueues.set(jobId, []);
+  static registerJob(jobId) {
+    if (!this.#jobQueues.has(jobId)) {
+      this.#jobQueues.set(jobId, []);
     }
   }
 
-  function unregisterJob(jobId) {
-    jobQueues.delete(jobId);
+  static unregisterJob(jobId) {
+    this.#jobQueues.delete(jobId);
   }
 
-  function hasJob(jobId) {
-    return jobQueues.has(jobId);
+  static hasJob(jobId) {
+    return this.#jobQueues.has(jobId);
   }
 
-  function postMessage(jobId, message) {
-    if (!jobQueues.has(jobId)) {
+  static postMessage(jobId, message) {
+    if (!this.#jobQueues.has(jobId)) {
       return { success: false, error: "No such job ID registered." };
     }
-    const queue = jobQueues.get(jobId);
+    const queue = this.#jobQueues.get(jobId);
     queue.push(message);
     return { success: true };
   }
 
-  function getMessages(jobId) {
-    if (!jobQueues.has(jobId)) {
+  static getMessages(jobId) {
+    if (!this.#jobQueues.has(jobId)) {
       return [];
     }
-    const messages = jobQueues.get(jobId);
-    jobQueues.set(jobId, []); // Clear the queue after reading
+    const messages = this.#jobQueues.get(jobId);
+    this.#jobQueues.set(jobId, []); // Clear the queue after reading
     return messages;
   }
-
-  return {
-    registerJob,
-    unregisterJob,
-    hasJob,
-    postMessage,
-    getMessages,
-  };
-})();
+}
