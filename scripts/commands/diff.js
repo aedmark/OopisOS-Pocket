@@ -1,10 +1,7 @@
 // scripts/commands/diff.js
-(() => {
-  "use strict";
-
-    class DiffCommand extends Command {
-    constructor() {
-      super({
+class DiffCommand extends Command {
+  constructor() {
+    super({
       commandName: "diff",
       description: "Compares two files line by line.",
       helpText: `Usage: diff <file1> <file2>
@@ -21,43 +18,38 @@
       Shows the differences between the two text text files.`,
       completionType: "paths",
       validations: {
-      args: {
-      exact: 2,
-      error: "Usage: diff <file1> <file2>"
+        args: {
+          exact: 2,
+          error: "Usage: diff <file1> <file2>"
+        },
+        paths: [{
+          argIndex: 0,
+          options: {
+            expectedType: 'file',
+            permissions: ['read']
+          }
+        }, {
+          argIndex: 1,
+          options: {
+            expectedType: 'file',
+            permissions: ['read']
+          }
+        }]
       },
-      paths: [{
-      argIndex: 0,
-      options: {
-      expectedType: 'file',
-      permissions: ['read']
-      }
-      }, {
-      argIndex: 1,
-      options: {
-      expectedType: 'file',
-      permissions: ['read']
-      }
-      }]
-      },
-      });
-    }
-
-    async coreLogic(context) {
-      
-            const { validatedPaths, dependencies } = context;
-            const { DiffUtils, ErrorHandler } = dependencies;
-            const file1Node = validatedPaths[0].node;
-            const file2Node = validatedPaths[1].node;
-      
-            const diffResult = DiffUtils.compare(
-                file1Node.content || "",
-                file2Node.content || ""
-            );
-      
-            return ErrorHandler.createSuccess(diffResult);
-          
-    }
+    });
   }
 
-  CommandRegistry.register(new DiffCommand());
-})();
+  async coreLogic(context) {
+    const { validatedPaths, dependencies } = context;
+    const { DiffUtils, ErrorHandler } = dependencies;
+    const file1Node = validatedPaths[0].node;
+    const file2Node = validatedPaths[1].node;
+
+    const diffResult = DiffUtils.compare(
+        file1Node.content || "",
+        file2Node.content || ""
+    );
+
+    return ErrorHandler.createSuccess(diffResult);
+  }
+}

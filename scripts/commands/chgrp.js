@@ -1,13 +1,10 @@
 // scripts/commands/chgrp.js
-(() => {
-  "use strict";
-
-    class ChgrpCommand extends Command {
+class ChgrpCommand extends Command {
     constructor() {
-      super({
-      commandName: "chgrp",
-      description: "Changes the group ownership of a file or directory.",
-      helpText: `Usage: chgrp <group> <path>
+        super({
+            commandName: "chgrp",
+            description: "Changes the group ownership of a file or directory.",
+            helpText: `Usage: chgrp <group> <path>
       Change the group ownership of a file or directory.
       DESCRIPTION
       The chgrp command changes the group of the file or directory
@@ -22,41 +19,36 @@
       PERMISSIONS
       To change the group of a file, you must be the owner of the file
       or the superuser (root).`,
-      completionType: "groups",
-      validations: {
-      args: { exact: 2, error: "Usage: chgrp <groupname> <path>" },
-      paths: [
-      {
-      argIndex: 1,
-      options: {
-      ownershipRequired: true,
-      }
-      },
-      ],
-      },
-      });
+            completionType: "groups",
+            validations: {
+                args: { exact: 2, error: "Usage: chgrp <groupname> <path>" },
+                paths: [
+                    {
+                        argIndex: 1,
+                        options: {
+                            ownershipRequired: true,
+                        }
+                    },
+                ],
+            },
+        });
     }
 
     async coreLogic(context) {
-      
-            const { args, validatedPaths, dependencies } = context;
-            const { GroupManager, ErrorHandler } = dependencies;
-            const groupName = args[0];
-            const { node } = validatedPaths[0];
-      
-            if (!GroupManager.groupExists(groupName)) {
-              return ErrorHandler.createError(
-                  `chgrp: invalid group: '${groupName}'`
-              );
-            }
-      
-            node.group = groupName;
-            node.mtime = new Date().toISOString();
-      
-            return ErrorHandler.createSuccess("", { stateModified: true });
-          
-    }
-  }
+        const { args, validatedPaths, dependencies } = context;
+        const { GroupManager, ErrorHandler } = dependencies;
+        const groupName = args[0];
+        const { node } = validatedPaths[0];
 
-  CommandRegistry.register(new ChgrpCommand());
-})();
+        if (!GroupManager.groupExists(groupName)) {
+            return ErrorHandler.createError(
+                `chgrp: invalid group: '${groupName}'`
+            );
+        }
+
+        node.group = groupName;
+        node.mtime = new Date().toISOString();
+
+        return ErrorHandler.createSuccess("", { stateModified: true });
+    }
+}

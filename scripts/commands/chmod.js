@@ -1,13 +1,10 @@
 // scripts/commands/chmod.js
-(() => {
-  "use strict";
-
-    class ChmodCommand extends Command {
+class ChmodCommand extends Command {
     constructor() {
-      super({
-      commandName: "chmod",
-      description: "Changes the access permissions of a file or directory.",
-      helpText: `Usage: chmod <mode> <path>
+        super({
+            commandName: "chmod",
+            description: "Changes the access permissions of a file or directory.",
+            helpText: `Usage: chmod <mode> <path>
       Change the access permissions of a file or directory.
       DESCRIPTION
       The chmod command changes the file mode bits of the file or
@@ -38,43 +35,38 @@
       PERMISSIONS
       To change the permissions of a file, you must be the owner of
       the file or the superuser (root).`,
-      completionType: "paths",
-      validations: {
-      args: { exact: 2, error: "Usage: chmod <mode> <path>" },
-      paths: [
-      {
-      argIndex: 1,
-      options: {
-      ownershipRequired: true
-      }
-      }
-      ]
-      },
-      });
+            completionType: "paths",
+            validations: {
+                args: { exact: 2, error: "Usage: chmod <mode> <path>" },
+                paths: [
+                    {
+                        argIndex: 1,
+                        options: {
+                            ownershipRequired: true
+                        }
+                    }
+                ]
+            },
+        });
     }
 
     async coreLogic(context) {
-      
-            const { args, validatedPaths, dependencies } = context;
-            const { ErrorHandler } = dependencies;
-            const modeArg = args[0];
-            const { node } = validatedPaths[0];
-            const nowISO = new Date().toISOString();
-      
-            if (!/^[0-7]{3,4}$/.test(modeArg)) {
-              return ErrorHandler.createError(
-                  `chmod: invalid mode: ‘${modeArg}’ (must be 3 or 4 octal digits)`
-              );
-            }
-      
-            const newMode = parseInt(modeArg, 8);
-            node.mode = newMode;
-            node.mtime = nowISO;
-      
-            return ErrorHandler.createSuccess("", { stateModified: true });
-          
-    }
-  }
+        const { args, validatedPaths, dependencies } = context;
+        const { ErrorHandler } = dependencies;
+        const modeArg = args[0];
+        const { node } = validatedPaths[0];
+        const nowISO = new Date().toISOString();
 
-  CommandRegistry.register(new ChmodCommand());
-})();
+        if (!/^[0-7]{3,4}$/.test(modeArg)) {
+            return ErrorHandler.createError(
+                `chmod: invalid mode: ‘${modeArg}’ (must be 3 or 4 octal digits)`
+            );
+        }
+
+        const newMode = parseInt(modeArg, 8);
+        node.mode = newMode;
+        node.mtime = nowISO;
+
+        return ErrorHandler.createSuccess("", { stateModified: true });
+    }
+}
