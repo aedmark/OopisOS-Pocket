@@ -1,102 +1,130 @@
 // scripts/commands/tail.js
-(() => {
-  "use strict";
-
-    class TailCommand extends Command {
+class TailCommand extends Command {
     constructor() {
-      super({
-      commandName: "tail",
-      description: "Outputs the last part of files.",
-      helpText: `Usage: tail [OPTION]... [FILE]...
+        super({
+            commandName: "tail",
+            description: "Outputs the last part of files.",
+            helpText: `Usage: tail [OPTION]... [FILE]...
       Print the last 10 lines of each FILE to standard output.
       With more than one FILE, precede each with a header giving the file name.
       DESCRIPTION
-      The tail command displays the end of a text file. It is useful
-      for quickly checking the most recent entries in log files.
+      The tail command displays the end of a text file. It is a useful
+      way to see the most recent entries in a log file.
       OPTIONS
       -n, --lines=COUNT
-      Print the last COUNT lines instead of the last 10.
-      -c, --bytes=COUNT
-      Print the last COUNT bytes of each file.
+      Output the last COUNT lines, instead of the last 10.
+      -f, --follow
+      Output appended data as the file grows. This is ignored
+      if standard input is a pipe. In OopisOS, this simulates
+      watching a file for changes.
       EXAMPLES
-      tail /var/log/sudo.log
-      Displays the last 10 lines of the sudo log file.
-      tail -n 5 README.md
-      Displays the last 5 lines of the README.md file.
-      ls | tail -n 3
-      Displays the last 3 files or directories in the current location.`,
-      isInputStream: true,
-      completionType: "paths",
-      flagDefinitions: [
-      { name: "lines", short: "-n", long: "--lines", takesValue: true },
-      { name: "bytes", short: "-c", long: "--bytes", takesValue: true },
-      ],
-      });
+      tail /data/logs/system.log
+      Displays the last 10 lines of the system log.
+      tail -n 100 /data/logs/system.log
+      Displays the last 100 lines of the system log.
+      tail -f /data/logs/app.log
+      Displays the last 10 lines of the app log and continues
+      to display new lines as they are added.`,
+            isInputStream: true,
+            completionType: "paths",
+            flagDefinitions: [
+                { name: "lines", short: "-n", long: "--lines", takesValue: true },
+                { name: "follow", short: "-f", long: "--follow" },
+            ],
+        });
     }
 
     async coreLogic(context) {
-      
-            const { flags, inputItems, inputError, dependencies } = context;
-            const { ErrorHandler, Utils } = dependencies;
-      
-            if (inputError) {
-              return ErrorHandler.createError(
-                  "tail: No readable input provided or permission denied."
-              );
-            }
-      
-            if (!inputItems || inputItems.length === 0) {
-              return ErrorHandler.createSuccess("");
-            }
-      
-            if (flags.lines && flags.bytes) {
-              return ErrorHandler.createError("tail: cannot use both -n and -c");
-            }
-      
-            const input = inputItems.map((item) => item.content).join("\n");
-      
-            let lineCount = 10;
-            if (flags.lines) {
-              const linesResult = Utils.parseNumericArg(flags.lines, {
+        const { flags, args, inputItems, inputError, signal, dependencies } = context;
+        const { ErrorHandler, Utils, FileSystemManager, OutputManager, Config } = dependencies;
+
+        if (inputError && (!args || args.length === 0)) {
+            return ErrorHandler.createError(
+                "tail: No readable input provided or permission denied."
+            );
+        }
+
+        let lineCount = 10;
+        if (flags.lines) {
+            const linesResult = Utils.parseNumericArg(flags.lines, {
                 allowFloat: false,
                 allowNegative: false,
-              });
-              if (linesResult.error) {
+            });
+            if (linesResult.error) {
                 return ErrorHandler.createError(
                     `tail: invalid number of lines: '${flags.lines}'`
                 );
-              }
-              lineCount = linesResult.value;
             }
-      
-            let byteCount = null;
-            if (flags.bytes) {
-              const bytesResult = Utils.parseNumericArg(flags.bytes, {
-                allowFloat: false,
-                allowNegative: false,
-              });
-              if (bytesResult.error) {
-                return ErrorHandler.createError(
-                    `tail: invalid number of bytes: '${flags.bytes}'`
-                );
-              }
-              byteCount = bytesResult.value;
-            }
-      
-            let output;
-            if (byteCount !== null) {
-              output = input.substring(input.length - byteCount);
-            } else {
-              const lines = input.split("\n");
-              const relevantLines =
-                  lines.at(-1) === "" ? lines.slice(0, -1) : lines;
-              output = relevantLines.slice(-lineCount).join("\n");
-            }
-      
-            return ErrorHandler.createSuccess(output);
-          
-    }
-  }
+            lineCount = linesResult.value;
+        }
 
-  CommandRegistry.register(new TailCommand());
-})();
+        if (flags.follow) {
+            if (args.length !== 1) {
+                return ErrorHandler.createError(
+                    "tail: -f option can only be used with a single file argument."
+                );
+            }
+            const filePath = args[0];
+            const pathValidation = FileSystemManager.validatePath(filePath, {
+                expectedType: "file",
+                permissions: ["read"],
+            });
+            if (!pathValidation.success) {
+                return ErrorHandler.createError(`tail: ${pathValidation.error}`);
+            }
+
+            let lastContent = pathValidation.data.node.content || "";
+            const initialLines = lastContent.split("\n").slice(-lineCount);
+            await OutputManager.appendToOutput(initialLines.join("\n"));
+
+            const followPromise = new Promise((resolve) => {
+                const checkInterval = setInterval(() => {
+                    if (signal?.aborted) {
+                        clearInterval(checkInterval);
+                        resolve(ErrorHandler.createSuccess(""));
+                        return;
+                    }
+                    const currentNode = FileSystemManager.getNodeByPath(
+                        pathValidation.data.resolvedPath
+                    );
+                    if (!currentNode) {
+                        clearInterval(checkInterval);
+                        resolve(
+                            ErrorHandler.createError("tail: file deleted or moved")
+                        );
+                        return;
+                    }
+                    const newContent = currentNode.content || "";
+                    if (newContent.length > lastContent.length) {
+                        const appendedContent = newContent.substring(
+                            lastContent.length
+                        );
+                        void OutputManager.appendToOutput(appendedContent.trim());
+                        lastContent = newContent;
+                    } else if (newContent.length < lastContent.length) {
+                        // File was truncated or replaced
+                        void OutputManager.appendToOutput(
+                            Config.MESSAGES.FILE_TRUNCATED_PREFIX +
+                            filePath +
+                            Config.MESSAGES.FILE_TRUNCATED_SUFFIX
+                        );
+                        const newLines = newContent.split("\n").slice(-lineCount);
+                        void OutputManager.appendToOutput(newLines.join("\n"));
+                        lastContent = newContent;
+                    }
+                }, 1000); // Check for changes every second
+            });
+
+            return await followPromise;
+        }
+
+        // Default behavior (no -f flag)
+        if (!inputItems || inputItems.length === 0) {
+            return ErrorHandler.createSuccess("");
+        }
+
+        const content = inputItems.map((item) => item.content).join("\n");
+        const output = content.split("\n").slice(-lineCount).join("\n");
+        return ErrorHandler.createSuccess(output);
+    }
+}

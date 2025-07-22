@@ -1,37 +1,39 @@
 // scripts/commands/sync.js
-(() => {
-  "use strict";
-
-    class SyncCommand extends Command {
-    constructor() {
-      super({
+class SyncCommand extends Command {
+  constructor() {
+    super({
       commandName: "sync",
-      description: "Commit filesystem caches to persistent storage.",
+      description: "Manually saves the current file system to the database.",
       helpText: `Usage: sync
-      Flush file system buffers.
+      Synchronize cached file data with persistent storage.
       DESCRIPTION
-      The sync command forces a write of all buffered file system data
-      in memory (the live fsData object) to the underlying persistent
-      storage (IndexedDB).
-      While most file operations in OopisOS trigger a save automatically,
-      'sync' can be used to ensure all pending changes are written before
-      a critical operation or closing the session.`,
-      argValidation: {
-      exact: 0,
-      },
-      });
-    }
+      The sync command writes any buffered file system modifications to
+      the underlying persistent storage (IndexedDB).
+      In OopisOS, this happens automatically on events like logout, but
+      'sync' provides a way to force a save manually, ensuring data
 
-    async coreLogic(context) {
-      
-            const { dependencies } = context;
-            const { ErrorHandler } = dependencies;
-            // This command's entire purpose is to represent a state modification.
-            // The actual save is handled by the executor when it sees the flag.
-            return ErrorHandler.createSuccess("", { stateModified: true });
-          
-    }
+      persistence without ending the session.`,
+      validations: {
+        args: {
+          exact: 0
+        }
+      },
+    });
   }
 
-  CommandRegistry.register(new SyncCommand());
-})();
+  async coreLogic(context) {
+    const { dependencies, currentUser } = context;
+    const { FileSystemManager, ErrorHandler } = dependencies;
+
+    try {
+      await FileSystemManager.save(currentUser);
+      return ErrorHandler.createSuccess(
+          "File system cache synchronized with persistent storage."
+      );
+    } catch (e) {
+      return ErrorHandler.createError(
+          `sync: An error occurred during synchronization: ${e.message}`
+      );
+    }
+  }
+}

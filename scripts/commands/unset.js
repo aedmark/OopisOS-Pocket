@@ -1,38 +1,36 @@
 // scripts/commands/unset.js
-(() => {
-  "use strict";
-
-    class UnsetCommand extends Command {
+class UnsetCommand extends Command {
     constructor() {
-      super({
-      commandName: "unset",
-      description: "Unsets one or more environment variables.",
-      helpText: `Usage: unset <variable_name>...
-      Unset environment variable values.
+        super({
+            commandName: "unset",
+            description: "Unsets one or more shell environment variables.",
+            helpText: `Usage: unset <variable_name>...
+      Unset environment variables.
       DESCRIPTION
-      The unset command removes the specified environment variables from
-      the current session. After a variable is unset, it will no longer
-      be available for expansion by the shell (e.g., using $VAR).
+      The unset command removes the specified environment variable(s).
+      Once unset, a variable will no longer be available to commands
+      or for expansion.
       EXAMPLES
-      set GREETING="Hello"
-      echo $GREETING
-      Hello
-      unset GREETING
-      echo $GREETING
-      (prints a blank line)`,
-      argValidation: { min: 1, error: "Usage: unset <variable_name>..." },
-      });
+      set MY_VAR="some value"
+      unset MY_VAR
+      echo $MY_VAR (will print an empty line)`,
+            validations: {
+                args: {
+                    min: 1,
+                    error: "Usage: unset <variable_name>..."
+                }
+            },
+        });
     }
 
     async coreLogic(context) {
-      
-            const { args, dependencies } = context;
-            const { EnvironmentManager, ErrorHandler } = dependencies;
-            args.forEach((varName) => EnvironmentManager.unset(varName));
-            return ErrorHandler.createSuccess();
-          
-    }
-  }
+        const { args, dependencies } = context;
+        const { EnvironmentManager, ErrorHandler } = dependencies;
 
-  CommandRegistry.register(new UnsetCommand());
-})();
+        for (const varName of args) {
+            EnvironmentManager.unset(varName);
+        }
+
+        return ErrorHandler.createSuccess("");
+    }
+}

@@ -1,135 +1,52 @@
 // scripts/commands/run.js
-(() => {
-  "use strict";
-
-    class RunCommand extends Command {
-    constructor() {
-      super({
+class RunCommand extends Command {
+  constructor() {
+    super({
       commandName: "run",
-      description: "Executes a shell script.",
-      helpText: `Usage: run <script_path> [arguments...]
-      Execute a shell script.
+      description: "Executes a script file as a series of commands.",
+      helpText: `Usage: run <script_path>
+      Execute a script from a file.
       DESCRIPTION
-      The run command executes a script file containing a sequence of
-      OopisOS commands. The script is read and executed line by line.
-      By convention, script files should have a '.sh' extension.
-      To be executed, the script file must have execute (x) permissions
-      for the current user (see 'chmod').
-      SCRIPTING
-      Scripts can be made more powerful and flexible using the following
-      features:
-      Comments
-      Lines beginning with a '#' are treated as comments and are
-      ignored by the executor.
-      Arguments
-      You can pass arguments to your script from the command line.
-      These arguments can be accessed within the script using
-      special variables:
-      $1, $2, ...  - The first, second, etc., argument.
-      $@           - All arguments as a single string.
-      $#           - The total number of arguments.
-      Error Handling
-      If any command within the script fails, the script will
-      stop execution immediately.`,
+      The run command reads the specified script file and executes its
+      contents line by line as if they were typed into the terminal.
+      This is useful for automating repetitive tasks.
+      - Lines starting with # are treated as comments and ignored.
+      - Blank lines are ignored.
+      EXAMPLES
+      run setup_project.sh
+      Executes the commands listed in the 'setup_project.sh' file.`,
       completionType: "paths",
-      argValidation: {
-      min: 1,
+      validations: {
+        args: {
+          exact: 1,
+          error: "Usage: run <script_path>"
+        },
+        paths: [{
+          argIndex: 0,
+          options: {
+            expectedType: 'file',
+            permissions: ['read', 'execute']
+          }
+        }]
       },
-      });
-    }
-
-    async coreLogic(context) {
-      
-            const { args, options, signal, dependencies } = context;
-            const { ErrorHandler, EnvironmentManager, Config, FileSystemManager, OutputManager, CommandExecutor } = dependencies;
-            const scriptPathArg = args[0];
-      
-            EnvironmentManager.push();
-      
-            try {
-              const currentDepth = (options.scriptingContext?.depth || 0) + 1;
-              if (currentDepth > Config.FILESYSTEM.MAX_SCRIPT_DEPTH) {
-                return ErrorHandler.createError(
-                    `Maximum script recursion depth (${Config.FILESYSTEM.MAX_SCRIPT_DEPTH}) exceeded. Halting execution.`
-                );
-              }
-      
-              const pathValidationResult = FileSystemManager.validatePath(
-                  scriptPathArg,
-                  {
-                    expectedType: "file",
-                    permissions: ["read", "execute"],
-                  }
-              );
-      
-              if (!pathValidationResult.success) {
-                return ErrorHandler.createError(
-                    `run: ${scriptPathArg}: ${pathValidationResult.error}`
-                );
-              }
-      
-              const scriptNode = pathValidationResult.data.node;
-              const scriptContent = scriptNode.content || "";
-              const scriptArgs = args.slice(1);
-              const lines = scriptContent.split("\n");
-      
-              const scriptingContext = {
-                sourceFile: scriptPathArg,
-                isScripting: true,
-                lines: lines,
-                currentLineIndex: -1,
-                depth: currentDepth,
-              };
-      
-              for (let i = 0; i < lines.length; i++) {
-                scriptingContext.currentLineIndex = i;
-      
-                if (signal?.aborted) {
-                  await OutputManager.appendToOutput(
-                      "Script execution aborted by user.",
-                      { typeClass: "text-warning" }
-                  );
-                  return ErrorHandler.createError("Aborted by user");
-                }
-      
-                let line = lines[i].trim();
-      
-                if (line.startsWith("#") || line === "") {
-                  continue;
-                }
-      
-                line = line.replace(/\$@/g, scriptArgs.join(" "));
-                line = line.replace(/\$#/g, scriptArgs.length);
-                scriptArgs.forEach((j, k) => {
-                  const regex = new RegExp(`\\$${k + 1}`, "g");
-                  line = line.replace(regex, j);
-                });
-      
-                const result = await CommandExecutor.processSingleCommand(line, {
-                  isInteractive: false,
-                  scriptingContext: scriptingContext,
-                });
-      
-                i = scriptingContext.currentLineIndex;
-      
-                if (!result.success) {
-                  await OutputManager.appendToOutput(
-                      `Script '${scriptPathArg}' error on line ${
-                          i + 1
-                      }: ${line}\nError: ${result.error || "Command failed."}`,
-                      { typeClass: "text-error" }
-                  );
-                  return result;
-                }
-              }
-      
-              return ErrorHandler.createSuccess("");
-            } finally {
-              EnvironmentManager.pop();
-            }
-          
-    }
+    });
   }
 
-  CommandRegistry.register(new RunCommand());
-})();
+  async coreLogic(context) {
+    const { validatedPaths, dependencies } = context;
+    const { CommandExecutor, ErrorHandler } = dependencies;
+    const fileNode = validatedPaths[0].node;
+
+    const scriptContent = fileNode.content || "";
+    const lines = scriptContent.split("\n");
+
+    try {
+      await CommandExecutor.executeScript(lines, {
+        isInteractive: false,
+      });
+      return ErrorHandler.createSuccess("Script finished.");
+    } catch (e) {
+      return ErrorHandler.createError(`run: ${e.message}`);
+    }
+  }
+}
