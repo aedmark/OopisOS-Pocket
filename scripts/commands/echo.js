@@ -1,13 +1,10 @@
 // scripts/commands/echo.js
-(() => {
-  "use strict";
-
-    class EchoCommand extends Command {
+class EchoCommand extends Command {
     constructor() {
-      super({
-      commandName: "echo",
-      description: "Writes arguments to the standard output.",
-      helpText: `Usage: echo [-e] [STRING]...
+        super({
+            commandName: "echo",
+            description: "Writes arguments to the standard output.",
+            helpText: `Usage: echo [-e] [STRING]...
       Write arguments to the standard output.
       DESCRIPTION
       The echo utility writes its arguments separated by spaces,
@@ -28,34 +25,29 @@
       echo "User: $USER"
       Displays the name of the current user by expanding the
       $USER environment variable.`,
-      flagDefinitions: [{ name: "enableBackslashEscapes", short: "-e" }],
-      });
+            flagDefinitions: [{ name: "enableBackslashEscapes", short: "-e" }],
+        });
     }
 
     async coreLogic(context) {
-      
-            const { ErrorHandler } = context.dependencies;
-            let output = context.args.join(" ");
-            let suppressNewline = false;
-      
-            if (context.flags.enableBackslashEscapes) {
-              const cIndex = output.indexOf("\\c");
-              if (cIndex !== -1) {
+        const { ErrorHandler } = context.dependencies;
+        let output = context.args.join(" ");
+        let suppressNewline = false;
+
+        if (context.flags.enableBackslashEscapes) {
+            const cIndex = output.indexOf("\\c");
+            if (cIndex !== -1) {
                 output = output.substring(0, cIndex);
                 suppressNewline = true;
-              }
-      
-              output = output
-                  .replace(/\\n/g, "\n")
-                  .replace(/\\t/g, "\t")
-                  .replace(/\\\\/g, "\\");
             }
-      
-            // The final newline is now handled by the executor, so we just return the processed string.
-            return ErrorHandler.createSuccess(output, { suppressNewline });
-          
-    }
-  }
 
-  CommandRegistry.register(new EchoCommand());
-})();
+            output = output
+                .replace(/\\n/g, "\n")
+                .replace(/\\t/g, "\t")
+                .replace(/\\\\/g, "\\");
+        }
+
+        // The final newline is now handled by the executor, so we just return the processed string.
+        return ErrorHandler.createSuccess(output, { suppressNewline });
+    }
+}

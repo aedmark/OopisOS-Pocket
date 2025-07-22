@@ -1,10 +1,7 @@
 // scripts/commands/date.js
-(() => {
-  "use strict";
-
-    class DateCommand extends Command {
-    constructor() {
-      super({
+class DateCommand extends Command {
+  constructor() {
+    super({
       commandName: "date",
       description: "Display the current system date and time.",
       helpText: `Usage: date
@@ -13,20 +10,15 @@
       The date command prints the current date and time as determined
       by the user's browser, including timezone information.`,
       validations: {
-      args: {
-      exact: 0
-      }
+        args: {
+          exact: 0
+        }
       },
-      });
-    }
-
-    async coreLogic(context) {
-      
-            const { ErrorHandler } = context.dependencies;
-            return ErrorHandler.createSuccess(new Date().toString());
-          
-    }
+    });
   }
 
-  CommandRegistry.register(new DateCommand());
-})();
+  async coreLogic(context) {
+    const { ErrorHandler } = context.dependencies;
+    return ErrorHandler.createSuccess(new Date().toString());
+  }
+}
