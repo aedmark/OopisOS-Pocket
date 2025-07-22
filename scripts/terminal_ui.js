@@ -385,11 +385,11 @@ class TabCompletionManager {
       const commandDefinition = await CommandExecutor._ensureCommandLoaded(commandName);
       if (!commandDefinition) return [];
 
-      if (commandDefinition.completionType === "commands") {
+      if (commandDefinition.definition.completionType === "commands") {
         suggestions = Config.COMMANDS_MANIFEST.filter((cmd) =>
             cmd.toLowerCase().startsWith(currentWordPrefix.toLowerCase())
         ).sort();
-      } else if (commandDefinition.completionType === "users") {
+      } else if (commandDefinition.definition.completionType === "users") {
         const users = StorageManager.loadItem(
             Config.STORAGE_KEYS.USER_CREDENTIALS,
             "User list",
@@ -404,8 +404,8 @@ class TabCompletionManager {
             )
             .sort();
       } else if (
-          commandDefinition.completionType === "paths" ||
-          commandDefinition.pathValidation
+          commandDefinition.definition.completionType === "paths" ||
+          commandDefinition.definition.pathValidation
       ) {
         const lastSlashIndex = currentWordPrefix.lastIndexOf(
             Config.FILESYSTEM.PATH_SEPARATOR
