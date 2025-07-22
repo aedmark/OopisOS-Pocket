@@ -224,6 +224,7 @@ class SessionManager {
   constructor() {
     this.userSessionStack = [];
     this.elements = {};
+    this.dependencies = {}; // Initialize dependencies object
     this.config = null;
     this.fsManager = null;
     this.userManager = null;
@@ -233,24 +234,17 @@ class SessionManager {
     this.storageManager = null;
   }
 
-  setDependencies(
-      config,
-      fsManager,
-      userManager,
-      environmentManager,
-      domElements,
-      outputManager,
-      terminalUI,
-      storageManager
-  ) {
-    this.config = config;
-    this.fsManager = fsManager;
-    this.userManager = userManager;
-    this.environmentManager = environmentManager;
-    this.elements = domElements;
-    this.outputManager = outputManager;
-    this.terminalUI = terminalUI;
-    this.storageManager = storageManager;
+  setDependencies(dependencies) {
+    this.dependencies = dependencies;
+    // Set individual properties from the dependencies object for convenience
+    this.config = dependencies.Config;
+    this.fsManager = dependencies.FileSystemManager;
+    this.userManager = dependencies.UserManager;
+    this.environmentManager = dependencies.EnvironmentManager;
+    this.elements = dependencies.domElements; // Get domElements from dependencies
+    this.outputManager = dependencies.OutputManager;
+    this.terminalUI = dependencies.TerminalUI;
+    this.storageManager = dependencies.StorageManager;
   }
 
   initializeStack() {

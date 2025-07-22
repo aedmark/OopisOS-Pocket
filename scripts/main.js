@@ -186,6 +186,7 @@ window.onload = async () => {
     AIManager: AIManager,
     MessageBusManager: messageBusManager,
     UIComponents: uiComponents,
+    domElements: domElements,
   };
 
   const pagerManager = new PagerManager(dependencies);
@@ -197,7 +198,7 @@ window.onload = async () => {
   indexedDBManager.setDependencies(dependencies);
   fsManager.setDependencies(dependencies);
   userManager.setDependencies(sessionManager, sudoManager, commandExecutor, modalManager, storageManager);
-  sessionManager.setDependencies(configManager, fsManager, userManager, environmentManager, domElements, outputManager, terminalUI, storageManager);
+  sessionManager.setDependencies(dependencies);
   sudoManager.setDependencies(fsManager, groupManager, configManager);
   environmentManager.setDependencies(userManager, fsManager, configManager);
   commandExecutor.setDependencies(dependencies);
