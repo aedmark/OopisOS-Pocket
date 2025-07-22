@@ -25,7 +25,7 @@ class HelpCommand extends Command {
     try {
       if (args.length === 0) {
         const allCommandNames = Config.COMMANDS_MANIFEST.sort();
-        const loadedCommands = CommandRegistry.getDefinitions();
+        const loadedCommands = CommandRegistry.getCommands();
 
         let output = "OopisOS Help\n\nAvailable commands:\n";
         allCommandNames.forEach((cmdName) => {
@@ -39,16 +39,14 @@ class HelpCommand extends Command {
         return ErrorHandler.createSuccess(output);
       } else {
         const cmdName = args[0].toLowerCase();
-        const isLoaded = await CommandExecutor._ensureCommandLoaded(cmdName);
+        const commandInstance = await CommandExecutor._ensureCommandLoaded(cmdName);
 
-        if (!isLoaded) {
+        if (!commandInstance) {
           return ErrorHandler.createError(
               `help: command not found: ${cmdName}`
           );
         }
 
-        // Get the command *instance* from the registry
-        const commandInstance = CommandRegistry.getDefinitions()[cmdName];
         let output = "";
 
         // Access the definition property on the instance

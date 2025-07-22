@@ -80,18 +80,16 @@ class ManCommand extends Command {
 
   async coreLogic(context) {
     const { args, dependencies } = context;
-    const { CommandExecutor, CommandRegistry, ErrorHandler } = dependencies;
+    const { CommandExecutor, ErrorHandler } = dependencies;
     const commandName = args[0];
 
-    const isLoaded =
-        await CommandExecutor._ensureCommandLoaded(commandName);
+    const commandInstance = await CommandExecutor._ensureCommandLoaded(commandName);
 
-    if (!isLoaded) {
+    if (!commandInstance) {
       return ErrorHandler.createError(`No manual entry for ${commandName}`);
     }
 
-    const allCommands = CommandRegistry.getDefinitions();
-    const commandData = allCommands[commandName];
+    const commandData = commandInstance.definition;
 
     if (!commandData) {
       return ErrorHandler.createError(`No manual entry for ${commandName}`);

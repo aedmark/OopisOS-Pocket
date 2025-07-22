@@ -34,18 +34,32 @@ class CommandExecutor {
   async _ensureCommandLoaded(commandName) {
     const { Config, OutputManager, CommandRegistry } = this.dependencies;
     if (!commandName || typeof commandName !== "string") return null;
-    if (this.commands[commandName]) return this.commands[commandName].definition;
 
+    // Check the local executor cache first
+    if (this.commands[commandName]) return this.commands[commandName];
+
+    // Check if the command is in the manifest
     if (!Config.COMMANDS_MANIFEST.includes(commandName)) {
       return null;
     }
 
     const commandScriptPath = `commands/${commandName}.js`;
     try {
+      // Load the script file
       await this._loadScript(commandScriptPath);
-      const definition = CommandRegistry.getDefinitions()[commandName];
 
-      if (!definition) {
+      // NEW LOGIC: Check if the script defined a class and register it
+      const className = commandName.charAt(0).toUpperCase() + commandName.slice(1) + 'Command';
+      if (typeof window[className] === 'function' && !CommandRegistry.getCommands()[commandName]) {
+        const commandInstance = new window[className]();
+        CommandRegistry.register(commandInstance);
+      }
+      // END NEW LOGIC
+
+      // Now, get the instance from the registry (it should be there now)
+      const commandInstance = CommandRegistry.getCommands()[commandName];
+
+      if (!commandInstance) {
         await OutputManager.appendToOutput(
             `Error: Script loaded but command '${commandName}' not found in registry.`,
             { typeClass: Config.CSS_CLASSES.ERROR_MSG }
@@ -53,14 +67,18 @@ class CommandExecutor {
         return null;
       }
 
+      const definition = commandInstance.definition;
+
+      // Load dependencies for the command
       if (definition.dependencies && Array.isArray(definition.dependencies)) {
         for (const dep of definition.dependencies) {
           await this._loadScript(dep);
         }
       }
-      this.commands[commandName] =
-          definition instanceof Command ? definition : new Command(definition);
-      return definition;
+
+      // Cache the instance in the executor and return it
+      this.commands[commandName] = commandInstance;
+      return commandInstance;
     } catch (error) {
       await OutputManager.appendToOutput(
           `Error: Command '${commandName}' could not be loaded. ${error.message}`,
@@ -210,12 +228,10 @@ class CommandExecutor {
     const { ErrorHandler } = this.dependencies;
     const commandName = segment.command?.toLowerCase();
 
-    const commandExists = await this._ensureCommandLoaded(commandName);
-    if (!commandExists) {
+    const cmdInstance = await this._ensureCommandLoaded(commandName);
+    if (!cmdInstance) {
       return ErrorHandler.createError(`${commandName}: command not found`);
     }
-
-    const cmdInstance = this.commands[commandName];
 
     if (cmdInstance instanceof Command) {
       try {

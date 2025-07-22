@@ -97,9 +97,6 @@ class Command {
             let fileCount = 0;
             let firstSourceName = null;
 
-            // ** THE FIX IS HERE **
-            // We now correctly separate non-file arguments from the file arguments
-            // that need to be read for the input stream.
             const firstFileArgIndex = this.definition.firstFileArgIndex || 0;
             const fileArgsForStream = remainingArgs.slice(firstFileArgIndex);
 
