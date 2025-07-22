@@ -8,8 +8,8 @@ class Command {
         this.commandName = definition.commandName;
     }
 
-    async *_generateInputContent(context, firstFileArgIndex = 0) {
-        const { args, options, currentUser } = context;
+    async *_generateInputContent(context, fileArgs) {
+        const { options, currentUser } = context;
         const { FileSystemManager } = context.dependencies;
 
         if (options.stdinContent !== null && options.stdinContent !== undefined) {
@@ -20,10 +20,6 @@ class Command {
             };
             return;
         }
-
-        // This is the key change: We now respect the 'firstFileArgIndex'
-        // passed from the execute method to know where the file list truly begins.
-        const fileArgs = args.slice(firstFileArgIndex);
 
         if (fileArgs.length === 0) {
             return;
@@ -56,21 +52,15 @@ class Command {
         }
     }
 
-    /**
-     * The main execution method called by the CommandExecutor.
-     * It orchestrates parsing, validation, and execution.
-     */
     async execute(rawArgs, options, dependencies) {
         const { Utils, ErrorHandler, FileSystemManager, UserManager } = dependencies;
 
-        // 1. Parse Flags
         const { flags, remainingArgs } = Utils.parseFlags(
             rawArgs,
             this.definition.flagDefinitions || []
         );
 
-        // 2. Validate Argument Count
-        if (this.definition.argValidation) { // Simplified check
+        if (this.definition.argValidation) {
             const argValidation = Utils.validateArguments(
                 remainingArgs,
                 this.definition.argValidation
@@ -81,7 +71,6 @@ class Command {
             }
         }
 
-        // 3. Validate Paths and Permissions
         const validatedPaths = [];
         if (this.definition.validations && this.definition.validations.paths) {
             for (const rule of this.definition.validations.paths) {
@@ -93,7 +82,6 @@ class Command {
             }
         }
 
-        // 4. Prepare and Execute Core Logic
         const context = {
             args: remainingArgs,
             options,
@@ -109,20 +97,14 @@ class Command {
             let fileCount = 0;
             let firstSourceName = null;
 
-            // Determine the correct starting index for file arguments.
-            // For awk, the program is the first arg, so files start at index 1.
-            const fileStartIndex = this.definition.firstFileArgIndex !== undefined
-                ? this.definition.firstFileArgIndex
-                // This is the fallback that correctly identifies the start of file paths for awk.
-                : (this.definition.argValidation && (this.definition.argValidation.exact || this.definition.argValidation.min))
-                    ? (this.definition.argValidation.exact || this.definition.argValidation.min)
-                    : 1;
+            // ** THE FIX IS HERE **
+            // We now correctly separate non-file arguments from the file arguments
+            // that need to be read for the input stream.
+            const firstFileArgIndex = this.definition.firstFileArgIndex || 0;
+            const fileArgsForStream = remainingArgs.slice(firstFileArgIndex);
 
-
-            for await (const item of this._generateInputContent(
-                context,
-                fileStartIndex
-            )) {
+            // The generator now only receives the arguments that are actual file paths.
+            for await (const item of this._generateInputContent(context, fileArgsForStream)) {
                 fileCount++;
                 if (firstSourceName === null) firstSourceName = item.sourceName;
 

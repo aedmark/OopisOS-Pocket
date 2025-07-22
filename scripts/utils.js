@@ -11,7 +11,7 @@ var Utils = (() => {
         regex = /(\/\*[\s\S]*?\*\/|\/\/.+)/g;
         break;
       case "sh":
-        regex = /(^|\s)#. +/g;
+        regex = /(^|\s)#.*$/gm;
         break;
       default:
         return ""; // Return empty for unsupported types

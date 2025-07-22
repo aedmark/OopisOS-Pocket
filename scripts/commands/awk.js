@@ -44,7 +44,7 @@ EXAMPLES
         flagDefinitions: [
           { name: "fieldSeparator", short: "-F", takesValue: true },
         ],
-        // No firstFileArgIndex needed here anymore! The base class handles it.
+        firstFileArgIndex: 1,
       });
     }
 

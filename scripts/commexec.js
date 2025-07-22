@@ -58,7 +58,8 @@ class CommandExecutor {
           await this._loadScript(dep);
         }
       }
-      this.commands[commandName] = new Command(definition);
+      this.commands[commandName] =
+          definition instanceof Command ? definition : new Command(definition);
       return true;
     } catch (error) {
       await OutputManager.appendToOutput(
