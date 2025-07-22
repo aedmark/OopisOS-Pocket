@@ -1,9 +1,40 @@
 // scripts/ai_manager.js
-const AIManager = (() => {
-  "use strict";
 
-  async function getApiKey(provider, options = {}) {
-    const { StorageManager, ModalManager, OutputManager, Config } = options.dependencies;
+class AIManager {
+  constructor() {
+    this.dependencies = {};
+    this.PLANNER_SYSTEM_PROMPT = `You are a command-line Agent for OopisOS. Your goal is to formulate a plan of simple, sequential OopisOS commands to gather the necessary information to answer the user's prompt.
+
+**Core Directives:**
+1.  **Analyze the Request:** Carefully consider the user's prompt and the provided system context (current directory, files, etc.).
+2.  **Formulate a Plan:** Create a step-by-step, numbered list of OopisOS commands.
+3.  **Use Your Tools:** You may ONLY use commands from the "Tool Manifest" provided below. Do not invent commands or flags.
+4.  **Simplicity is Key:** Each command in the plan must be simple and stand-alone. Do not use complex shell features like piping (|) or redirection (>) in your plan.
+5.  **Be Direct:** If the prompt is a general knowledge question (e.g., "What is the capital of France?") or a simple greeting, answer it directly without creating a plan.
+6.  **Quote Arguments:** Always enclose file paths or arguments that contain spaces in double quotes (e.g., cat "my file.txt").
+
+--- TOOL MANIFEST ---
+ls [-l, -a, -R], cd, cat, grep [-i, -v, -n, -R], find [path] -name [pattern] -type [f|d], tree, pwd, head [-n], tail [-n], wc, touch, xargs, shuf, tail, csplit, awk, sort, echo, man, help, set, history, mkdir
+--- END MANIFEST ---`;
+
+    this.SYNTHESIZER_SYSTEM_PROMPT = `You are a helpful digital librarian. Your task is to synthesize a final, natural-language answer for the user based on their original prompt and the provided output from a series of commands.
+
+**Rules:**
+- Formulate a comprehensive answer using only the provided command outputs.
+- If the tool context is insufficient to answer the question, state that you don't know enough to answer.`;
+
+    this.COMMAND_WHITELIST = [
+      "ls", "cat", "cd", "grep", "find", "tree", "pwd", "head", "shuf",
+      "xargs", "echo", "tail", "csplit", "wc", "awk", "sort", "touch",
+    ];
+  }
+
+  setDependencies(dependencies) {
+    this.dependencies = dependencies;
+  }
+
+  async getApiKey(provider, options = {}) {
+    const { StorageManager, ModalManager, OutputManager, Config } = this.dependencies;
     if (provider !== "gemini") {
       return { success: true, data: { key: null } };
     }
@@ -58,8 +89,8 @@ const AIManager = (() => {
     });
   }
 
-  async function getTerminalContext(dependencies) {
-    const { CommandExecutor } = dependencies;
+  async getTerminalContext() {
+    const { CommandExecutor } = this.dependencies;
     const pwdResult = await CommandExecutor.processSingleCommand("pwd", {
       suppressOutput: true,
       isInteractive: false,
@@ -90,55 +121,14 @@ Environment Variables:
 ${setResult.output || "(none)"}`;
   }
 
-  const PLANNER_SYSTEM_PROMPT = `You are a command-line Agent for OopisOS. Your goal is to formulate a plan of simple, sequential OopisOS commands to gather the necessary information to answer the user's prompt.
-
-**Core Directives:**
-1.  **Analyze the Request:** Carefully consider the user's prompt and the provided system context (current directory, files, etc.).
-2.  **Formulate a Plan:** Create a step-by-step, numbered list of OopisOS commands.
-3.  **Use Your Tools:** You may ONLY use commands from the "Tool Manifest" provided below. Do not invent commands or flags.
-4.  **Simplicity is Key:** Each command in the plan must be simple and stand-alone. Do not use complex shell features like piping (|) or redirection (>) in your plan.
-5.  **Be Direct:** If the prompt is a general knowledge question (e.g., "What is the capital of France?") or a simple greeting, answer it directly without creating a plan.
-6.  **Quote Arguments:** Always enclose file paths or arguments that contain spaces in double quotes (e.g., cat "my file.txt").
-
---- TOOL MANIFEST ---
-ls [-l, -a, -R], cd, cat, grep [-i, -v, -n, -R], find [path] -name [pattern] -type [f|d], tree, pwd, head [-n], tail [-n], wc, touch, xargs, shuf, tail, csplit, awk, sort, echo, man, help, set, history, mkdir
---- END MANIFEST ---`;
-
-  const SYNTHESIZER_SYSTEM_PROMPT = `You are a helpful digital librarian. Your task is to synthesize a final, natural-language answer for the user based on their original prompt and the provided output from a series of commands.
-
-**Rules:**
-- Formulate a comprehensive answer using only the provided command outputs.
-- If the tool context is insufficient to answer the question, state that you don't know enough to answer.`;
-
-  const COMMAND_WHITELIST = [
-    "ls",
-    "cat",
-    "cd",
-    "grep",
-    "find",
-    "tree",
-    "pwd",
-    "head",
-    "shuf",
-    "xargs",
-    "echo",
-    "tail",
-    "csplit",
-    "wc",
-    "awk",
-    "sort",
-    "touch",
-  ];
-
-  async function callLlmApi(
+  async callLlmApi(
       provider,
       model,
       conversation,
       apiKey,
-      dependencies,
       systemPrompt = null
   ) {
-    const { Config } = dependencies;
+    const { Config } = this.dependencies;
     const providerConfig =
         typeof Config !== "undefined" ? Config.API.LLM_PROVIDERS[provider] : null;
     if (!providerConfig) {
@@ -285,24 +275,23 @@ ls [-l, -a, -R], cd, cat, grep [-i, -v, -n, -R], find [path] -name [pattern] -ty
     }
   }
 
-  async function performAgenticSearch(
+  async performAgenticSearch(
       prompt,
       history,
       provider,
       model,
       options = {}
   ) {
-    const { verboseCallback, isInteractive, dependencies } = options;
-    const { ErrorHandler, StorageManager, Config } = dependencies;
+    const { verboseCallback, isInteractive } = options;
+    const { ErrorHandler, StorageManager, Config } = this.dependencies;
 
-
-    const apiKeyResult = await getApiKey(provider, { isInteractive, dependencies });
+    const apiKeyResult = await this.getApiKey(provider, { isInteractive, dependencies: this.dependencies });
     if (!apiKeyResult.success) {
       return ErrorHandler.createError(`AIManager: ${apiKeyResult.error}`);
     }
     let apiKey = apiKeyResult.data.key;
 
-    const plannerContext = await getTerminalContext(dependencies);
+    const plannerContext = await this.getTerminalContext();
     const plannerPrompt = `User Prompt: "${prompt}"\n\n${plannerContext}`;
     const plannerConversation = [
       ...history,
@@ -316,13 +305,12 @@ ls [-l, -a, -R], cd, cat, grep [-i, -v, -n, -R], find [path] -name [pattern] -ty
       },
     ];
 
-    let plannerResult = await callLlmApi(
+    let plannerResult = await this.callLlmApi(
         provider,
         model,
         plannerConversation,
         apiKey,
-        dependencies,
-        PLANNER_SYSTEM_PROMPT
+        this.PLANNER_SYSTEM_PROMPT
     );
 
     if (
@@ -336,19 +324,18 @@ ls [-l, -a, -R], cd, cat, grep [-i, -v, -n, -R], find [path] -name [pattern] -ty
             "text-warning"
         );
       provider = "gemini";
-      const fallbackKeyResult = await getApiKey(provider, {
+      const fallbackKeyResult = await this.getApiKey(provider, {
         isInteractive,
-        dependencies,
+        dependencies: this.dependencies,
       });
       if (!fallbackKeyResult.success) return fallbackKeyResult;
       apiKey = fallbackKeyResult.data.key;
-      plannerResult = await callLlmApi(
+      plannerResult = await this.callLlmApi(
           provider,
           model,
           plannerConversation,
           apiKey,
-          dependencies,
-          PLANNER_SYSTEM_PROMPT
+          this.PLANNER_SYSTEM_PROMPT
       );
     }
 
@@ -374,7 +361,7 @@ ls [-l, -a, -R], cd, cat, grep [-i, -v, -n, -R], find [path] -name [pattern] -ty
         .split("\n")
         .map((line) => line.replace(/^\d+\.\s*/, "").trim())
         .filter((line) =>
-            COMMAND_WHITELIST.includes(line.split(" ")[0])
+            this.COMMAND_WHITELIST.includes(line.split(" ")[0])
         );
 
     if (commandsToExecute.length === 0) {
@@ -392,7 +379,7 @@ ls [-l, -a, -R], cd, cat, grep [-i, -v, -n, -R], find [path] -name [pattern] -ty
 
     for (const commandStr of commandsToExecute) {
       const commandName = commandStr.split(" ")[0];
-      if (!COMMAND_WHITELIST.includes(commandName)) {
+      if (!this.COMMAND_WHITELIST.includes(commandName)) {
         const errorMsg = `Execution HALTED: AI attempted to run a non-whitelisted command: '${commandName}'.`;
         if (verboseCallback) verboseCallback(errorMsg, "text-error");
         return ErrorHandler.createError(
@@ -404,7 +391,7 @@ ls [-l, -a, -R], cd, cat, grep [-i, -v, -n, -R], find [path] -name [pattern] -ty
         verboseCallback(`> ${commandStr}`, "text-info");
       }
 
-      const execResult = await dependencies.CommandExecutor.processSingleCommand(
+      const execResult = await this.dependencies.CommandExecutor.processSingleCommand(
           commandStr,
           { suppressOutput: true, isInteractive: false }
       );
@@ -421,7 +408,7 @@ ls [-l, -a, -R], cd, cat, grep [-i, -v, -n, -R], find [path] -name [pattern] -ty
     }
 
     const synthesizerPrompt = `Original user question: "${prompt}"\n\nContext from file system:\n${executedCommandsOutput || "No commands were run."}`;
-    const synthesizerResult = await callLlmApi(
+    const synthesizerResult = await this.callLlmApi(
         provider,
         model,
         [
@@ -435,8 +422,7 @@ ls [-l, -a, -R], cd, cat, grep [-i, -v, -n, -R], find [path] -name [pattern] -ty
           },
         ],
         apiKey,
-        dependencies,
-        SYNTHESIZER_SYSTEM_PROMPT
+        this.SYNTHESIZER_SYSTEM_PROMPT
     );
 
     if (!synthesizerResult.success) {
@@ -454,14 +440,4 @@ ls [-l, -a, -R], cd, cat, grep [-i, -v, -n, -R], find [path] -name [pattern] -ty
 
     return ErrorHandler.createSuccess(finalAnswer);
   }
-
-  return {
-    getApiKey,
-    PLANNER_SYSTEM_PROMPT,
-    SYNTHESIZER_SYSTEM_PROMPT,
-    COMMAND_WHITELIST,
-    callLlmApi,
-    getTerminalContext,
-    performAgenticSearch,
-  };
-})();
+}

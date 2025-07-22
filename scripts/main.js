@@ -155,6 +155,8 @@ window.onload = async () => {
   const historyManager = new HistoryManager();
   const tabCompletionManager = new TabCompletionManager();
   const uiComponents = new UIComponents();
+  const aiManager = new AIManager();
+  const commandRegistry = new CommandRegistry();
 
 
   const dependencies = {
@@ -179,11 +181,11 @@ window.onload = async () => {
     ErrorHandler: ErrorHandler,
     Lexer: Lexer,
     Parser: Parser,
-    CommandRegistry: CommandRegistry,
+    CommandRegistry: commandRegistry,
     TimestampParser: TimestampParser,
     DiffUtils: DiffUtils,
     PatchUtils: PatchUtils,
-    AIManager: AIManager,
+    AIManager: aiManager,
     MessageBusManager: messageBusManager,
     UIComponents: uiComponents,
     domElements: domElements,
@@ -211,7 +213,7 @@ window.onload = async () => {
   historyManager.setDependencies(dependencies);
   tabCompletionManager.setDependencies(dependencies);
   uiComponents.setDependencies(dependencies);
-
+  aiManager.setDependencies(dependencies);
 
   try {
     // Initialization sequence
