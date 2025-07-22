@@ -1,236 +1,233 @@
 // scripts/commands/ls.js
-(() => {
-  "use strict";
+function getItemDetails(itemName, itemNode, itemPath, dependencies) {
+  const { FileSystemManager, Utils } = dependencies;
+  if (!itemNode) return null;
+  return {
+    name: itemName,
+    path: itemPath,
+    node: itemNode,
+    type: itemNode.type,
+    owner: itemNode.owner || "unknown",
+    group: itemNode.group || "unknown",
+    mode: itemNode.mode,
+    mtime: itemNode.mtime ? new Date(itemNode.mtime) : new Date(0),
+    size: FileSystemManager.calculateNodeSize(itemNode),
+    extension: Utils.getFileExtension(itemName),
+    linkCount: 1, // Hardcoded for this simulation
+  };
+}
 
-  function getItemDetails(itemName, itemNode, itemPath, dependencies) {
-    const { FileSystemManager, Utils } = dependencies;
-    if (!itemNode) return null;
-    return {
-      name: itemName,
-      path: itemPath,
-      node: itemNode,
-      type: itemNode.type,
-      owner: itemNode.owner || "unknown",
-      group: itemNode.group || "unknown",
-      mode: itemNode.mode,
-      mtime: itemNode.mtime ? new Date(itemNode.mtime) : new Date(0),
-      size: FileSystemManager.calculateNodeSize(itemNode),
-      extension: Utils.getFileExtension(itemName),
-      linkCount: 1, // Hardcoded for this simulation
-    };
-  }
+function formatLongListItem(itemDetails, effectiveFlags, dependencies) {
+  const { FileSystemManager, Utils } = dependencies;
+  const perms = FileSystemManager.formatModeToString(itemDetails.node);
+  const owner = (itemDetails.node.owner || "unknown").padEnd(10);
+  const group = (itemDetails.node.group || "unknown").padEnd(10);
+  const size = effectiveFlags.humanReadable
+      ? Utils.formatBytes(itemDetails.size).padStart(8)
+      : String(itemDetails.size).padStart(8);
 
-  function formatLongListItem(itemDetails, effectiveFlags, dependencies) {
-    const { FileSystemManager, Utils } = dependencies;
-    const perms = FileSystemManager.formatModeToString(itemDetails.node);
-    const owner = (itemDetails.node.owner || "unknown").padEnd(10);
-    const group = (itemDetails.node.group || "unknown").padEnd(10);
-    const size = effectiveFlags.humanReadable
-        ? Utils.formatBytes(itemDetails.size).padStart(8)
-        : String(itemDetails.size).padStart(8);
+  let dateStr;
+  const fileDate = itemDetails.mtime;
+  if (fileDate && fileDate.getTime() !== 0) {
+    const now = new Date();
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(now.getMonth() - 6);
 
-    let dateStr;
-    const fileDate = itemDetails.mtime;
-    if (fileDate && fileDate.getTime() !== 0) {
-      const now = new Date();
-      const sixMonthsAgo = new Date();
-      sixMonthsAgo.setMonth(now.getMonth() - 6);
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+    const month = months[fileDate.getMonth()];
+    const day = fileDate.getDate().toString().padStart(2, " ");
 
-      const months = [
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jun",
-        "Jul",
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
-      ];
-      const month = months[fileDate.getMonth()];
-      const day = fileDate.getDate().toString().padStart(2, " ");
-
-      if (fileDate > sixMonthsAgo) {
-        const hours = fileDate.getHours().toString().padStart(2, "0");
-        const minutes = fileDate.getMinutes().toString().padStart(2, "0");
-        dateStr = `${month} ${day} ${hours}:${minutes}`;
-      } else {
-        const year = fileDate.getFullYear();
-        dateStr = `${month} ${day}  ${year}`;
-      }
+    if (fileDate > sixMonthsAgo) {
+      const hours = fileDate.getHours().toString().padStart(2, "0");
+      const minutes = fileDate.getMinutes().toString().padStart(2, "0");
+      dateStr = `${month} ${day} ${hours}:${minutes}`;
     } else {
-      dateStr = "Jan  1  1970";
+      const year = fileDate.getFullYear();
+      dateStr = `${month} ${day}  ${year}`;
     }
-
-    const nameSuffix =
-        itemDetails.type === "directory" && !effectiveFlags.dirsOnly ? "/" : "";
-    return `${perms}  ${String(itemDetails.linkCount).padStart(2)} ${owner}${group}${size} ${dateStr.padEnd(12)} ${itemDetails.name}${nameSuffix}`;
+  } else {
+    dateStr = "Jan  1  1970";
   }
 
-  function sortItems(items, currentFlags) {
-    let sortedItems = [...items];
-    if (currentFlags.noSort) {
-      return sortedItems;
-    }
+  const nameSuffix =
+      itemDetails.type === "directory" && !effectiveFlags.dirsOnly ? "/" : "";
+  return `${perms}  ${String(itemDetails.linkCount).padStart(2)} ${owner}${group}${size} ${dateStr.padEnd(12)} ${itemDetails.name}${nameSuffix}`;
+}
 
-    const sortOrder = currentFlags.reverseSort ? -1 : 1;
-
-    sortedItems.sort((a, b) => {
-      if (currentFlags.sortByTime) {
-        return (b.mtime - a.mtime || a.name.localeCompare(b.name)) * sortOrder;
-      }
-      if (currentFlags.sortBySize) {
-        return (b.size - a.size || a.name.localeCompare(b.name)) * sortOrder;
-      }
-      if (currentFlags.sortByExtension) {
-        return (
-            (a.extension.localeCompare(b.extension) ||
-                a.name.localeCompare(b.name)) * sortOrder
-        );
-      }
-      return a.name.localeCompare(b.name) * sortOrder;
-    });
-
+function sortItems(items, currentFlags) {
+  let sortedItems = [...items];
+  if (currentFlags.noSort) {
     return sortedItems;
   }
 
-  function formatToColumns(names, options = {}, dependencies) {
-    const { Utils } = dependencies;
-    if (names.length === 0) return "";
+  const sortOrder = currentFlags.reverseSort ? -1 : 1;
 
-    const terminalDiv = document.getElementById("terminal");
-    const isVisibleAndInteractive = options.isInteractive && terminalDiv?.clientWidth > 0;
+  sortedItems.sort((a, b) => {
+    if (currentFlags.sortByTime) {
+      return (b.mtime - a.mtime || a.name.localeCompare(b.name)) * sortOrder;
+    }
+    if (currentFlags.sortBySize) {
+      return (b.size - a.size || a.name.localeCompare(b.name)) * sortOrder;
+    }
+    if (currentFlags.sortByExtension) {
+      return (
+          (a.extension.localeCompare(b.extension) ||
+              a.name.localeCompare(b.name)) * sortOrder
+      );
+    }
+    return a.name.localeCompare(b.name) * sortOrder;
+  });
 
-    const charDimensions = Utils.getCharacterDimensions();
-    const terminalWidth = isVisibleAndInteractive
-        ? terminalDiv.clientWidth
-        : 80 * (charDimensions.width || 8);
-    const charWidth = charDimensions.width || 8;
+  return sortedItems;
+}
 
-    const displayableCols = Math.floor(terminalWidth / charWidth);
+function formatToColumns(names, options = {}, dependencies) {
+  const { Utils } = dependencies;
+  if (names.length === 0) return "";
 
-    const longestName = names.reduce(
-        (max, name) => Math.max(max, name.length),
-        0
+  const terminalDiv = document.getElementById("terminal");
+  const isVisibleAndInteractive = options.isInteractive && terminalDiv?.clientWidth > 0;
+
+  const charDimensions = Utils.getCharacterDimensions();
+  const terminalWidth = isVisibleAndInteractive
+      ? terminalDiv.clientWidth
+      : 80 * (charDimensions.width || 8);
+  const charWidth = charDimensions.width || 8;
+
+  const displayableCols = Math.floor(terminalWidth / charWidth);
+
+  const longestName = names.reduce(
+      (max, name) => Math.max(max, name.length),
+      0
+  );
+  const colWidth = longestName + 2;
+
+  if (colWidth > displayableCols) {
+    return names.join("\n");
+  }
+
+  const numColumns = Math.max(1, Math.floor(displayableCols / colWidth));
+  const numRows = Math.ceil(names.length / numColumns);
+
+  const output = [];
+  for (let i = 0; i < numRows; i++) {
+    let row = "";
+    for (let j = 0; j < numColumns; j++) {
+      const index = j * numRows + i;
+      if (index < names.length) {
+        const item = names[index];
+        row += item.padEnd(colWidth);
+      }
+    }
+    output.push(row);
+  }
+
+  return output.join("\n");
+}
+
+async function listSinglePathContents(
+    targetPathArg,
+    effectiveFlags,
+    currentUser,
+    options,
+    dependencies
+) {
+  const { FileSystemManager, ErrorHandler } = dependencies;
+  const resolvedPath = FileSystemManager.getAbsolutePath(targetPathArg);
+  const pathValidationResult = FileSystemManager.validatePath(resolvedPath);
+
+  if (!pathValidationResult.success) {
+    return ErrorHandler.createError(
+        `ls: cannot access '${targetPathArg}': ${pathValidationResult.error.replace(resolvedPath + ":", "").trim()}`
     );
-    const colWidth = longestName + 2;
+  }
+  const { node: targetNode } = pathValidationResult.data;
 
-    if (colWidth > displayableCols) {
-      return names.join("\n");
-    }
-
-    const numColumns = Math.max(1, Math.floor(displayableCols / colWidth));
-    const numRows = Math.ceil(names.length / numColumns);
-
-    const output = [];
-    for (let i = 0; i < numRows; i++) {
-      let row = "";
-      for (let j = 0; j < numColumns; j++) {
-        const index = j * numRows + i;
-        if (index < names.length) {
-          const item = names[index];
-          row += item.padEnd(colWidth);
-        }
-      }
-      output.push(row);
-    }
-
-    return output.join("\n");
+  if (!FileSystemManager.hasPermission(targetNode, currentUser, "read")) {
+    return ErrorHandler.createError(
+        `ls: cannot open directory '${targetPathArg}': Permission denied`
+    );
   }
 
-  async function listSinglePathContents(
-      targetPathArg,
-      effectiveFlags,
-      currentUser,
-      options,
-      dependencies
-  ) {
-    const { FileSystemManager, ErrorHandler } = dependencies;
-    const resolvedPath = FileSystemManager.getAbsolutePath(targetPathArg);
-    const pathValidationResult = FileSystemManager.validatePath(resolvedPath);
+  let itemDetailsList = [];
+  let singleItemResultOutput = null;
 
-    if (!pathValidationResult.success) {
-      return ErrorHandler.createError(
-          `ls: cannot access '${targetPathArg}': ${pathValidationResult.error.replace(resolvedPath + ":", "").trim()}`
+  if (effectiveFlags.dirsOnly) {
+    const details = getItemDetails(targetPathArg, targetNode, resolvedPath, dependencies);
+    if (details)
+      singleItemResultOutput = effectiveFlags.long
+          ? formatLongListItem(details, effectiveFlags, dependencies)
+          : details.name;
+  } else if (targetNode.type === "directory") {
+    const childrenNames = Object.keys(targetNode.children);
+    for (const name of childrenNames) {
+      if (!effectiveFlags.all && name.startsWith(".")) continue;
+      const details = getItemDetails(
+          name,
+          targetNode.children[name],
+          FileSystemManager.getAbsolutePath(name, resolvedPath),
+          dependencies
       );
+      if (details) itemDetailsList.push(details);
     }
-    const { node: targetNode } = pathValidationResult.data;
+    itemDetailsList = sortItems(itemDetailsList, effectiveFlags);
+  } else {
+    const fileName = resolvedPath.substring(
+        resolvedPath.lastIndexOf("/") + 1
+    );
+    const details = getItemDetails(fileName, targetNode, resolvedPath, dependencies);
+    if (details)
+      singleItemResultOutput = effectiveFlags.long
+          ? formatLongListItem(details, effectiveFlags, dependencies)
+          : details.name;
+  }
 
-    if (!FileSystemManager.hasPermission(targetNode, currentUser, "read")) {
-      return ErrorHandler.createError(
-          `ls: cannot open directory '${targetPathArg}': Permission denied`
-      );
-    }
-
-    let itemDetailsList = [];
-    let singleItemResultOutput = null;
-
-    if (effectiveFlags.dirsOnly) {
-      const details = getItemDetails(targetPathArg, targetNode, resolvedPath, dependencies);
-      if (details)
-        singleItemResultOutput = effectiveFlags.long
-            ? formatLongListItem(details, effectiveFlags, dependencies)
-            : details.name;
-    } else if (targetNode.type === "directory") {
-      const childrenNames = Object.keys(targetNode.children);
-      for (const name of childrenNames) {
-        if (!effectiveFlags.all && name.startsWith(".")) continue;
-        const details = getItemDetails(
-            name,
-            targetNode.children[name],
-            FileSystemManager.getAbsolutePath(name, resolvedPath),
-            dependencies
-        );
-        if (details) itemDetailsList.push(details);
-      }
-      itemDetailsList = sortItems(itemDetailsList, effectiveFlags);
+  let currentPathOutputLines = [];
+  if (singleItemResultOutput !== null) {
+    currentPathOutputLines.push(singleItemResultOutput);
+  } else if (itemDetailsList.length > 0) {
+    if (effectiveFlags.long) {
+      currentPathOutputLines.push(`total ${itemDetailsList.length}`);
+      itemDetailsList.forEach((item) => {
+        currentPathOutputLines.push(formatLongListItem(item, effectiveFlags, dependencies));
+      });
+    } else if (effectiveFlags.oneColumn) {
+      itemDetailsList.forEach((item) => {
+        const nameSuffix = item.type === "directory" ? "/" : "";
+        currentPathOutputLines.push(`${item.name}${nameSuffix}`);
+      });
     } else {
-      const fileName = resolvedPath.substring(
-          resolvedPath.lastIndexOf("/") + 1
-      );
-      const details = getItemDetails(fileName, targetNode, resolvedPath, dependencies);
-      if (details)
-        singleItemResultOutput = effectiveFlags.long
-            ? formatLongListItem(details, effectiveFlags, dependencies)
-            : details.name;
+      const namesToFormat = itemDetailsList.map((item) => {
+        const nameSuffix = item.type === "directory" ? "/" : "";
+        return `${item.name}${nameSuffix}`;
+      });
+      currentPathOutputLines.push(formatToColumns(namesToFormat, options, dependencies));
     }
-
-    let currentPathOutputLines = [];
-    if (singleItemResultOutput !== null) {
-      currentPathOutputLines.push(singleItemResultOutput);
-    } else if (itemDetailsList.length > 0) {
-      if (effectiveFlags.long) {
-        currentPathOutputLines.push(`total ${itemDetailsList.length}`);
-        itemDetailsList.forEach((item) => {
-          currentPathOutputLines.push(formatLongListItem(item, effectiveFlags, dependencies));
-        });
-      } else if (effectiveFlags.oneColumn) {
-        itemDetailsList.forEach((item) => {
-          const nameSuffix = item.type === "directory" ? "/" : "";
-          currentPathOutputLines.push(`${item.name}${nameSuffix}`);
-        });
-      } else {
-        const namesToFormat = itemDetailsList.map((item) => {
-          const nameSuffix = item.type === "directory" ? "/" : "";
-          return `${item.name}${nameSuffix}`;
-        });
-        currentPathOutputLines.push(formatToColumns(namesToFormat, options, dependencies));
-      }
-    }
-
-    return ErrorHandler.createSuccess({
-      output: currentPathOutputLines.join("\n"),
-      items: itemDetailsList,
-      isDir: targetNode.type === "directory",
-    });
   }
 
-    class LsCommand extends Command {
-    constructor() {
-      super({
+  return ErrorHandler.createSuccess({
+    output: currentPathOutputLines.join("\n"),
+    items: itemDetailsList,
+    isDir: targetNode.type === "directory",
+  });
+}
+
+class LsCommand extends Command {
+  constructor() {
+    super({
       commandName: "ls",
       description: "Lists directory contents and file information.",
       helpText: `Usage: ls [OPTION]... [FILE]...
@@ -256,159 +253,154 @@
       -h              With -l, print sizes in human-readable format.`,
       completionType: "paths",
       flagDefinitions: [
-      { name: "long", short: "-l" },
-      { name: "all", short: "-a" },
-      { name: "recursive", short: "-R" },
-      { name: "reverseSort", short: "-r" },
-      { name: "sortByTime", short: "-t" },
-      { name: "sortBySize", short: "-S" },
-      { name: "sortByExtension", short: "-X" },
-      { name: "noSort", short: "-U" },
-      { name: "dirsOnly", short: "-d" },
-      { name: "oneColumn", short: "-1" },
-      { name: "humanReadable", short: "-h" },
+        { name: "long", short: "-l" },
+        { name: "all", short: "-a" },
+        { name: "recursive", short: "-R" },
+        { name: "reverseSort", short: "-r" },
+        { name: "sortByTime", short: "-t" },
+        { name: "sortBySize", short: "-S" },
+        { name: "sortByExtension", short: "-X" },
+        { name: "noSort", short: "-U" },
+        { name: "dirsOnly", short: "-d" },
+        { name: "oneColumn", short: "-1" },
+        { name: "humanReadable", short: "-h" },
       ],
-      });
-    }
-
-    async coreLogic(context) {
-      
-            const { args, flags, currentUser, options, dependencies } = context;
-            const { ErrorHandler, FileSystemManager } = dependencies;
-      
-            const effectiveFlags = { ...flags };
-            if (
-                options &&
-                !options.isInteractive &&
-                !effectiveFlags.long &&
-                !effectiveFlags.oneColumn
-            ) {
-              effectiveFlags.oneColumn = true;
-            }
-      
-            const pathsToList = args.length > 0 ? args : ["."];
-            let outputBlocks = [];
-            let overallSuccess = true;
-      
-            if (effectiveFlags.recursive) {
-              async function displayRecursive(currentPath, depth = 0) {
-                if (depth > 0 || pathsToList.length > 1) {
-                  outputBlocks.push(`\n${currentPath}:`);
-                }
-                const listResult = await listSinglePathContents(
-                    currentPath,
-                    effectiveFlags,
-                    currentUser,
-                    options,
-                    dependencies
-                );
-                if (!listResult.success) {
-                  outputBlocks.push(listResult.error);
-                  overallSuccess = false;
-                } else {
-                  const { output, items, isDir } = listResult.data;
-                  if (output) {
-                    outputBlocks.push(output);
-                  }
-      
-                  if (items && isDir) {
-                    const subdirectories = items.filter(
-                        (item) =>
-                            item.type === "directory" && !item.name.startsWith(".")
-                    );
-                    for (const dirItem of subdirectories) {
-                      await displayRecursive(dirItem.path, depth + 1);
-                    }
-                  }
-                }
-              }
-              for (const path of pathsToList) {
-                await displayRecursive(path);
-              }
-            } else {
-              const fileArgs = [];
-              const dirArgs = [];
-              const errorOutputs = [];
-      
-              for (const path of pathsToList) {
-                const pathValidationResult = FileSystemManager.validatePath(path);
-                if (!pathValidationResult.success) {
-                  errorOutputs.push(
-                      `ls: cannot access '${path}': ${pathValidationResult.error.replace(path + ":", "").trim()}`
-                  );
-                  overallSuccess = false;
-                } else if (
-                    pathValidationResult.data.node.type === "directory" &&
-                    !effectiveFlags.dirsOnly
-                ) {
-                  dirArgs.push(path);
-                } else {
-                  fileArgs.push(path);
-                }
-              }
-      
-              if (fileArgs.length > 0) {
-                const fileDetailsList = [];
-                for (const filePath of fileArgs) {
-                  const pathValidationResult =
-                      FileSystemManager.validatePath(filePath);
-                  if (pathValidationResult.success) {
-                    const details = getItemDetails(
-                        filePath,
-                        pathValidationResult.data.node,
-                        pathValidationResult.data.resolvedPath,
-                        dependencies
-                    );
-                    if (details) fileDetailsList.push(details);
-                  }
-                }
-      
-                const sortedFileItems = sortItems(fileDetailsList, effectiveFlags);
-      
-                if (effectiveFlags.long) {
-                  sortedFileItems.forEach((item) =>
-                      outputBlocks.push(formatLongListItem(item, effectiveFlags, dependencies))
-                  );
-                } else if (effectiveFlags.oneColumn) {
-                  sortedFileItems.forEach((item) => outputBlocks.push(item.name));
-                } else {
-                  outputBlocks.push(
-                      formatToColumns(sortedFileItems.map((item) => item.name), options, dependencies)
-                  );
-                }
-              }
-      
-              for (let i = 0; i < dirArgs.length; i++) {
-                if (fileArgs.length > 0 || i > 0 || errorOutputs.length > 0) {
-                  outputBlocks.push("");
-                }
-                if (pathsToList.length > 1) {
-                  outputBlocks.push(`${dirArgs[i]}:`);
-                }
-                const listResult = await listSinglePathContents(
-                    dirArgs[i],
-                    effectiveFlags,
-                    currentUser,
-                    options,
-                    dependencies
-                );
-                if (listResult.success) {
-                  outputBlocks.push(listResult.data.output);
-                } else {
-                  errorOutputs.push(listResult.error);
-                  overallSuccess = false;
-                }
-              }
-              outputBlocks = [...errorOutputs, ...outputBlocks];
-            }
-      
-            if (!overallSuccess) {
-              return ErrorHandler.createError(outputBlocks.join("\n"));
-            }
-            return ErrorHandler.createSuccess(outputBlocks.join("\n"));
-          
-    }
+    });
   }
 
-  CommandRegistry.register(new LsCommand());
-})();
+  async coreLogic(context) {
+    const { args, flags, currentUser, options, dependencies } = context;
+    const { ErrorHandler, FileSystemManager } = dependencies;
+
+    const effectiveFlags = { ...flags };
+    if (
+        options &&
+        !options.isInteractive &&
+        !effectiveFlags.long &&
+        !effectiveFlags.oneColumn
+    ) {
+      effectiveFlags.oneColumn = true;
+    }
+
+    const pathsToList = args.length > 0 ? args : ["."];
+    let outputBlocks = [];
+    let overallSuccess = true;
+
+    if (effectiveFlags.recursive) {
+      async function displayRecursive(currentPath, depth = 0) {
+        if (depth > 0 || pathsToList.length > 1) {
+          outputBlocks.push(`\n${currentPath}:`);
+        }
+        const listResult = await listSinglePathContents(
+            currentPath,
+            effectiveFlags,
+            currentUser,
+            options,
+            dependencies
+        );
+        if (!listResult.success) {
+          outputBlocks.push(listResult.error);
+          overallSuccess = false;
+        } else {
+          const { output, items, isDir } = listResult.data;
+          if (output) {
+            outputBlocks.push(output);
+          }
+
+          if (items && isDir) {
+            const subdirectories = items.filter(
+                (item) =>
+                    item.type === "directory" && !item.name.startsWith(".")
+            );
+            for (const dirItem of subdirectories) {
+              await displayRecursive(dirItem.path, depth + 1);
+            }
+          }
+        }
+      }
+      for (const path of pathsToList) {
+        await displayRecursive(path);
+      }
+    } else {
+      const fileArgs = [];
+      const dirArgs = [];
+      const errorOutputs = [];
+
+      for (const path of pathsToList) {
+        const pathValidationResult = FileSystemManager.validatePath(path);
+        if (!pathValidationResult.success) {
+          errorOutputs.push(
+              `ls: cannot access '${path}': ${pathValidationResult.error.replace(path + ":", "").trim()}`
+          );
+          overallSuccess = false;
+        } else if (
+            pathValidationResult.data.node.type === "directory" &&
+            !effectiveFlags.dirsOnly
+        ) {
+          dirArgs.push(path);
+        } else {
+          fileArgs.push(path);
+        }
+      }
+
+      if (fileArgs.length > 0) {
+        const fileDetailsList = [];
+        for (const filePath of fileArgs) {
+          const pathValidationResult =
+              FileSystemManager.validatePath(filePath);
+          if (pathValidationResult.success) {
+            const details = getItemDetails(
+                filePath,
+                pathValidationResult.data.node,
+                pathValidationResult.data.resolvedPath,
+                dependencies
+            );
+            if (details) fileDetailsList.push(details);
+          }
+        }
+
+        const sortedFileItems = sortItems(fileDetailsList, effectiveFlags);
+
+        if (effectiveFlags.long) {
+          sortedFileItems.forEach((item) =>
+              outputBlocks.push(formatLongListItem(item, effectiveFlags, dependencies))
+          );
+        } else if (effectiveFlags.oneColumn) {
+          sortedFileItems.forEach((item) => outputBlocks.push(item.name));
+        } else {
+          outputBlocks.push(
+              formatToColumns(sortedFileItems.map((item) => item.name), options, dependencies)
+          );
+        }
+      }
+
+      for (let i = 0; i < dirArgs.length; i++) {
+        if (fileArgs.length > 0 || i > 0 || errorOutputs.length > 0) {
+          outputBlocks.push("");
+        }
+        if (pathsToList.length > 1) {
+          outputBlocks.push(`${dirArgs[i]}:`);
+        }
+        const listResult = await listSinglePathContents(
+            dirArgs[i],
+            effectiveFlags,
+            currentUser,
+            options,
+            dependencies
+        );
+        if (listResult.success) {
+          outputBlocks.push(listResult.data.output);
+        } else {
+          errorOutputs.push(listResult.error);
+          overallSuccess = false;
+        }
+      }
+      outputBlocks = [...errorOutputs, ...outputBlocks];
+    }
+
+    if (!overallSuccess) {
+      return ErrorHandler.createError(outputBlocks.join("\n"));
+    }
+    return ErrorHandler.createSuccess(outputBlocks.join("\n"));
+  }
+}

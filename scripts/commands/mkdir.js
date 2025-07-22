@@ -1,10 +1,7 @@
 // scripts/commands/mkdir.js
-(() => {
-  "use strict";
-
-    class MkdirCommand extends Command {
-    constructor() {
-      super({
+class MkdirCommand extends Command {
+  constructor() {
+    super({
       commandName: "mkdir",
       description: "Creates one or more new directories.",
       helpText: `Usage: mkdir [OPTION]... <DIRECTORY>...
@@ -26,112 +23,107 @@
       if they do not already exist.`,
       completionType: "paths",
       flagDefinitions: [
-      {
-      name: "parents",
-      short: "-p",
-      long: "--parents",
-      },
+        {
+          name: "parents",
+          short: "-p",
+          long: "--parents",
+        },
       ],
       validations: {
-      args: { min: 1 }
+        args: { min: 1 }
       },
-      });
-    }
-
-    async coreLogic(context) {
-      
-            const { args, flags, currentUser, dependencies } = context;
-            const { UserManager, FileSystemManager, ErrorHandler } = dependencies;
-            let allSuccess = true;
-            const messages = [];
-            let changesMade = false;
-            const nowISO = new Date().toISOString();
-      
-            const primaryGroup = UserManager.getPrimaryGroupForUser(currentUser);
-            if (!primaryGroup) {
-              return ErrorHandler.createError(
-                  `mkdir: critical - could not determine primary group for user '${currentUser}'`
-              );
-            }
-      
-            for (const pathArg of args) {
-              const resolvedPath = FileSystemManager.getAbsolutePath(pathArg);
-              const dirName = resolvedPath.substring(
-                  resolvedPath.lastIndexOf("/") + 1
-              );
-      
-              if (
-                  resolvedPath === "/" ||
-                  dirName === "" ||
-                  dirName === "." ||
-                  dirName === ".."
-              ) {
-                messages.push(
-                    `mkdir: cannot create directory '${pathArg}': Invalid path or name`
-                );
-                allSuccess = false;
-                continue;
-              }
-      
-              const parentPathForTarget =
-                  resolvedPath.substring(0, resolvedPath.lastIndexOf("/")) || "/";
-              let parentNodeToCreateIn;
-      
-              if (flags.parents) {
-                const parentDirResult =
-                    FileSystemManager.createParentDirectoriesIfNeeded(resolvedPath);
-                if (!parentDirResult.success) {
-                  messages.push(`mkdir: ${parentDirResult.error}`);
-                  allSuccess = false;
-                  continue;
-                }
-                parentNodeToCreateIn = parentDirResult.data;
-              } else {
-                const parentValidationResult = FileSystemManager.validatePath(
-                    parentPathForTarget,
-                    { expectedType: "directory", permissions: ["write"] }
-                );
-                if (!parentValidationResult.success) {
-                  messages.push(
-                      `mkdir: cannot create directory '${pathArg}': ${parentValidationResult.error.replace(parentPathForTarget + ":", "").trim()}`
-                  );
-                  allSuccess = false;
-                  continue;
-                }
-                parentNodeToCreateIn = parentValidationResult.data.node;
-              }
-      
-              if (
-                  parentNodeToCreateIn.children &&
-                  parentNodeToCreateIn.children[dirName]
-              ) {
-                const existingItem = parentNodeToCreateIn.children[dirName];
-                if (existingItem.type === "file") {
-                  messages.push(
-                      `mkdir: cannot create directory '${pathArg}': File exists`
-                  );
-                  allSuccess = false;
-                } else if (existingItem.type === "directory" && !flags.parents) {
-                  // This is not an error, just do nothing.
-                }
-              } else {
-                parentNodeToCreateIn.children[dirName] =
-                    FileSystemManager._createNewDirectoryNode(
-                        currentUser,
-                        primaryGroup
-                    );
-                parentNodeToCreateIn.mtime = nowISO;
-                changesMade = true;
-              }
-            }
-      
-            if (!allSuccess) {
-              return ErrorHandler.createError(messages.join("\n"));
-            }
-            return ErrorHandler.createSuccess("", { stateModified: changesMade });
-          
-    }
+    });
   }
 
-  CommandRegistry.register(new MkdirCommand());
-})();
+  async coreLogic(context) {
+    const { args, flags, currentUser, dependencies } = context;
+    const { UserManager, FileSystemManager, ErrorHandler } = dependencies;
+    let allSuccess = true;
+    const messages = [];
+    let changesMade = false;
+    const nowISO = new Date().toISOString();
+
+    const primaryGroup = UserManager.getPrimaryGroupForUser(currentUser);
+    if (!primaryGroup) {
+      return ErrorHandler.createError(
+          `mkdir: critical - could not determine primary group for user '${currentUser}'`
+      );
+    }
+
+    for (const pathArg of args) {
+      const resolvedPath = FileSystemManager.getAbsolutePath(pathArg);
+      const dirName = resolvedPath.substring(
+          resolvedPath.lastIndexOf("/") + 1
+      );
+
+      if (
+          resolvedPath === "/" ||
+          dirName === "" ||
+          dirName === "." ||
+          dirName === ".."
+      ) {
+        messages.push(
+            `mkdir: cannot create directory '${pathArg}': Invalid path or name`
+        );
+        allSuccess = false;
+        continue;
+      }
+
+      const parentPathForTarget =
+          resolvedPath.substring(0, resolvedPath.lastIndexOf("/")) || "/";
+      let parentNodeToCreateIn;
+
+      if (flags.parents) {
+        const parentDirResult =
+            FileSystemManager.createParentDirectoriesIfNeeded(resolvedPath);
+        if (!parentDirResult.success) {
+          messages.push(`mkdir: ${parentDirResult.error}`);
+          allSuccess = false;
+          continue;
+        }
+        parentNodeToCreateIn = parentDirResult.data;
+      } else {
+        const parentValidationResult = FileSystemManager.validatePath(
+            parentPathForTarget,
+            { expectedType: "directory", permissions: ["write"] }
+        );
+        if (!parentValidationResult.success) {
+          messages.push(
+              `mkdir: cannot create directory '${pathArg}': ${parentValidationResult.error.replace(parentPathForTarget + ":", "").trim()}`
+          );
+          allSuccess = false;
+          continue;
+        }
+        parentNodeToCreateIn = parentValidationResult.data.node;
+      }
+
+      if (
+          parentNodeToCreateIn.children &&
+          parentNodeToCreateIn.children[dirName]
+      ) {
+        const existingItem = parentNodeToCreateIn.children[dirName];
+        if (existingItem.type === "file") {
+          messages.push(
+              `mkdir: cannot create directory '${pathArg}': File exists`
+          );
+          allSuccess = false;
+        } else if (existingItem.type === "directory" && !flags.parents) {
+          // This is not an error, just do nothing.
+        }
+      } else {
+        parentNodeToCreateIn.children[dirName] =
+            FileSystemManager._createNewDirectoryNode(
+                currentUser,
+                primaryGroup
+            );
+        parentNodeToCreateIn.mtime = nowISO;
+        changesMade = true;
+      }
+    }
+
+    if (!allSuccess) {
+      return ErrorHandler.createError(messages.join("\n"));
+    }
+    return ErrorHandler.createSuccess("", { stateModified: changesMade });
+  }
+}
