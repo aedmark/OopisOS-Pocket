@@ -89,6 +89,7 @@ function initializeTerminalEventListeners(domElements, commandExecutor) {
         } else {
           cursorPos = currentInput.length;
         }
+        TabCompletionManager.setCompleting(true);
         const result = await TabCompletionManager.handleTab(
             currentInput,
             cursorPos
@@ -103,11 +104,17 @@ function initializeTerminalEventListeners(domElements, commandExecutor) {
               result.newCursorPos
           );
         }
+        TabCompletionManager.setCompleting(false);
         break;
     }
   });
 
   if (domElements.editableInputDiv) {
+    domElements.editableInputDiv.addEventListener("input", () => {
+      if (!TabCompletionManager.isCompleting()) {
+        TabCompletionManager.resetCycle();
+      }
+    });
     domElements.editableInputDiv.addEventListener("paste", (e) => {
       e.preventDefault();
       if (domElements.editableInputDiv.contentEditable !== "true") return;

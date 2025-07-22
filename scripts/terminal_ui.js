@@ -314,9 +314,10 @@ var TabCompletionManager = (() => {
   let cycleIndex = -1;
   let lastCompletionInput = null;
   let dependencies = {};
+  let isCompleting = false;
 
-  function setDependencies(injectedDependencies) {
-    dependencies = injectedDependencies;
+  function setCompleting(status) {
+    isCompleting = status;
   }
 
   function resetCycle() {
@@ -575,6 +576,8 @@ var TabCompletionManager = (() => {
     handleTab,
     resetCycle,
     setDependencies,
+    isCompleting: () => isCompleting,
+    setCompleting,
   };
 })();
 
