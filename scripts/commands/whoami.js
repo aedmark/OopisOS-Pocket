@@ -1,10 +1,7 @@
 // scripts/commands/whoami.js
-(() => {
-  "use strict";
-
-    class WhoamiCommand extends Command {
-    constructor() {
-      super({
+class WhoamiCommand extends Command {
+  constructor() {
+    super({
       commandName: "whoami",
       description: "Prints the current effective user name.",
       helpText: `Usage: whoami
@@ -13,19 +10,14 @@
       The whoami command prints the user name associated with the
       current effective user ID.`,
       argValidation: {
-      exact: 0,
+        exact: 0,
       },
-      });
-    }
-
-    async coreLogic(context) {
-      
-            const { dependencies } = context;
-            const { ErrorHandler, UserManager } = dependencies;
-            return ErrorHandler.createSuccess(UserManager.getCurrentUser().name);
-          
-    }
+    });
   }
 
-  CommandRegistry.register(new WhoamiCommand());
-})();
+  async coreLogic(context) {
+    const { dependencies } = context;
+    const { ErrorHandler, UserManager } = dependencies;
+    return ErrorHandler.createSuccess(UserManager.getCurrentUser().name);
+  }
+}

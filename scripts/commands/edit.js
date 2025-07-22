@@ -1,15 +1,12 @@
 // scripts/commands/edit.js
-(() => {
-  "use strict";
-
-    class EditCommand extends Command {
+class EditCommand extends Command {
     constructor() {
-      super({
-      commandName: "edit",
-      dependencies: ["apps/editor/editor_ui.js", "apps/editor/editor_manager.js"],
-      applicationModules: ["EditorManager", "EditorUI", "App"],
-      description: "A powerful, context-aware text and code editor.",
-      helpText: `Usage: edit [filepath]
+        super({
+            commandName: "edit",
+            dependencies: ["apps/editor/editor_ui.js", "apps/editor/editor_manager.js"],
+            applicationModules: ["EditorManager", "EditorUI", "App"],
+            description: "A powerful, context-aware text and code editor.",
+            helpText: `Usage: edit [filepath]
       Launches the OopisOS text editor.
       DESCRIPTION
       The 'edit' command opens a powerful, full-screen modal application for creating
@@ -24,71 +21,66 @@
       KEYBOARD SHORTCUTS
       Ctrl+S: Save       Ctrl+O: Exit
       Ctrl+P: Toggle Preview`,
-      completionType: "paths",
-      argValidation: {
-      max: 1,
-      error: "Usage: edit [filepath]",
-      },
-      validations: {
-      paths: [
-      {
-      argIndex: 0,
-      options: { allowMissing: true, expectedType: "file" },
-      permissions: ["read"],
-      required: false,
-      },
-      ],
-      },
-      });
+            completionType: "paths",
+            argValidation: {
+                max: 1,
+                error: "Usage: edit [filepath]",
+            },
+            validations: {
+                paths: [
+                    {
+                        argIndex: 0,
+                        options: { allowMissing: true, expectedType: "file" },
+                        permissions: ["read"],
+                        required: false,
+                    },
+                ],
+            },
+        });
     }
 
     async coreLogic(context) {
-      
-            const { args, options, validatedPaths, dependencies } = context;
-            const { ErrorHandler, Utils, CommandExecutor, AppLayerManager, EditorManager } = dependencies;
-      
-            if (!options.isInteractive) {
-              return ErrorHandler.createError(
-                  "edit: Can only be run in interactive mode."
-              );
-            }
-      
-            const hasFileArgument = args.length > 0 && validatedPaths.length > 0;
-            const filePath = hasFileArgument ? validatedPaths[0].resolvedPath : null;
-            const node = hasFileArgument ? validatedPaths[0].node : null;
-      
-            const extension = Utils.getFileExtension(filePath);
-            const codeExtensions = ["js", "sh", "css", "json"];
-      
-            if (codeExtensions.includes(extension)) {
-              // It's a code file, delegate to the 'code' command/editor
-              await CommandExecutor._ensureCommandLoaded("code");
-              // Use an empty string for path if it's null to avoid issues
-              return CommandExecutor.processSingleCommand(`code "${filePath || ''}"`, {
-                isInteractive: true,
-              });
-            }
-      
-            // Ensure Editor modules are loaded before using them
-            if (typeof EditorManager === 'undefined') {
-              return ErrorHandler.createError(
-                  "edit: The editor application modules are not loaded."
-              );
-            }
-      
-            const fileContent = node ? node.content || "" : "";
-      
-            // Launch the Editor application
-            AppLayerManager.show(new EditorManager(), {
-              filePath: filePath,
-              fileContent,
-              dependencies: dependencies
-            });
-      
-            return ErrorHandler.createSuccess("");
-          
-    }
-  }
+        const { args, options, validatedPaths, dependencies } = context;
+        const { ErrorHandler, Utils, CommandExecutor, AppLayerManager, EditorManager } = dependencies;
 
-  CommandRegistry.register(new EditCommand());
-})();
+        if (!options.isInteractive) {
+            return ErrorHandler.createError(
+                "edit: Can only be run in interactive mode."
+            );
+        }
+
+        const hasFileArgument = args.length > 0 && validatedPaths.length > 0;
+        const filePath = hasFileArgument ? validatedPaths[0].resolvedPath : null;
+        const node = hasFileArgument ? validatedPaths[0].node : null;
+
+        const extension = Utils.getFileExtension(filePath);
+        const codeExtensions = ["js", "sh", "css", "json"];
+
+        if (codeExtensions.includes(extension)) {
+            // It's a code file, delegate to the 'code' command/editor
+            await CommandExecutor._ensureCommandLoaded("code");
+            // Use an empty string for path if it's null to avoid issues
+            return CommandExecutor.processSingleCommand(`code "${filePath || ''}"`, {
+                isInteractive: true,
+            });
+        }
+
+        // Ensure Editor modules are loaded before using them
+        if (typeof EditorManager === 'undefined') {
+            return ErrorHandler.createError(
+                "edit: The editor application modules are not loaded."
+            );
+        }
+
+        const fileContent = node ? node.content || "" : "";
+
+        // Launch the Editor application
+        AppLayerManager.show(new EditorManager(), {
+            filePath: filePath,
+            fileContent,
+            dependencies: dependencies
+        });
+
+        return ErrorHandler.createSuccess("");
+    }
+}
