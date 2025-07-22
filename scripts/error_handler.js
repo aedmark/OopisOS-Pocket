@@ -1,16 +1,16 @@
 // scripts/error_handler.js
-const ErrorHandler = (() => {
-  "use strict";
-
+class ErrorHandler {
   /**
    * Creates a standardized error object.
    * @param {string} message - A descriptive error message.
    * @returns {{success: false, error: string}}
    */
-  const createError = (message) => ({
-    success: false,
-    error: message,
-  });
+  static createError(message) {
+    return {
+      success: false,
+      error: message,
+    };
+  }
 
   /**
    * Creates a standardized success object.
@@ -18,14 +18,11 @@ const ErrorHandler = (() => {
    * @param {object} [options={}] - Additional options for the success object.
    * @returns {{success: true, data: *, ...options}}
    */
-  const createSuccess = (data = null, options = {}) => ({
-    success: true,
-    data: data,
-    ...options,
-  });
-
-  return {
-    createError,
-    createSuccess,
-  };
-})();
+  static createSuccess(data = null, options = {}) {
+    return {
+      success: true,
+      data: data,
+      ...options,
+    };
+  }
+}

@@ -1,8 +1,6 @@
 // scripts/utils.js
-var Utils = (() => {
-  "use strict";
-
-  function extractComments(content, fileExtension) {
+class Utils {
+  static extractComments(content, fileExtension) {
     let comments = [];
     let regex;
 
@@ -23,9 +21,9 @@ var Utils = (() => {
         if (comment.startsWith("/*")) {
           // Clean up multi-line comment markers
           return comment
-            .replace(/^\/\*+/, "")
-            .replace(/\*\/$/, "")
-            .trim();
+              .replace(/^\/\*+/, "")
+              .replace(/\*\/$/, "")
+              .trim();
         } else {
           // Clean up single-line comment markers
           return comment.replace(/^\/\//, "").replace(/^#/, "").trim();
@@ -35,7 +33,7 @@ var Utils = (() => {
     return comments.join("\n");
   }
 
-  function debounce(func, delay) {
+  static debounce(func, delay) {
     let timeout;
     return function (...args) {
       const context = this;
@@ -44,7 +42,7 @@ var Utils = (() => {
     };
   }
 
-  function getCharacterDimensions(fontStyle = '16px "VT323"') {
+  static getCharacterDimensions(fontStyle = '16px "VT323"') {
     const tempSpan = document.createElement("span");
     tempSpan.textContent = "M";
     tempSpan.style.font = fontStyle;
@@ -60,7 +58,7 @@ var Utils = (() => {
     return { width: rect.width, height: rect.height };
   }
 
-  async function calculateSHA256(text) {
+  static async calculateSHA256(text) {
     if (typeof text !== "string") {
       return null;
     }
@@ -76,17 +74,17 @@ var Utils = (() => {
     }
   }
 
-  function formatConsoleArgs(args) {
+  static formatConsoleArgs(args) {
     return Array.from(args)
-      .map((arg) =>
-        typeof arg === "object" && arg !== null
-          ? JSON.stringify(arg)
-          : String(arg)
-      )
-      .join(" ");
+        .map((arg) =>
+            typeof arg === "object" && arg !== null
+                ? JSON.stringify(arg)
+                : String(arg)
+        )
+        .join(" ");
   }
 
-  function parseKeyValue(args) {
+  static parseKeyValue(args) {
     const combined = args.join(" ");
     const eqIndex = combined.indexOf("=");
 
@@ -100,8 +98,8 @@ var Utils = (() => {
 
     // Strip quotes from the value
     if (
-      (value.startsWith("'") && value.endsWith("'")) ||
-      (value.startsWith('"') && value.endsWith('"'))
+        (value.startsWith("'") && value.endsWith("'")) ||
+        (value.startsWith('"') && value.endsWith('"'))
     ) {
       value = value.substring(1, value.length - 1);
     }
@@ -109,11 +107,11 @@ var Utils = (() => {
     return { name, value };
   }
 
-  function deepCopyNode(node) {
+  static deepCopyNode(node) {
     return node ? JSON.parse(JSON.stringify(node)) : null;
   }
 
-  function formatBytes(bytes, decimals = 2) {
+  static formatBytes(bytes, decimals = 2) {
     if (bytes === 0) return "0 B";
     const k = 1024;
     const dm = decimals < 0 ? 0 : decimals;
@@ -122,12 +120,12 @@ var Utils = (() => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
   }
 
-  function getFileExtension(filePath) {
+  static getFileExtension(filePath) {
     if (!filePath || typeof filePath !== "string") return "";
     const separator =
-      typeof Config !== "undefined" && Config.FILESYSTEM
-        ? Config.FILESYSTEM.PATH_SEPARATOR
-        : "/";
+        typeof Config !== "undefined" && Config.FILESYSTEM
+            ? Config.FILESYSTEM.PATH_SEPARATOR
+            : "/";
     const name = filePath.substring(filePath.lastIndexOf(separator) + 1);
     const lastDot = name.lastIndexOf(".");
     if (lastDot === -1 || lastDot === 0 || lastDot === name.length - 1) {
@@ -136,7 +134,7 @@ var Utils = (() => {
     return name.substring(lastDot + 1).toLowerCase();
   }
 
-  function createElement(tag, attributes = {}, ...childrenArgs) {
+  static createElement(tag, attributes = {}, ...childrenArgs) {
     const element = document.createElement(tag);
     for (const key in attributes) {
       if (Object.prototype.hasOwnProperty.call(attributes, key)) {
@@ -172,7 +170,7 @@ var Utils = (() => {
     return element;
   }
 
-  function validateArguments(argsArray, config = {}) {
+  static validateArguments(argsArray, config = {}) {
     const argCount = argsArray.length;
     if (typeof config.exact === "number" && argCount !== config.exact) {
       return {
@@ -195,7 +193,7 @@ var Utils = (() => {
     return { isValid: true };
   }
 
-  function parseNumericArg(argString, options = {}) {
+  static parseNumericArg(argString, options = {}) {
     const { allowFloat = false, allowNegative = false, min, max } = options;
     const num = allowFloat ? parseFloat(argString) : parseInt(argString, 10);
     if (isNaN(num)) return { value: null, error: "is not a valid number" };
@@ -208,30 +206,30 @@ var Utils = (() => {
     return { value: num, error: null };
   }
 
-  function validateUsernameFormat(username) {
+  static validateUsernameFormat(username) {
     if (!username || typeof username !== "string" || username.trim() === "")
       return { isValid: false, error: "Username cannot be empty." };
     if (username.includes(" "))
       return { isValid: false, error: "Username cannot contain spaces." };
     if (
-      typeof Config !== "undefined" &&
-      Config.USER.RESERVED_USERNAMES.includes(username.toLowerCase())
+        typeof Config !== "undefined" &&
+        Config.USER.RESERVED_USERNAMES.includes(username.toLowerCase())
     )
       return {
         isValid: false,
         error: `Cannot use '${username}'. This username is reserved.`,
       };
     if (
-      typeof Config !== "undefined" &&
-      username.length < Config.USER.MIN_USERNAME_LENGTH
+        typeof Config !== "undefined" &&
+        username.length < Config.USER.MIN_USERNAME_LENGTH
     )
       return {
         isValid: false,
         error: `Username must be at least ${Config.USER.MIN_USERNAME_LENGTH} characters long.`,
       };
     if (
-      typeof Config !== "undefined" &&
-      username.length > Config.USER.MAX_USERNAME_LENGTH
+        typeof Config !== "undefined" &&
+        username.length > Config.USER.MAX_USERNAME_LENGTH
     )
       return {
         isValid: false,
@@ -240,7 +238,7 @@ var Utils = (() => {
     return { isValid: true, error: null };
   }
 
-  function parseFlags(argsArray, flagDefinitions) {
+  static parseFlags(argsArray, flagDefinitions) {
     const flags = {};
     const remainingArgs = [];
     flagDefinitions.forEach((def) => {
@@ -255,7 +253,7 @@ var Utils = (() => {
       }
 
       const exactDef = flagDefinitions.find((d) =>
-        [d.long, d.short, ...(d.aliases || [])].includes(arg)
+          [d.long, d.short, ...(d.aliases || [])].includes(arg)
       );
       if (exactDef) {
         if (exactDef.takesValue) {
@@ -271,7 +269,7 @@ var Utils = (() => {
       if (!arg.startsWith("--") && arg.length > 2) {
         const shortFlag = arg.substring(0, 2);
         const valueTakingDef = flagDefinitions.find(
-          (d) => [d.short].includes(shortFlag) && d.takesValue
+            (d) => [d.short].includes(shortFlag) && d.takesValue
         );
         if (valueTakingDef) {
           flags[valueTakingDef.name] = arg.substring(2);
@@ -282,7 +280,7 @@ var Utils = (() => {
         let consumed = true;
         for (const char of chars) {
           const charDef = flagDefinitions.find(
-            (d) => [d.short].includes(`-${char}`) && !d.takesValue
+              (d) => [d.short].includes(`-${char}`) && !d.takesValue
           );
           if (charDef) {
             flags[charDef.name] = true;
@@ -300,7 +298,7 @@ var Utils = (() => {
     return { flags, remainingArgs };
   }
 
-  function globToRegex(glob) {
+  static globToRegex(glob) {
     if (glob === "*") return /.*/;
 
     let regexStr = "^";
@@ -348,29 +346,9 @@ var Utils = (() => {
       return new RegExp(regexStr, "u");
     } catch (e) {
       console.warn(
-        `Utils.globToRegex: Failed to convert glob "${glob}" to regex: ${e.message}`
+          `Utils.globToRegex: Failed to convert glob "${glob}" to regex: ${e.message}`
       );
       return null;
     }
   }
-  return {
-    getCharacterDimensions,
-    calculateSHA256,
-    formatConsoleArgs,
-    deepCopyNode,
-    formatBytes,
-    getFileExtension,
-    createElement,
-    validateArguments,
-    parseNumericArg,
-    validateUsernameFormat,
-    parseFlags,
-    globToRegex,
-    debounce,
-    extractComments,
-    parseKeyValue,
-  };
-})();
-
-
-
+}

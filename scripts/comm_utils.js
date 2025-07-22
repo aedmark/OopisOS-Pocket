@@ -1,21 +1,20 @@
-var TimestampParser = (() => {
-  "use strict";
-
-  function parseDateString(dateStr) {
+// scripts/comm_utils.js
+class TimestampParser {
+  static parseDateString(dateStr) {
     if (typeof dateStr !== "string") return null;
 
     const absoluteDate = new Date(dateStr);
     if (!isNaN(absoluteDate.getTime())) {
       if (
-        isNaN(parseInt(dateStr.trim(), 10)) ||
-        !/^\d+$/.test(dateStr.trim())
+          isNaN(parseInt(dateStr.trim(), 10)) ||
+          !/^\d+$/.test(dateStr.trim())
       ) {
         return absoluteDate;
       }
     }
 
     const relativeMatch = dateStr.match(
-      /([-+]?\d+)\s*(minute|hour|day|week|month|year)s?(\s+ago)?/i
+        /([-+]?\d+)\s*(minute|hour|day|week|month|year)s?(\s+ago)?/i
     );
 
     if (relativeMatch) {
@@ -57,20 +56,20 @@ var TimestampParser = (() => {
     return null;
   }
 
-  function parseStampToISO(stampStr) {
+  static parseStampToISO(stampStr) {
     let year,
-      monthVal,
-      day,
-      hours,
-      minutes,
-      seconds = 0;
+        monthVal,
+        day,
+        hours,
+        minutes,
+        seconds = 0;
     let s = stampStr;
     if (s.includes(".")) {
       const parts = s.split(".");
       if (
-        parts.length !== 2 ||
-        parts[1].length !== 2 ||
-        isNaN(parseInt(parts[1], 10))
+          parts.length !== 2 ||
+          parts[1].length !== 2 ||
+          isNaN(parseInt(parts[1], 10))
       )
         return null;
       seconds = parseInt(parts[1], 10);
@@ -93,40 +92,40 @@ var TimestampParser = (() => {
       minutes = parseInt(s.substring(8, 10), 10);
     } else return null;
     if (
-      isNaN(year) ||
-      isNaN(monthVal) ||
-      isNaN(day) ||
-      isNaN(hours) ||
-      isNaN(minutes)
+        isNaN(year) ||
+        isNaN(monthVal) ||
+        isNaN(day) ||
+        isNaN(hours) ||
+        isNaN(minutes)
     )
       return null;
     if (
-      monthVal < 1 ||
-      monthVal > 12 ||
-      day < 1 ||
-      day > 31 ||
-      hours < 0 ||
-      hours > 23 ||
-      minutes < 0 ||
-      minutes > 59
+        monthVal < 1 ||
+        monthVal > 12 ||
+        day < 1 ||
+        day > 31 ||
+        hours < 0 ||
+        hours > 23 ||
+        minutes < 0 ||
+        minutes > 59
     )
       return null;
     const dateObj = new Date(
-      Date.UTC(year, monthVal - 1, day, hours, minutes, seconds)
+        Date.UTC(year, monthVal - 1, day, hours, minutes, seconds)
     );
     if (
-      dateObj.getUTCFullYear() !== year ||
-      dateObj.getUTCMonth() !== monthVal - 1 ||
-      dateObj.getUTCDate() !== day ||
-      dateObj.getUTCHours() !== hours ||
-      dateObj.getUTCMinutes() !== minutes ||
-      dateObj.getUTCSeconds() !== seconds
+        dateObj.getUTCFullYear() !== year ||
+        dateObj.getUTCMonth() !== monthVal - 1 ||
+        dateObj.getUTCDate() !== day ||
+        dateObj.getUTCHours() !== hours ||
+        dateObj.getUTCMinutes() !== minutes ||
+        dateObj.getUTCSeconds() !== seconds
     )
       return null;
     return dateObj.toISOString();
   }
 
-  function resolveTimestampFromCommandFlags(flags, commandName) {
+  static resolveTimestampFromCommandFlags(flags, commandName) {
     if (flags.dateString && flags.stamp) {
       return {
         timestampISO: null,
@@ -134,7 +133,7 @@ var TimestampParser = (() => {
       };
     }
     if (flags.dateString) {
-      const parsedDate = parseDateString(flags.dateString);
+      const parsedDate = this.parseDateString(flags.dateString);
       if (!parsedDate) {
         return {
           timestampISO: null,
@@ -144,7 +143,7 @@ var TimestampParser = (() => {
       return { timestampISO: parsedDate.toISOString(), error: null };
     }
     if (flags.stamp) {
-      const parsedISO = parseStampToISO(flags.stamp);
+      const parsedISO = this.parseStampToISO(flags.stamp);
       if (!parsedISO) {
         return {
           timestampISO: null,
@@ -155,16 +154,10 @@ var TimestampParser = (() => {
     }
     return { timestampISO: new Date().toISOString(), error: null };
   }
-  return {
-    parseDateString,
-    resolveTimestampFromCommandFlags,
-  };
-})();
+}
 
-var DiffUtils = (() => {
-  "use strict";
-
-  function compare(textA, textB) {
+class DiffUtils {
+  static compare(textA, textB) {
     const a = textA.split("\n");
     const b = textB.split("\n");
     const N = a.length;
@@ -198,8 +191,8 @@ var DiffUtils = (() => {
             const p_k = px - py;
             let prev_k;
             if (
-              p_k === -td ||
-              (p_k !== td && prev_v[p_k - 1 + max] < prev_v[p_k + 1 + max])
+                p_k === -td ||
+                (p_k !== td && prev_v[p_k - 1 + max] < prev_v[p_k + 1 + max])
             ) {
               prev_k = p_k + 1;
             } else {
@@ -233,34 +226,28 @@ var DiffUtils = (() => {
     }
     return "";
   }
+}
 
-  return {
-    compare,
-  };
-})();
-
-var PatchUtils = (() => {
-  "use strict";
-
-  function createPatch(oldText, newText) {
+class PatchUtils {
+  static createPatch(oldText, newText) {
     if (oldText === newText) {
       return null;
     }
     let start = 0;
     while (
-      start < oldText.length &&
-      start < newText.length &&
-      oldText[start] === newText[start]
-      ) {
+        start < oldText.length &&
+        start < newText.length &&
+        oldText[start] === newText[start]
+        ) {
       start++;
     }
     let oldEnd = oldText.length;
     let newEnd = newText.length;
     while (
-      oldEnd > start &&
-      newEnd > start &&
-      oldText[oldEnd - 1] === newText[newEnd - 1]
-      ) {
+        oldEnd > start &&
+        newEnd > start &&
+        oldText[oldEnd - 1] === newText[newEnd - 1]
+        ) {
       oldEnd--;
       newEnd--;
     }
@@ -274,21 +261,15 @@ var PatchUtils = (() => {
     };
   }
 
-  function applyPatch(text, patch) {
+  static applyPatch(text, patch) {
     const head = text.substring(0, patch.index);
     const tail = text.substring(patch.index + patch.delete);
     return head + patch.insert + tail;
   }
 
-  function applyInverse(text, patch) {
+  static applyInverse(text, patch) {
     const head = text.substring(0, patch.index);
     const tail = text.substring(patch.index + patch.insert.length);
     return head + patch.deleted + tail;
   }
-
-  return {
-    createPatch,
-    applyPatch,
-    applyInverse,
-  };
-})();
+}
