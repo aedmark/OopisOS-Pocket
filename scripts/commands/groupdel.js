@@ -1,5 +1,5 @@
 // scripts/commands/groupdel.js
-class GroupdelCommand extends Command {
+window.GroupdelCommand = class GroupdelCommand extends Command {
     constructor() {
         super({
             commandName: "groupdel",

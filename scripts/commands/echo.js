@@ -1,5 +1,5 @@
 // scripts/commands/echo.js
-class EchoCommand extends Command {
+window.EchoCommand = class EchoCommand extends Command {
     constructor() {
         super({
             commandName: "echo",

@@ -1,5 +1,5 @@
 // scripts/commands/backup.js
-class BackupCommand extends Command {
+window.BackupCommand = class BackupCommand extends Command {
   constructor() {
     super({
       commandName: "backup",

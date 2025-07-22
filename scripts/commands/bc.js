@@ -1,5 +1,5 @@
 // scripts/commands/bc.js
-class BcCommand extends Command {
+window.BcCommand = class BcCommand extends Command {
   constructor() {
     super({
       commandName: "bc",

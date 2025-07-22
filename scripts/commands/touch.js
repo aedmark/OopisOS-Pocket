@@ -1,5 +1,5 @@
 // scripts/commands/touch.js
-class TouchCommand extends Command {
+window.TouchCommand = class TouchCommand extends Command {
   constructor() {
     super({
       commandName: "touch",

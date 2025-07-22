@@ -1,5 +1,5 @@
 // scripts/commands/head.js
-class HeadCommand extends Command {
+window.HeadCommand = class HeadCommand extends Command {
     constructor() {
         super({
             commandName: "head",

@@ -1,5 +1,5 @@
 // scripts/commands/su.js
-class SuCommand extends Command {
+window.SuCommand = class SuCommand extends Command {
     constructor() {
         super({
             commandName: "su",

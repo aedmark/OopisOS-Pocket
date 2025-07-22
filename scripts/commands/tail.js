@@ -1,5 +1,5 @@
 // scripts/commands/tail.js
-class TailCommand extends Command {
+window.TailCommand = class TailCommand extends Command {
     constructor() {
         super({
             commandName: "tail",

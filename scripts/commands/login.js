@@ -1,5 +1,5 @@
 // scripts/commands/login.js
-class LoginCommand extends Command {
+window.LoginCommand = class LoginCommand extends Command {
     constructor() {
         super({
             commandName: "login",

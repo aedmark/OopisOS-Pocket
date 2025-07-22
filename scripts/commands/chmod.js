@@ -1,5 +1,5 @@
 // scripts/commands/chmod.js
-class ChmodCommand extends Command {
+window.ChmodCommand = class ChmodCommand extends Command {
     constructor() {
         super({
             commandName: "chmod",

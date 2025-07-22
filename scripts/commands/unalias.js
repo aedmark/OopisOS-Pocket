@@ -1,5 +1,5 @@
 // scripts/commands/unalias.js
-class UnaliasCommand extends Command {
+window.UnaliasCommand = class UnaliasCommand extends Command {
     constructor() {
         super({
             commandName: "unalias",

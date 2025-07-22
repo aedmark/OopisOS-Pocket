@@ -7,7 +7,7 @@ function fisherYatesShuffle(array) {
     return array;
 }
 
-class ShufCommand extends Command {
+window.ShufCommand = class ShufCommand extends Command {
     constructor() {
         super({
             commandName: "shuf",

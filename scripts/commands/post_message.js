@@ -1,5 +1,5 @@
 // scripts/commands/post_message.js
-class PostMessageCommand extends Command {
+window.PostMessageCommand = class PostMessageCommand extends Command {
     constructor() {
         super({
             commandName: "post_message",

@@ -1,5 +1,5 @@
 // scripts/commands/sudo.js
-class SudoCommand extends Command {
+window.SudoCommand = class SudoCommand extends Command {
   constructor() {
     super({
       commandName: "sudo",

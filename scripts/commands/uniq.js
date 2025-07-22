@@ -1,5 +1,5 @@
 // scripts/commands/uniq.js
-class UniqCommand extends Command {
+window.UniqCommand = class UniqCommand extends Command {
     constructor() {
         super({
             commandName: "uniq",

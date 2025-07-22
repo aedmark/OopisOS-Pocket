@@ -1,5 +1,5 @@
 // scripts/commands/clearfs.js
-class ClearfsCommand extends Command {
+windoow.ClearfsCommand = class ClearfsCommand extends Command {
     constructor() {
         super({
             commandName: "clearfs",

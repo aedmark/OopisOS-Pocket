@@ -1,5 +1,5 @@
 // scripts/commands/export.js
-class ExportCommand extends Command {
+window.ExportCommand = class ExportCommand extends Command {
     constructor() {
         super({
             commandName: "export",

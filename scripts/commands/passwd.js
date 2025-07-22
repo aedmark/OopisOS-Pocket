@@ -1,5 +1,5 @@
 // scripts/commands/passwd.js
-class PasswdCommand extends Command {
+window.PasswdCommand = class PasswdCommand extends Command {
     constructor() {
         super({
             commandName: "passwd",

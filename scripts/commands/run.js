@@ -1,5 +1,5 @@
 // scripts/commands/run.js
-class RunCommand extends Command {
+window.RunCommand = class RunCommand extends Command {
   constructor() {
     super({
       commandName: "run",

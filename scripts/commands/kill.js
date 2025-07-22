@@ -1,5 +1,5 @@
 // scripts/commands/kill.js
-class KillCommand extends Command {
+window.KillCommand = class KillCommand extends Command {
   constructor() {
     super({
       commandName: "kill",

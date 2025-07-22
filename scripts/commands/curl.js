@@ -1,5 +1,5 @@
 // scripts/commands/curl.js
-class CurlCommand extends Command {
+window.CurlCommand = class CurlCommand extends Command {
   constructor() {
     super({
       commandName: "curl",

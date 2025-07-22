@@ -1,5 +1,5 @@
 // scripts/commands/mv.js
-class MvCommand extends Command {
+window.MvCommand = class MvCommand extends Command {
     constructor() {
         super({
             commandName: "mv",

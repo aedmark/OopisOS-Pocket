@@ -1,5 +1,5 @@
 // scripts/commands/rmdir.js
-class RmdirCommand extends Command {
+window.RmdirCommand = class RmdirCommand extends Command {
   constructor() {
     super({
       commandName: "rmdir",

@@ -1,5 +1,5 @@
 // scripts/commands/pwd.js
-class PwdCommand extends Command {
+window.PwdCommand = class PwdCommand extends Command {
   constructor() {
     super({
       commandName: "pwd",

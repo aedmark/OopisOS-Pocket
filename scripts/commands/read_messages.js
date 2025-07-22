@@ -1,5 +1,5 @@
 // scripts/commands/read_messages.js
-class ReadMessagesCommand extends Command {
+window.ReadMessagesCommand = class ReadMessagesCommand extends Command {
     constructor() {
         super({
             commandName: "read_messages",

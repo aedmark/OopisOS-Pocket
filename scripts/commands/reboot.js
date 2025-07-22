@@ -1,5 +1,5 @@
 // scripts/commands/reboot.js
-class RebootCommand extends Command {
+window.RebootCommand = class RebootCommand extends Command {
     constructor() {
         super({
             commandName: "reboot",

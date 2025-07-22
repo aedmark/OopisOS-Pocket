@@ -34,7 +34,7 @@ async function _getFilesForAnalysis(startPath, startNode, currentUser, FileSyste
   return files;
 }
 
-class ChidiCommand extends Command {
+window.ChidiCommand = class ChidiCommand extends Command {
   constructor() {
     super({
       commandName: "chidi",

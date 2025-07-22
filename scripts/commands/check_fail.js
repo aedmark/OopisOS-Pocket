@@ -1,5 +1,5 @@
 // scripts/commands/check_fail.js
-class CheckFailCommand extends Command {
+window.CheckFailCommand = class CheckFailCommand extends Command {
   constructor() {
     super({
       commandName: "check_fail",

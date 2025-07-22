@@ -1,5 +1,5 @@
 // scripts/commands/alias.js
-class AliasCommand extends Command {
+window.AliasCommand = class AliasCommand extends Command {
   constructor() {
     super({
       commandName: "alias",

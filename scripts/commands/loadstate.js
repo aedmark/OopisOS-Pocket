@@ -1,5 +1,5 @@
 // scripts/commands/loadstate.js
-class LoadstateCommand extends Command {
+window.LoadstateCommand = class LoadstateCommand extends Command {
   constructor() {
     super({
       commandName: "loadstate",

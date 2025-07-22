@@ -1,5 +1,5 @@
 // scripts/commands/restore.js
-class RestoreCommand extends Command {
+window.RestoreCommand = class RestoreCommand extends Command {
     constructor() {
         super({
             commandName: "restore",

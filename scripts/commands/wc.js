@@ -1,5 +1,5 @@
 // scripts/commands/wc.js
-class WcCommand extends Command {
+window.WcCommand = class WcCommand extends Command {
     constructor() {
         super({
             commandName: "wc",

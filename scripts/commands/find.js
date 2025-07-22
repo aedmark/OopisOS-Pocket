@@ -1,5 +1,5 @@
 // scripts/commands/find.js
-class FindCommand extends Command {
+window.FindCommand = class FindCommand extends Command {
   constructor() {
     super({
       commandName: "find",

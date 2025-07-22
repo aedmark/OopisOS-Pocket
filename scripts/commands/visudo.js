@@ -1,5 +1,5 @@
 // scripts/commands/visudo.js
-class VisudoCommand extends Command {
+window.VisudoCommand = class VisudoCommand extends Command {
     constructor() {
         super({
             commandName: "visudo",

@@ -23,7 +23,7 @@ async function _archiveNode(node, dependencies) {
     return null;
 }
 
-class ZipCommand extends Command {
+window.ZipCommand = class ZipCommand extends Command {
     constructor() {
         super({
             commandName: "zip",

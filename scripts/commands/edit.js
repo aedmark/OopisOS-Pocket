@@ -1,5 +1,5 @@
 // scripts/commands/edit.js
-class EditCommand extends Command {
+window.EditCommand = class EditCommand extends Command {
     constructor() {
         super({
             commandName: "edit",

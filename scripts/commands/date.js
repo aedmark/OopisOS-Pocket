@@ -1,5 +1,5 @@
 // scripts/commands/date.js
-class DateCommand extends Command {
+window.DateCommand = class DateCommand extends Command {
   constructor() {
     super({
       commandName: "date",

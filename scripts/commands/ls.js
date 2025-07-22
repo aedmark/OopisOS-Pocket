@@ -225,7 +225,7 @@ async function listSinglePathContents(
   });
 }
 
-class LsCommand extends Command {
+window.LsCommand = class LsCommand extends Command {
   constructor() {
     super({
       commandName: "ls",

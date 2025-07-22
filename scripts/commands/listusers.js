@@ -1,5 +1,5 @@
 // scripts/commands/listusers.js
-class ListusersCommand extends Command {
+window.ListusersCommand = class ListusersCommand extends Command {
     constructor() {
         super({
             commandName: "listusers",

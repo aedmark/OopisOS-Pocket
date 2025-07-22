@@ -1,5 +1,5 @@
 // scripts/commands/rm.js
-class RmCommand extends Command {
+window.RmCommand = class RmCommand extends Command {
   constructor() {
     super({
       commandName: "rm",

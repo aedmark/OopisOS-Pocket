@@ -1,5 +1,5 @@
 // scripts/commands/sort.js
-class SortCommand extends Command {
+window.SortCommand = class SortCommand extends Command {
     constructor() {
         super({
             commandName: "sort",

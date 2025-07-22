@@ -1,5 +1,5 @@
 // scripts/commands/diff.js
-class DiffCommand extends Command {
+window.DiffCommand = class DiffCommand extends Command {
   constructor() {
     super({
       commandName: "diff",

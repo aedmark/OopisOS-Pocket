@@ -1,5 +1,5 @@
 // scripts/commands/chgrp.js
-class ChgrpCommand extends Command {
+window.ChgrpCommand = class ChgrpCommand extends Command {
     constructor() {
         super({
             commandName: "chgrp",

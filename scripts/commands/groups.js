@@ -1,5 +1,5 @@
 // scripts/commands/groups.js
-class GroupsCommand extends Command {
+window.GroupsCommand = class GroupsCommand extends Command {
     constructor() {
         super({
             commandName: "groups",

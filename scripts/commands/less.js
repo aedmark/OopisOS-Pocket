@@ -1,5 +1,5 @@
 // scripts/commands/less.js
-class LessCommand extends Command {
+window.LessCommand = class LessCommand extends Command {
     constructor() {
         super({
             commandName: "less",

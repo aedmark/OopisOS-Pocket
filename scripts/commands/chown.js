@@ -1,5 +1,5 @@
 // scripts/commands/chown.js
-class ChownCommand extends Command {
+window.ChownCommand = class ChownCommand extends Command {
     constructor() {
         super({
             commandName: "chown",

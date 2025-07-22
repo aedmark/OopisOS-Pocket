@@ -1,5 +1,5 @@
 // scripts/commands/more.js
-class MoreCommand extends Command {
+window.MoreCommand = class MoreCommand extends Command {
     constructor() {
         super({
             commandName: "more",

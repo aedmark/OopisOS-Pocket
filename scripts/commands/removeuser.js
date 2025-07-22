@@ -1,5 +1,5 @@
 // scripts/commands/removeuser.js
-class RemoveuserCommand extends Command {
+window.RemoveuserCommand = class RemoveuserCommand extends Command {
     constructor() {
         super({
             commandName: "removeuser",

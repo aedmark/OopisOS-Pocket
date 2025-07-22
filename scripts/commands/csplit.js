@@ -1,5 +1,5 @@
 // scripts/commands/csplit.js
-class CsplitCommand extends Command {
+window.CsplitCommand = class CsplitCommand extends Command {
     constructor() {
         super({
             commandName: "csplit",

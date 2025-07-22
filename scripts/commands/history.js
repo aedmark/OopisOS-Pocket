@@ -1,5 +1,5 @@
 // scripts/commands/history.js
-class HistoryCommand extends Command {
+window.HistoryCommand = class HistoryCommand extends Command {
     constructor() {
         super({
             commandName: "history",

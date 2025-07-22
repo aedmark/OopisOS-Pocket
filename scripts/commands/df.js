@@ -1,5 +1,5 @@
 // scripts/commands/df.js
-class DfCommand extends Command {
+window.DfCommand = class DfCommand extends Command {
     constructor() {
         super({
             commandName: "df",

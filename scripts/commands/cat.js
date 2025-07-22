@@ -1,5 +1,5 @@
 // scripts/commands/cat.js
-class CatCommand extends Command {
+window.CatCommand = class CatCommand extends Command {
     constructor() {
         super({
             commandName: "cat",

@@ -1,5 +1,5 @@
 // scripts/commands/ps.js
-class PsCommand extends Command {
+window.PsCommand = class PsCommand extends Command {
     constructor() {
         super({
             commandName: "ps",

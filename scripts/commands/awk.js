@@ -1,5 +1,5 @@
 // scripts/commands/awk.js
-class AwkCommand extends Command {
+window.AwkCommand = class AwkCommand extends Command {
   constructor() {
     super({
       commandName: "awk",

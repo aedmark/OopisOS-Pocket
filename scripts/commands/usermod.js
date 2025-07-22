@@ -1,5 +1,5 @@
 // scripts/commands/usermod.js
-class UsermodCommand extends Command {
+window.UsermodCommand = class UsermodCommand extends Command {
     constructor() {
         super({
             commandName: "usermod",

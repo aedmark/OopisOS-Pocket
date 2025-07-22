@@ -1,5 +1,5 @@
 // scripts/commands/sync.js
-class SyncCommand extends Command {
+window.SyncCommand = class SyncCommand extends Command {
   constructor() {
     super({
       commandName: "sync",

@@ -1,5 +1,5 @@
 // scripts/commands/delay.js
-class DelayCommand extends Command {
+window.DelayCommand = class DelayCommand extends Command {
     constructor() {
         super({
             commandName: "delay",

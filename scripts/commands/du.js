@@ -1,5 +1,5 @@
 // scripts/commands/du.js
-class DuCommand extends Command {
+window.DuCommand = class DuCommand extends Command {
   constructor() {
     super({
       commandName: "du",

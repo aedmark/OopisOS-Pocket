@@ -1,5 +1,5 @@
 // scripts/commands/mkdir.js
-class MkdirCommand extends Command {
+window.MkdirCommand = class MkdirCommand extends Command {
   constructor() {
     super({
       commandName: "mkdir",

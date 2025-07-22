@@ -1,5 +1,5 @@
 // scripts/commands/grep.js
-class GrepCommand extends Command {
+window.GrepCommand = class GrepCommand extends Command {
   constructor() {
     super({
       commandName: "grep",

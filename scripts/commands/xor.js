@@ -1,5 +1,5 @@
 // scripts/commands/xor.js
-class XorCommand extends Command {
+window.XorCommand = class XorCommand extends Command {
     constructor() {
         super({
             commandName: "xor",

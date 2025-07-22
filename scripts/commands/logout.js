@@ -1,5 +1,5 @@
 // scripts/commands/logout.js
-class LogoutCommand extends Command {
+window.LogoutCommand = class LogoutCommand extends Command {
   constructor() {
     super({
       commandName: "logout",

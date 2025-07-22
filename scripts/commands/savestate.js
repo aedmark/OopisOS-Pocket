@@ -1,5 +1,5 @@
 // scripts/commands/savestate.js
-class SavestateCommand extends Command {
+window.SavestateCommand = class SavestateCommand extends Command {
     constructor() {
         super({
             commandName: "savestate",

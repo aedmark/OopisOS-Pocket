@@ -1,5 +1,5 @@
 // scripts/commands/unset.js
-class UnsetCommand extends Command {
+window.UnsetCommand = class UnsetCommand extends Command {
     constructor() {
         super({
             commandName: "unset",

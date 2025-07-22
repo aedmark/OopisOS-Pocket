@@ -1,5 +1,5 @@
 // scripts/commands/tree.js
-class TreeCommand extends Command {
+windo.TreeCommand = class TreeCommand extends Command {
     constructor() {
         super({
             commandName: "tree",

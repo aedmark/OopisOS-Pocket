@@ -1,5 +1,5 @@
 // scripts/commands/cd.js
-class CdCommand extends Command {
+window.CdCommand = class CdCommand extends Command {
     constructor() {
         super({
             commandName: "cd",

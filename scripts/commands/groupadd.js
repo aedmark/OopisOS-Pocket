@@ -1,5 +1,5 @@
 // scripts/commands/groupadd.js
-class GroupaddCommand extends Command {
+window.GroupaddCommand = class GroupaddCommand extends Command {
     constructor() {
         super({
             commandName: "groupadd",

@@ -1,5 +1,5 @@
 // scripts/commands/explore.js
-class ExploreCommand extends Command {
+window.ExploreCommand = class ExploreCommand extends Command {
     constructor() {
         super({
             commandName: "explore",

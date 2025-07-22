@@ -1,5 +1,5 @@
 // scripts/commands/printscreen.js
-class PrintscreenCommand extends Command {
+window.PrintscreenCommand = class PrintscreenCommand extends Command {
     constructor() {
         super({
             commandName: "printscreen",

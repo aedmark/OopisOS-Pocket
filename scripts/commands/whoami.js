@@ -1,5 +1,5 @@
 // scripts/commands/whoami.js
-class WhoamiCommand extends Command {
+window.WhoamiCommand = class WhoamiCommand extends Command {
   constructor() {
     super({
       commandName: "whoami",

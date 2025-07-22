@@ -1,5 +1,5 @@
 // scripts/commands/useradd.js
-class UseraddCommand extends Command {
+window.UseraddCommand = class UseraddCommand extends Command {
     constructor() {
         super({
             commandName: "useradd",

@@ -1,5 +1,5 @@
 // scripts/commands/set.js
-class SetCommand extends Command {
+window.SetCommand = class SetCommand extends Command {
     constructor() {
         super({
             commandName: "set",
