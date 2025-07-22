@@ -50,67 +50,40 @@ window.OcryptCommand = class OcryptCommand extends Command {
     super({
       commandName: "ocrypt",
       description: "Encrypts or decrypts files using a custom block cipher.",
-      helpText: `Usage: ocrypt [-d] -k <key> -i <inputfile> -o <outputfile>
+      helpText: `Usage: ocrypt [-d] <key> <inputfile> [outputfile]
       Encrypt or decrypt a file using a key.
       DESCRIPTION
       ocrypt is a simple custom block cipher for demonstration purposes.
       IT IS NOT SECURE AND SHOULD NOT BE USED FOR REAL-WORLD
       CRYPTOGRAPHY.
       It uses a key-derived matrix to transform 8-byte blocks of data.
+      If [outputfile] is not provided, the result is printed to standard output.
       OPTIONS
       -d, --decrypt
-      Decrypt the input file instead of encrypting.
-      -k, --key=<key>
-      The secret key for the operation.
-      -i, --input=<inputfile>
-      The file to read data from.
-      -o, --output=<outputfile>
-      The file to write the resulting data to.
-      All options are required.`,
+      Decrypt the input file instead of encrypting.`,
       flagDefinitions: [
         { name: "decrypt", short: "-d", long: "--decrypt" },
-        { name: "key", short: "-k", long: "--key", takesValue: true },
-        { name: "input", short: "-i", long: "--input", takesValue: true },
-        { name: "output", short: "-o", long: "--output", takesValue: true },
       ],
+      validations: {
+        args: { min: 2, max: 3, error: "Usage: ocrypt [-d] <key> <inputfile> [outputfile]" },
+        paths: [{
+          argIndex: 1,
+          options: { expectedType: 'file', permissions: ['read'] }
+        }]
+      },
     });
   }
 
   async coreLogic(context) {
-    const { flags, currentUser, dependencies } = context;
+    const { args, flags, currentUser, validatedPaths, dependencies } = context;
     const { FileSystemManager, UserManager, ErrorHandler } = dependencies;
     const blockSize = 8;
 
-    if (!flags.key || !flags.input || !flags.output) {
-      return ErrorHandler.createError("ocrypt: all options are required");
-    }
+    const key = args[0];
+    const inputFileNode = validatedPaths[0].node;
+    const outputFile = args.length === 3 ? args[2] : null;
 
-    const inputValidation = FileSystemManager.validatePath(flags.input, {
-      expectedType: "file",
-      permissions: ["read"],
-    });
-    if (!inputValidation.success) {
-      return ErrorHandler.createError(
-          `ocrypt: input file: ${inputValidation.error}`
-      );
-    }
-    const inputFileNode = inputValidation.data.node;
-
-    const outputValidation = FileSystemManager.validatePath(flags.output, {
-      allowMissing: true,
-      expectedType: "file",
-    });
-    if (
-        !outputValidation.success &&
-        outputValidation.data?.node !== null
-    ) {
-      return ErrorHandler.createError(
-          `ocrypt: output file: ${outputValidation.error}`
-      );
-    }
-    const outputPath = outputValidation.data.resolvedPath;
-
-    const keyMatrix = _generateKeyMatrix(flags.key, blockSize);
+    const keyMatrix = _generateKeyMatrix(key, blockSize);
     const operationMatrix = flags.decrypt ? _transpose(keyMatrix) : keyMatrix;
 
     const textEncoder = new TextEncoder();
@@ -138,17 +111,20 @@ window.OcryptCommand = class OcryptCommand extends Command {
           .join("");
     }
 
-    const primaryGroup = UserManager.getPrimaryGroupForUser(currentUser);
-    const saveResult = await FileSystemManager.createOrUpdateFile(
-        outputPath,
-        outputContent,
-        { currentUser, primaryGroup }
-    );
+    if (outputFile) {
+      const primaryGroup = UserManager.getPrimaryGroupForUser(currentUser);
+      const saveResult = await FileSystemManager.createOrUpdateFile(
+          outputFile,
+          outputContent,
+          { currentUser, primaryGroup }
+      );
 
-    if (!saveResult.success) {
-      return ErrorHandler.createError(`ocrypt: ${saveResult.error}`);
+      if (!saveResult.success) {
+        return ErrorHandler.createError(`ocrypt: ${saveResult.error}`);
+      }
+      return ErrorHandler.createSuccess("", { stateModified: true });
+    } else {
+      return ErrorHandler.createSuccess(outputContent);
     }
-
-    return ErrorHandler.createSuccess("", { stateModified: true });
   }
 }
