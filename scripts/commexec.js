@@ -236,6 +236,10 @@ class CommandExecutor {
           ...options,
           scriptingContext,
         });
+
+        // Sync the loop counter with the script context.
+        i = scriptingContext.currentLineIndex;
+
         if (!result.success) {
           return ErrorHandler.createError(
               `Error in script on line ${i + 1}: ${result.error}`

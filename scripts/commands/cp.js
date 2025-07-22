@@ -1,5 +1,5 @@
 // scripts/commands/cp.js
-window.cpCommand = class CpCommand extends Command {
+window.CpCommand = class CpCommand extends Command {
     constructor() {
         super({
             commandName: "cp",
