@@ -1,86 +1,79 @@
 // scripts/commands/help.js
-(() => {
-  "use strict";
-
-  class HelpCommand extends Command {
-    constructor() {
-      super({
-        commandName: "help",
-        description: "Displays a list of commands or a command's syntax.",
-        helpText: `Usage: help [command]
+class HelpCommand extends Command {
+  constructor() {
+    super({
+      commandName: "help",
+      description: "Displays a list of commands or a command's syntax.",
+      helpText: `Usage: help [command]
       Displays a list of all available commands.
       If a command name is provided, it displays the command's usage syntax.
       For a full, detailed manual page for a command, use 'man <command>'.`,
-        completionType: "commands",
-        validations: {
-          args: {
-            max: 1
-          }
-        },
-      });
-    }
-
-    async coreLogic(context) {
-
-      const { args, dependencies } = context;
-      const { Config, CommandExecutor, CommandRegistry, ErrorHandler } = dependencies;
-
-      try {
-        if (args.length === 0) {
-          const allCommandNames = Config.COMMANDS_MANIFEST.sort();
-          const loadedCommands = CommandRegistry.getDefinitions();
-
-          let output = "OopisOS Help\n\nAvailable commands:\n";
-          allCommandNames.forEach((cmdName) => {
-            const commandInstance = loadedCommands[cmdName];
-            // Access the definition property of the command instance
-            const description = commandInstance?.definition?.description || "";
-            output += `  ${cmdName.padEnd(15)} ${description}\n`;
-          });
-          output +=
-              "\nType 'help [command]' or 'man [command]' for more details.";
-          return ErrorHandler.createSuccess(output);
-        } else {
-          const cmdName = args[0].toLowerCase();
-          const isLoaded = await CommandExecutor._ensureCommandLoaded(cmdName);
-
-          if (!isLoaded) {
-            return ErrorHandler.createError(
-                `help: command not found: ${cmdName}`
-            );
-          }
-
-          // Get the command *instance* from the registry
-          const commandInstance = CommandRegistry.getDefinitions()[cmdName];
-          let output = "";
-
-          // Access the definition property on the instance
-          if (commandInstance?.definition?.helpText) {
-            const helpLines = commandInstance.definition.helpText.split("\n");
-            const usageLine = helpLines.find((line) =>
-                line.trim().toLowerCase().startsWith("usage:")
-            );
-            if (usageLine) {
-              output = usageLine.trim();
-            } else {
-              output = `Synopsis for '${cmdName}':\n  ${commandInstance.definition.description || "No usage information available."}`;
-            }
-            output += `\n\nFor more details, run 'man ${cmdName}'`;
-          } else {
-            return ErrorHandler.createError(
-                `help: command not found: ${args[0]}`
-            );
-          }
-          return ErrorHandler.createSuccess(output);
+      completionType: "commands",
+      validations: {
+        args: {
+          max: 1
         }
-      } catch (e) {
-        return ErrorHandler.createError(
-            `help: An unexpected error occurred: ${e.message}`
-        );
-      }
-
-    }
+      },
+    });
   }
 
-  CommandRegistry.register(new HelpCommand());
-})();
+  async coreLogic(context) {
+
+    const { args, dependencies } = context;
+    const { Config, CommandExecutor, CommandRegistry, ErrorHandler } = dependencies;
+
+    try {
+      if (args.length === 0) {
+        const allCommandNames = Config.COMMANDS_MANIFEST.sort();
+        const loadedCommands = CommandRegistry.getDefinitions();
+
+        let output = "OopisOS Help\n\nAvailable commands:\n";
+        allCommandNames.forEach((cmdName) => {
+          const commandInstance = loadedCommands[cmdName];
+          // Access the definition property of the command instance
+          const description = commandInstance?.definition?.description || "";
+          output += `  ${cmdName.padEnd(15)} ${description}\n`;
+        });
+        output +=
+            "\nType 'help [command]' or 'man [command]' for more details.";
+        return ErrorHandler.createSuccess(output);
+      } else {
+        const cmdName = args[0].toLowerCase();
+        const isLoaded = await CommandExecutor._ensureCommandLoaded(cmdName);
+
+        if (!isLoaded) {
+          return ErrorHandler.createError(
+              `help: command not found: ${cmdName}`
+          );
+        }
+
+        // Get the command *instance* from the registry
+        const commandInstance = CommandRegistry.getDefinitions()[cmdName];
+        let output = "";
+
+        // Access the definition property on the instance
+        if (commandInstance?.definition?.helpText) {
+          const helpLines = commandInstance.definition.helpText.split("\n");
+          const usageLine = helpLines.find((line) =>
+              line.trim().toLowerCase().startsWith("usage:")
+          );
+          if (usageLine) {
+            output = usageLine.trim();
+          } else {
+            output = `Synopsis for '${cmdName}':\n  ${commandInstance.definition.description || "No usage information available."}`;
+          }
+          output += `\n\nFor more details, run 'man ${cmdName}'`;
+        } else {
+          return ErrorHandler.createError(
+              `help: command not found: ${args[0]}`
+          );
+        }
+        return ErrorHandler.createSuccess(output);
+      }
+    } catch (e) {
+      return ErrorHandler.createError(
+          `help: An unexpected error occurred: ${e.message}`
+      );
+    }
+  }
+}
