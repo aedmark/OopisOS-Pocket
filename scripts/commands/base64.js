@@ -1,5 +1,5 @@
 // scripts/commands/base64.js
-window.Base64 = class Base64Command extends Command {
+window.Base64Command = class Base64Command extends Command {
   constructor() {
     super({
       commandName: "base64",

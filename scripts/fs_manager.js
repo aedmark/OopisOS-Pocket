@@ -603,11 +603,34 @@ class FileSystemManager {
 
   async createOrUpdateFile(absolutePath, content, context) {
     const { ErrorHandler } = this.dependencies;
-    const { currentUser, primaryGroup } = context;
+    const {
+      currentUser,
+      primaryGroup,
+      isDirectory = false,
+    } = context;
     const nowISO = new Date().toISOString();
 
+    // Handle directory creation as a special case first.
+    if (isDirectory) {
+      const parentDirResult = this.createParentDirectoriesIfNeeded(absolutePath);
+      if (!parentDirResult.success) {
+        return parentDirResult;
+      }
+      const parentNode = parentDirResult.data;
+      if (!this.hasPermission(parentNode, currentUser, "write")) {
+        return ErrorHandler.createError(`Cannot create directory in parent: Permission denied`);
+      }
+      const dirName = absolutePath.substring(absolutePath.lastIndexOf("/") + 1);
+      if (parentNode.children && !parentNode.children[dirName]) {
+        parentNode.children[dirName] = this._createNewDirectoryNode(currentUser, primaryGroup);
+        parentNode.mtime = nowISO;
+      }
+      return ErrorHandler.createSuccess();
+    }
+
+
     const existingNode = this.getNodeByPath(absolutePath);
-    const changeInBytes = content.length - (existingNode?.content?.length || 0);
+    const changeInBytes = (content || "").length - (existingNode?.content?.length || 0);
 
     if (this._willOperationExceedQuota(changeInBytes)) {
       return ErrorHandler.createError(

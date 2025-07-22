@@ -71,9 +71,11 @@ window.UnzipCommand = class UnzipCommand extends Command {
             return ErrorHandler.createError("unzip: missing file operand");
         }
 
-        const { node: archiveNode } = validatedPaths[0];
+        // Get both the node and the original argument from validatedPaths
+        const { node: archiveNode, arg: archivePath } = validatedPaths[0];
 
-        if (!archiveNode || !archiveNode.name.endsWith(".zip")) {
+        // Check the file extension on the path argument, not the node
+        if (!archiveNode || !archivePath.endsWith(".zip")) {
             return ErrorHandler.createError(
                 "unzip: provided file is not a .zip archive."
             );
@@ -102,7 +104,7 @@ window.UnzipCommand = class UnzipCommand extends Command {
             }
             await FileSystemManager.save();
             return ErrorHandler.createSuccess(
-                `Archive '${archiveNode.name}' successfully unzipped.`
+                `Archive '${archivePath}' successfully unzipped.` // Use archivePath for a better message
             );
         } catch (e) {
             return ErrorHandler.createError(
