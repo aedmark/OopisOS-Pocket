@@ -1,5 +1,5 @@
 // scripts/commands/log.js
-class LogCommand extends Command {
+window.LogCommand = class LogCommand extends Command {
   constructor() {
     super({
       commandName: "log",

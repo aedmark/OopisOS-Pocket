@@ -1,5 +1,5 @@
 // scripts/commands/paint.js
-class PaintCommand extends Command {
+window.PaintCommand = class PaintCommand extends Command {
   constructor() {
     super({
       commandName: "paint",

@@ -1,5 +1,5 @@
 // scripts/commands/cksum.js
-class CksumCommand extends Command {
+window.CksumCommand = class CksumCommand extends Command {
     constructor() {
         super({
             commandName: "cksum",

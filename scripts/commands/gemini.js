@@ -1,6 +1,5 @@
 // scripts/commands/gemini.js
-// No more IIFE! The class is now globally available when the script loads.
-class GeminiCommand extends Command {
+window.GeminiCommand = class GeminiCommand extends Command {
     constructor() {
         super({
             commandName: "gemini",

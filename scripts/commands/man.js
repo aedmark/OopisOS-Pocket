@@ -54,7 +54,7 @@ function formatManPage(commandName, commandData) {
   return output.join("\n");
 }
 
-class ManCommand extends Command {
+window.ManCommand = class ManCommand extends Command {
   constructor() {
     super({
       commandName: "man",

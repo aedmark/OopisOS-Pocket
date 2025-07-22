@@ -1,5 +1,5 @@
 // scripts/commands/basic.js
-class BasicCommand extends Command {
+window.BasicCommand = class BasicCommand extends Command {
   constructor() {
     super({
       commandName: "basic",

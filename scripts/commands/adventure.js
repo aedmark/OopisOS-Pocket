@@ -177,7 +177,7 @@ const defaultAdventureData = {
   },
 };
 
-class AdventureCommand extends Command {
+window.AdventureCommand = class AdventureCommand extends Command {
   constructor() {
     super({
       commandName: "adventure",

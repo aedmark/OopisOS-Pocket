@@ -1,5 +1,5 @@
 // scripts/commands/help.js
-class HelpCommand extends Command {
+window.HelpCommand = class HelpCommand extends Command {
   constructor() {
     super({
       commandName: "help",
