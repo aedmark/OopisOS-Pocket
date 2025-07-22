@@ -179,5 +179,3 @@ class Command {
         return ErrorHandler.createSuccess(validatedPathsForRule);
     }
 }
-
-window.Command = Command;
