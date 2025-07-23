@@ -1,9 +1,11 @@
 echo "===== OopisOS Core Test Suite v4.5 Initializing ====="
 echo "This script tests all non-interactive core functionality, now with maximum paranoia."
+delay 200
 echo "---------------------------------------------------------------------"
 echo ""
-
+delay 200
 echo "--- Phase 1: Creating dedicated test user and workspace ---"
+delay 800
 login root mcgoopis
 delay 400
 useradd diagUser
@@ -18,6 +20,7 @@ chmod 775 /home/diagUser/diag_workspace/
 delay 500
 login diagUser testpass
 echo "Current User (expected: diagUser):"
+delay 800
 whoami
 echo "Current Path after login (expected: /home/diagUser):"
 pwd

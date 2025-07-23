@@ -1,4 +1,5 @@
 // scripts/commexec.js
+
 class CommandExecutor {
   constructor() {
     this.backgroundProcessIdCounter = 0;
@@ -586,6 +587,16 @@ class CommandExecutor {
   async _preprocessCommandString(rawCommandText, scriptingContext = null) {
     const { EnvironmentManager, AliasManager } = this.dependencies;
     let commandToProcess = rawCommandText.trim();
+
+    // New: Handle command substitution first
+    const commandSubstitutionRegex = /\$\(([^)]+)\)/g;
+    let match;
+    while ((match = commandSubstitutionRegex.exec(commandToProcess)) !== null) {
+      const subCommand = match[1];
+      const result = await this.processSingleCommand(subCommand, { isInteractive: false, suppressOutput: true });
+      const output = result.success ? (result.output || '').trim().replace(/\n/g, ' ') : '';
+      commandToProcess = commandToProcess.replace(match[0], output);
+    }
 
     let inQuote = null;
     let commentIndex = -1;
