@@ -673,7 +673,6 @@ class CommandExecutor {
   }
 
   async processSingleCommand(rawCommandText, options = {}) {
-    // Correctly destructure all necessary dependencies at the start of the method
     const {
       isInteractive = true,
       scriptingContext = null,
@@ -775,38 +774,44 @@ class CommandExecutor {
         pipeline.isBackground = true;
         const jobId = ++this.backgroundProcessIdCounter;
         pipeline.jobId = jobId;
-        this.dependencies.MessageBusManager.registerJob(jobId);
+        MessageBusManager.registerJob(jobId);
         const abortController = new AbortController();
 
-        setTimeout(() => {
-          const jobPromise = this._executePipeline(pipeline, {
-            isInteractive: false,
-            signal: abortController.signal,
-            scriptingContext,
-            suppressOutput: true,
-          }).finally(() => {
-            delete this.activeJobs[jobId];
-            this.dependencies.MessageBusManager.unregisterJob(jobId);
-          });
+        // Create the job object synchronously
+        const job = {
+          id: jobId,
+          command: cmdToEcho,
+          abortController,
+          promise: null,
+          status: 'running',
+        };
+        this.activeJobs[jobId] = job;
 
-          this.activeJobs[jobId] = {
-            id: jobId,
-            command: cmdToEcho,
-            abortController,
-            promise: jobPromise,
-            status: 'running',
-          };
+        const jobPromise = new Promise(resolve => {
+          setTimeout(() => {
+            this._executePipeline(pipeline, {
+              isInteractive: false,
+              signal: abortController.signal,
+              scriptingContext,
+              suppressOutput: true,
+            }).then(resolve);
+          }, 0);
+        });
 
-          jobPromise.then((bgResult) => {
-            const statusMsg = `[Job ${pipeline.jobId} ${bgResult.success ? "finished" : "finished with error"}${bgResult.success ? "" : `: ${bgResult.error || "Unknown error"}`}]`;
-            OutputManager.appendToOutput(statusMsg, {
-              typeClass: bgResult.success
-                  ? Config.CSS_CLASSES.CONSOLE_LOG_MSG
-                  : Config.CSS_CLASSES.WARNING_MSG,
-              isBackground: true,
-            });
+        job.promise = jobPromise;
+
+        jobPromise.finally(() => {
+          delete this.activeJobs[jobId];
+          MessageBusManager.unregisterJob(jobId);
+        }).then((bgResult) => {
+          const statusMsg = `[Job ${jobId} ${bgResult.success ? "finished" : "finished with error"}${bgResult.success ? "" : `: ${bgResult.error || "Unknown error"}`}]`;
+          OutputManager.appendToOutput(statusMsg, {
+            typeClass: bgResult.success
+                ? Config.CSS_CLASSES.CONSOLE_LOG_MSG
+                : Config.CSS_CLASSES.WARNING_MSG,
+            isBackground: true,
           });
-        }, 0);
+        });
 
         await OutputManager.appendToOutput(
             `${Config.MESSAGES.BACKGROUND_PROCESS_STARTED_PREFIX}${jobId}${Config.MESSAGES.BACKGROUND_PROCESS_STARTED_SUFFIX}`,
