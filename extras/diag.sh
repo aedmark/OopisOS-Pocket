@@ -659,6 +659,56 @@ echo "Symbolic link tests complete."
 delay 700
 echo "---------------------------------------------------------------------"
 delay 400
+
+echo ""
+echo "===== Phase 19: Advanced Job Control & Signal Handling ====="
+delay 400
+
+echo "--- Test: Starting a long-running background job ---"
+delay 30000 &
+# Use ps and grep to get the job ID programmatically
+JOB_ID=$(ps | grep "delay" | awk '{print $1}')
+echo "Started background job with PID: $JOB_ID"
+delay 500
+
+echo "--- Test: Verifying job is 'Running' (R) ---"
+# This check will FAIL if grep finds nothing, which is what we want if the job is running.
+check_fail -z "ps | grep '$JOB_ID' | grep 'R'"
+echo "Job status is correctly reported as 'R'."
+delay 500
+
+echo "--- Test: Pausing the job with 'kill -STOP' ---"
+kill -STOP $JOB_ID
+echo "Signal -STOP sent to job $JOB_ID."
+delay 500
+
+echo "--- Test: Verifying job is 'Stopped' (T) ---"
+check_fail -z "ps | grep '$JOB_ID' | grep 'T'"
+echo "Job status is correctly reported as 'T'."
+delay 500
+
+echo "--- Test: Resuming the job with 'kill -CONT' ---"
+kill -CONT $JOB_ID
+echo "Signal -CONT sent to job $JOB_ID."
+delay 500
+
+echo "--- Test: Verifying job is 'Running' (R) again ---"
+check_fail -z "ps | grep '$JOB_ID' | grep 'R'"
+echo "Job status is correctly reported as 'R' after resuming."
+delay 500
+
+echo "--- Test: Terminating the job with 'kill' ---"
+kill $JOB_ID
+echo "Signal -KILL sent to job $JOB_ID."
+delay 1000 # Give it a moment to terminate
+
+echo "--- Test: Verifying job has been terminated ---"
+# This check will SUCCEED if grep finds nothing.
+check_fail "ps | grep '$JOB_ID'"
+echo "Job successfully terminated and removed from 'ps' list."
+delay 700
+echo "---------------------------------------------------------------------"
+
 echo "===== Phase X: Testing Filesystem Torture & I/O Gauntlet ====="
 delay 400
 
