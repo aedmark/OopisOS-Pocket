@@ -126,6 +126,8 @@ function initializeTerminalEventListeners(domElements, commandExecutor, dependen
   }
 }
 
+let soundManager;
+
 window.onload = async () => {
   const domElements = {
     terminalBezel: document.getElementById("terminal-bezel"),
@@ -160,7 +162,7 @@ window.onload = async () => {
   const uiComponents = new UIComponents();
   const aiManager = new AIManager();
   const commandRegistry = new CommandRegistry();
-  const soundManager = new SoundManager();
+  soundManager = new SoundManager();
 
   const dependencies = {
     Config: configManager,
@@ -218,7 +220,6 @@ window.onload = async () => {
   tabCompletionManager.setDependencies(dependencies);
   uiComponents.setDependencies(dependencies);
   aiManager.setDependencies(dependencies);
-  soundManager.setDependencies(dependencies);
 
   try {
     // Initialization sequence

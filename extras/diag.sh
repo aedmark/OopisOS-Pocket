@@ -1086,6 +1086,7 @@ echo "  ======================================================"
 echo " "
 delay 500
 echo "(As usual, you've been a real pantload!)"
+beep
 delay 500
 echo " "
 echo " "
