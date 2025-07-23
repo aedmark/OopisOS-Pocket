@@ -588,14 +588,27 @@ class CommandExecutor {
     const { EnvironmentManager, AliasManager } = this.dependencies;
     let commandToProcess = rawCommandText.trim();
 
-    // New: Handle command substitution first
-    const commandSubstitutionRegex = /\$\(([^)]+)\)/g;
-    let match;
-    while ((match = commandSubstitutionRegex.exec(commandToProcess)) !== null) {
-      const subCommand = match[1];
+    // Handle `VAR=$(...)` style command substitution and assignment
+    const assignmentSubstitutionRegex = /^([a-zA-Z_][a-zA-Z0-9_]*)=\$\(([^)]+)\)$/;
+    const assignmentMatch = commandToProcess.match(assignmentSubstitutionRegex);
+
+    if (assignmentMatch) {
+      const varName = assignmentMatch[1];
+      const subCommand = assignmentMatch[2];
       const result = await this.processSingleCommand(subCommand, { isInteractive: false, suppressOutput: true });
       const output = result.success ? (result.output || '').trim().replace(/\n/g, ' ') : '';
-      commandToProcess = commandToProcess.replace(match[0], output);
+      EnvironmentManager.set(varName, output);
+      return ""; // Return an empty string to prevent further execution
+    }
+
+    // Handle general command substitution (inline)
+    const commandSubstitutionRegex = /\$\(([^)]+)\)/g;
+    let inlineMatch;
+    while ((inlineMatch = commandSubstitutionRegex.exec(commandToProcess)) !== null) {
+      const subCommand = inlineMatch[1];
+      const result = await this.processSingleCommand(subCommand, { isInteractive: false, suppressOutput: true });
+      const output = result.success ? (result.output || '').trim().replace(/\n/g, ' ') : '';
+      commandToProcess = commandToProcess.replace(inlineMatch[0], output);
     }
 
     let inQuote = null;

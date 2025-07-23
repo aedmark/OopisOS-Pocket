@@ -675,8 +675,8 @@ echo "Started background job with PID: $JOB_ID"
 delay 500
 
 echo "--- Test: Verifying job is 'Running' (R) ---"
-# This check will FAIL if grep finds nothing, which is what we want if the job is running.
-check_fail -z "ps | grep '$JOB_ID' | grep 'R'"
+# This check will now simply check if grep finds the running process. If not, the script will error out.
+ps | grep "$JOB_ID" | grep 'R'
 echo "Job status is correctly reported as 'R'."
 delay 500
 
@@ -686,7 +686,7 @@ echo "Signal -STOP sent to job $JOB_ID."
 delay 500
 
 echo "--- Test: Verifying job is 'Stopped' (T) ---"
-check_fail -z "ps | grep '$JOB_ID' | grep 'T'"
+ps | grep "$JOB_ID" | grep 'T'
 echo "Job status is correctly reported as 'T'."
 delay 500
 
@@ -696,7 +696,7 @@ echo "Signal -CONT sent to job $JOB_ID."
 delay 500
 
 echo "--- Test: Verifying job is 'Running' (R) again ---"
-check_fail -z "ps | grep '$JOB_ID' | grep 'R'"
+ps | grep "$JOB_ID" | grep 'R'
 echo "Job status is correctly reported as 'R' after resuming."
 delay 500
 
