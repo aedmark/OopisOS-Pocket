@@ -141,11 +141,10 @@ async function listSinglePathContents(
 
   if (!pathValidationResult.success) {
     return ErrorHandler.createError(
-        `ls: cannot access '${targetPathArg}': ${pathValidationResult.error.replace(targetPathArg + ":", "").trim()}`
+        `ls: cannot access '${targetPathArg}': No such file or directory`
     );
   }
   const { node: targetNode, resolvedPath } = pathValidationResult.data;
-
 
   if (!FileSystemManager.hasPermission(targetNode, currentUser, "read")) {
     return ErrorHandler.createError(
@@ -158,10 +157,12 @@ async function listSinglePathContents(
 
   if (effectiveFlags.dirsOnly) {
     const details = getItemDetails(targetPathArg, targetNode, resolvedPath, dependencies);
-    if (details)
+    if (details) {
+      itemDetailsList.push(details);
       singleItemResultOutput = effectiveFlags.long
           ? formatLongListItem(details, effectiveFlags, dependencies)
           : details.name;
+    }
   } else if (targetNode.type === "directory") {
     const childrenNames = Object.keys(targetNode.children);
     for (const name of childrenNames) {
@@ -177,10 +178,12 @@ async function listSinglePathContents(
     itemDetailsList = sortItems(itemDetailsList, effectiveFlags);
   } else {
     const details = getItemDetails(targetPathArg, targetNode, resolvedPath, dependencies);
-    if (details)
+    if (details) {
+      itemDetailsList.push(details);
       singleItemResultOutput = effectiveFlags.long
           ? formatLongListItem(details, effectiveFlags, dependencies)
           : details.name;
+    }
   }
 
   let currentPathOutputLines = [];
@@ -212,6 +215,7 @@ async function listSinglePathContents(
     isDir: targetNode.type === "directory",
   });
 }
+
 
 window.LsCommand = class LsCommand extends Command {
   constructor() {
@@ -271,9 +275,7 @@ window.LsCommand = class LsCommand extends Command {
     }
 
     const pathsToList = args.length > 0 ? args : ["."];
-    const outputBlocks = [];
-    const dirBlocks = [];
-    let fileBlock = "";
+    let outputBlocks = [];
     let overallSuccess = true;
 
     if (effectiveFlags.recursive) {
@@ -313,29 +315,26 @@ window.LsCommand = class LsCommand extends Command {
       }
     } else {
       const fileItems = [];
-      const dirPaths = [];
+      const dirBlocks = [];
+      const errorBlocks = [];
 
       for (const path of pathsToList) {
         const listResult = await listSinglePathContents(path, effectiveFlags, currentUser, options, dependencies);
 
         if (!listResult.success) {
-          outputBlocks.push(listResult.error);
-          overallSuccess = false;
+          errorBlocks.push(listResult.error);
         } else {
           const { output, items, isDir } = listResult.data;
           if (isDir && !effectiveFlags.dirsOnly) {
-            dirPaths.push(path);
             dirBlocks.push({ path, output });
           } else {
-            if (items.length > 0) {
-              fileItems.push(...items);
-            } else if (output) {
-              const singleItem = getItemDetails(path, dependencies.FileSystemManager.getNodeByPath(path), path, dependencies);
-              if(singleItem) fileItems.push(singleItem);
-            }
+            fileItems.push(...items);
           }
         }
       }
+
+      const finalOutputBlocks = [...errorBlocks];
+      let fileBlockAdded = false;
 
       if (fileItems.length > 0) {
         const sortedFileItems = sortItems(fileItems, effectiveFlags);
@@ -347,25 +346,29 @@ window.LsCommand = class LsCommand extends Command {
         } else {
           fileOutputLines.push(formatToColumns(sortedFileItems.map(item => item.name), options, dependencies));
         }
-        fileBlock = fileOutputLines.join('\n');
-        outputBlocks.push(fileBlock);
+        finalOutputBlocks.push(fileOutputLines.join('\n'));
+        fileBlockAdded = true;
       }
 
       dirBlocks.forEach((block, index) => {
-        if (fileBlock || index > 0) {
-          outputBlocks.push('');
+        if (fileBlockAdded || errorBlocks.length > 0 || index > 0) {
+          finalOutputBlocks.push('');
         }
         if (pathsToList.length > 1) {
-          outputBlocks.push(`${block.path}:`);
+          finalOutputBlocks.push(`${block.path}:`);
         }
-        outputBlocks.push(block.output);
+        finalOutputBlocks.push(block.output);
       });
+
+      if (errorBlocks.length > 0) {
+        return ErrorHandler.createError(finalOutputBlocks.join("\n"));
+      }
+      return ErrorHandler.createSuccess(finalOutputBlocks.join("\n"));
     }
 
-    if (!overallSuccess && outputBlocks.every(block => typeof block === 'string' && block.startsWith('ls: cannot access'))) {
+    if (!overallSuccess) {
       return ErrorHandler.createError(outputBlocks.join("\n"));
     }
-
     return ErrorHandler.createSuccess(outputBlocks.join("\n"));
   }
 }
