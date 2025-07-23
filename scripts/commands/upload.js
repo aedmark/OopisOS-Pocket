@@ -68,12 +68,11 @@ window.UploadCommand = class UploadCommand extends Command {
                     );
 
                     if (saveResult.success) {
+                        // Replace the old OutputManager call with this new one
                         await OutputManager.appendToOutput(
-                            `${Config.MESSAGES.UPLOAD_SUCCESS_PREFIX}'${file.name}'.`
+                            `${Config.MESSAGES.UPLOAD_SUCCESS_PREFIX}${file.name}${Config.MESSAGES.UPLOAD_SUCCESS_MIDDLE}${newFilePath}${Config.MESSAGES.UPLOAD_SUCCESS_SUFFIX}`
                         );
                         resolve(ErrorHandler.createSuccess("", { stateModified: true }));
-                    } else {
-                        resolve(ErrorHandler.createError(`upload: ${saveResult.error}`));
                     }
                     document.body.removeChild(input);
                 };
