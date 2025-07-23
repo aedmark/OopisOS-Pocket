@@ -218,12 +218,14 @@ login sudouser testpass
 echo "Attempting first sudo command (password required)..."
 sudo echo "Sudo command successful."
 testpass
+delay 400
 echo "Attempting second sudo command (should not require password)..."
 sudo ls /home/root
 login Guest
 check_fail "sudo ls /home/root"
 login root mcgoopis
 removeuser -f sudouser
+delay 400
 grep -v "sudouser" /etc/sudoers > sudoers.tmp; mv sudoers.tmp /etc/sudoers
 echo "--- Test: Granular sudo permissions ---"
 useradd sudouser2
@@ -235,10 +237,12 @@ login sudouser2 testpass
 echo "Attempting allowed specific command (ls)..."
 sudo ls /home/root
 testpass
+delay 400
 echo "Attempting disallowed specific command (rm)..."
 check_fail "sudo rm -f /home/Guest/README.md"
 login root mcgoopis
 removeuser -f sudouser2
+delay 400
 grep -v "sudouser2" /etc/sudoers > sudoers.tmp; mv sudoers.tmp /etc/sudoers
 login diagUser testpass
 cd /home/diagUser/diag_workspace
@@ -607,6 +611,54 @@ delay 700
 echo "---------------------------------------------------------------------"
 echo "--- 'run' command diagnostics finished ---"
 echo ""
+
+echo ""
+echo "===== Phase 18: Testing Symbolic Link Infrastructure ====="
+delay 400
+
+echo "--- Test: Symlink creation and display ---"
+echo "This is the original target file." > original_target.txt
+ln -s original_target.txt my_link
+echo "Verifying link display with 'ls -l':"
+ls -l my_link
+delay 500
+
+echo "--- Test: Symlink content resolution via 'cat' ---"
+cat my_link
+delay 500
+
+echo "--- Test: 'rm' behavior on symlinks vs. targets ---"
+echo "Removing the link 'my_link'..."
+rm my_link
+echo "Verifying original file still exists:"
+ls original_target.txt
+delay 500
+echo "Recreating link and removing the target..."
+ln -s original_target.txt my_link
+rm original_target.txt
+echo "Verifying link is now dangling (ls should still show it):"
+ls -l my_link
+delay 500
+check_fail "cat my_link"
+echo "Dangling link test complete."
+delay 500
+
+echo "--- Test: Symlink infinite loop detection (CRUCIAL) ---"
+ln -s link_b link_a
+ln -s link_a link_b
+echo "Attempting to cat a circular link (should fail gracefully)..."
+check_fail "cat link_a"
+echo "Loop detection test complete."
+delay 500
+
+echo "--- Finalizing symlink test cleanup ---"
+rm link_a link_b my_link
+check_fail "ls link_a"
+check_fail "ls original_target.txt"
+echo "Symbolic link tests complete."
+delay 700
+echo "---------------------------------------------------------------------"
+delay 400
 echo "===== Phase X: Testing Filesystem Torture & I/O Gauntlet ====="
 delay 400
 

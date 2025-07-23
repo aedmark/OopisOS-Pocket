@@ -251,7 +251,24 @@ class FileSystemManager {
     );
   }
 
-  getNodeByPath(absolutePath) {
+  _createNewSymlinkNode(targetPath, owner, group) {
+    return {
+      type: this.config.FILESYSTEM.SYMBOLIC_LINK_TYPE,
+      target: targetPath, // The path the link points to
+      owner: owner,
+      group: group,
+      mode: 0o777, // Symlinks typically have open permissions
+      mtime: new Date().toISOString()
+    };
+  }
+
+  getNodeByPath(absolutePath, visited = new Set()) {
+    if (visited.has(absolutePath)) {
+      // Loop detected
+      return null;
+    }
+    visited.add(absolutePath);
+
     const currentUser = this.dependencies.UserManager.getCurrentUser().name;
     if (absolutePath === this.config.FILESYSTEM.ROOT_PATH) {
       return this.fsData[this.config.FILESYSTEM.ROOT_PATH];
@@ -269,6 +286,10 @@ class FileSystemManager {
         return null; // Path does not exist
       }
       currentNode = currentNode.children[segment];
+      if (currentNode.type === this.config.FILESYSTEM.SYMBOLIC_LINK_TYPE) {
+        const targetPath = this.getAbsolutePath(currentNode.target, this.currentPath);
+        return this.getNodeByPath(targetPath, visited);
+      }
     }
     return currentNode;
   }

@@ -1,3 +1,4 @@
+// scripts/config.js
 class ConfigManager {
   constructor() {
     this.dependencies = {};
@@ -49,6 +50,7 @@ class ConfigManager {
         PARENT_DIR_SYMBOL: "..",
         DEFAULT_DIRECTORY_TYPE: "directory",
         DEFAULT_FILE_TYPE: "file",
+        SYMBOLIC_LINK_TYPE: 'symlink', // Added for symlink support
         PATH_SEPARATOR: "/",
         DEFAULT_FILE_MODE: 0o644,
         DEFAULT_DIR_MODE: 0o755,
@@ -147,11 +149,11 @@ class ConfigManager {
         "chgrp", "chidi", "chmod", "chown", "cksum", "clear", "clearfs", "code", "cp", "csplit",
         "curl", "date", "delay", "df", "diff", "du", "echo", "edit", "explore", "export",
         "find", "gemini", "grep", "groupadd", "groupdel", "groups", "head", "help", "history",
-        "kill", "less", "listusers", "loadstate", "log", "login", "logout", "ls", "man", "more",
+        "kill", "less", "listusers", "loadstate", "log", "login", "logout", "ls", "ln", "man", "more",
         "mkdir", "mv", "ocrypt", "paint", "passwd", "printscreen", "ps", "pwd", "reboot", "removeuser",
         "reset", "restore", "rm", "rmdir", "run", "savefs", "savestate", "set", "shuf", "sort",
         "su", "sudo", "sync", "tail", "touch", "tree", "unalias", "uniq", "unset", "unzip",
-        "upload", "useradd", "usermod", "visudo", "wc", "wget", "whoami", "xor", "zip", "xargs",
+        "upload", "useradd", "usermod", "visudo", "wc", "wget", "whoami", "xor", "zip", "xargs", "ln"
       ],
     };
 

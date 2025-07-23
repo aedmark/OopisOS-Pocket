@@ -18,8 +18,11 @@ function getItemDetails(itemName, itemNode, itemPath, dependencies) {
 }
 
 function formatLongListItem(itemDetails, effectiveFlags, dependencies) {
-  const { FileSystemManager, Utils } = dependencies;
-  const perms = FileSystemManager.formatModeToString(itemDetails.node);
+  const { FileSystemManager, Utils, Config } = dependencies;
+  let perms = FileSystemManager.formatModeToString(itemDetails.node);
+  if (itemDetails.type === Config.FILESYSTEM.SYMBOLIC_LINK_TYPE) {
+    perms = 'l' + perms.substring(1);
+  }
   const owner = (itemDetails.node.owner || "unknown").padEnd(10);
   const group = (itemDetails.node.group || "unknown").padEnd(10);
   const size = effectiveFlags.humanReadable
@@ -52,10 +55,14 @@ function formatLongListItem(itemDetails, effectiveFlags, dependencies) {
     dateStr = "Jan  1  1970";
   }
 
-  const nameSuffix =
-      itemDetails.type === "directory" && !effectiveFlags.dirsOnly ? "/" : "";
+  let nameOutput = itemDetails.name;
+  if (itemDetails.type === Config.FILESYSTEM.SYMBOLIC_LINK_TYPE) {
+    nameOutput += ` -> ${itemDetails.node.target}`;
+  } else if (itemDetails.type === "directory" && !effectiveFlags.dirsOnly) {
+    nameOutput += "/";
+  }
 
-  return `${perms}  ${String(itemDetails.linkCount).padStart(2)} ${owner} ${group} ${size} ${dateStr.padEnd(12)} ${itemDetails.name}${nameSuffix}`;
+  return `${perms}  ${String(itemDetails.linkCount).padStart(2)} ${owner} ${group} ${size} ${dateStr.padEnd(12)} ${nameOutput}`;
 }
 
 function sortItems(items, currentFlags) {
