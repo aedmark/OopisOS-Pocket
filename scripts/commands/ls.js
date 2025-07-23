@@ -323,6 +323,30 @@ window.LsCommand = class LsCommand extends Command {
           }
         }
       }
+      for (const path of pathsToList) {
+        await displayRecursive(path);
+      }
+    } else {
+      const fileArgs = [];
+      const dirArgs = [];
+      const errorOutputs = [];
+
+      for (const path of pathsToList) {
+        const pathValidationResult = FileSystemManager.validatePath(path);
+        if (!pathValidationResult.success) {
+          errorOutputs.push(
+              `ls: cannot access '${path}': ${pathValidationResult.error.replace(path + ":", "").trim()}`
+          );
+          overallSuccess = false;
+        } else if (
+            pathValidationResult.data.node.type === "directory" &&
+            !effectiveFlags.dirsOnly
+        ) {
+          dirArgs.push(path);
+        } else {
+          fileArgs.push(path);
+        }
+      }
 
       if (fileArgs.length > 0) {
         const fileDetailsList = [];
