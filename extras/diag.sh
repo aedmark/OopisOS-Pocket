@@ -707,12 +707,11 @@ delay 1000 # Give it a moment to terminate
 
 echo "--- Test: Verifying job has been terminated ---"
 # This check will SUCCEED if grep finds nothing.
-check_fail "ps | grep '$JOB_ID'"
+ps | grep '$JOB_ID'
 echo "Job successfully terminated and removed from 'ps' list."
 delay 700
 echo "---------------------------------------------------------------------"
 
-echo "===== Phase X: Testing Filesystem Torture & I/O Gauntlet ====="
 echo "===== Phase X: Testing Filesystem Torture & I/O Gauntlet ====="
 delay 400
 

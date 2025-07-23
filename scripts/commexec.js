@@ -219,7 +219,8 @@ class CommandExecutor {
       case 'TERM':
         if (job.abortController) {
           job.abortController.abort("Killed by user command.");
-          job.status = 'terminated';
+          delete this.activeJobs[jobId];
+          this.dependencies.MessageBusManager.unregisterJob(jobId);
         }
         break;
       case 'STOP':
