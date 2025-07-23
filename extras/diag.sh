@@ -143,12 +143,51 @@ delay 700
 echo "---------------------------------------------------------------------"
 
 echo ""
+echo "===== Phase 4.5: Testing Recursive Ownership & Group Permissions ====="
+delay 400
+
+login root mcgoopis
+echo "--- Setting up for recursive ownership tests ---"
+groupadd recursive_test_group
+useradd recursive_test_user
+testpass
+testpass
+mkdir -p /home/Guest/recursive_chown_test/subdir
+echo "level 1 file" > /home/Guest/recursive_chown_test/file1.txt
+echo "level 2 file" > /home/Guest/recursive_chown_test/subdir/file2.txt
+echo "Initial state:"
+ls -lR /home/Guest/recursive_chown_test
+delay 500
+
+echo "--- Test: Recursive chown (-R) ---"
+chown -R recursive_test_user /home/Guest/recursive_chown_test
+echo "State after recursive chown:"
+ls -lR /home/Guest/recursive_chown_test
+delay 500
+
+echo "--- Test: Recursive chgrp (-R) ---"
+chgrp -R recursive_test_group /home/Guest/recursive_chown_test
+echo "State after recursive chgrp:"
+ls -lR /home/Guest/recursive_chown_test
+delay 500
+
+echo "--- Cleanup from recursive tests ---"
+removeuser -f recursive_test_user
+groupdel recursive_test_group
+rm -r -f /home/Guest/recursive_chown_test
+login Guest
+echo "Recursive ownership tests complete."
+delay 700
+echo "---------------------------------------------------------------------"
+
+echo ""
 echo "===== Phase 5: Testing Sudo & Security Model ====="
 delay 400
 login root mcgoopis
 useradd sudouser
 testpass
 testpass
+delay 500
 echo "sudouser ALL" >> /etc/sudoers
 login sudouser testpass
 echo "Attempting first sudo command (password required)..."
@@ -165,6 +204,7 @@ echo "--- Test: Granular sudo permissions ---"
 useradd sudouser2
 testpass
 testpass
+delay 500
 echo "sudouser2 ls" >> /etc/sudoers
 login sudouser2 testpass
 echo "Attempting allowed specific command (ls)..."
@@ -201,12 +241,14 @@ echo "--- Test: sort (-n, -r, -u) ---"
 sort -r sort_test.txt
 sort -n sort_test.txt
 sort -u sort_test.txt
+delay 600
 echo "--- Test: wc (-l, -w, -c) ---"
 wc text_file.txt
 wc -l -w -c text_file.txt
 echo "--- Test: head/tail (-n, -c) ---"
 head -n 1 text_file.txt
 tail -c 5 text_file.txt
+delay 500
 echo "--- Test: grep flags (-i, -v, -c) ---"
 grep -i "FOX" text_file.txt
 grep -c "quick" text_file.txt
@@ -225,6 +267,7 @@ echo "--- Test: find by name, type, and permissions ---"
 find find_test -name "*.tmp"
 find find_test -type d
 find find_test -perm 777
+delay 500
 echo "--- Test: zip/unzip ---"
 zip my_archive.zip ./zip_test
 rm -r -f zip_test
@@ -240,6 +283,7 @@ echo "--- Test: bc command (pipe and argument) ---"
 echo "5 * (10 - 2) / 4" | bc
 bc "100 + 1"
 check_fail "bc '5 / 0'"
+delay 500
 echo "--- Test: Pager integration (non-interactive pipe-through) ---"
 echo -e "Line 1\nLine 2\nLine 3" > pager_test.txt
 cat pager_test.txt | more | wc -l
@@ -248,6 +292,7 @@ echo "Pager pass-through test complete."
 echo "--- Test: Input Redirection (<) ---"
 echo "hello redirect" > input_redir.txt
 cat < input_redir.txt
+delay 500
 rm pager_test.txt input_redir.txt
 echo "Input redirection test complete."
 delay 700
@@ -290,6 +335,7 @@ echo "--- Test: cksum and sync ---"
 echo "A well-written program is its own Heaven." > cksum_test.txt
 cksum cksum_test.txt
 sync
+delay 500
 echo "A poorly-written program is its own Hell." >> cksum_test.txt
 cksum cksum_test.txt
 rm cksum_test.txt
@@ -301,6 +347,7 @@ echo -e "bravo\n" >> csplit_test.txt
 echo -e "charlie\n" >> csplit_test.txt
 echo -e "delta\n" >> csplit_test.txt
 echo -e "echo" >> csplit_test.txt
+delay 500
 csplit csplit_test.txt 3
 ls xx*
 rm -f xx00 xx01 csplit_test.txt
@@ -320,6 +367,7 @@ awk -F, '/,active/ { print "User " $1 " is " $3 }' awk_test.csv
 echo "--- Test: shuf (-i, -e) ---"
 shuf -i 1-5 -n 3
 shuf -e one two three four five
+delay 500
 echo "--- Test: tree (-L, -d) ---"
 tree -L 2 ./recursive_test
 tree -d ./recursive_test
@@ -343,6 +391,7 @@ echo "--- Test: history -c ---"
 history
 history -c
 history
+delay 500
 echo "--- Test: alias/unalias ---"
 alias myls="ls -l"
 myls
@@ -371,6 +420,7 @@ su testuser2 newpass
 whoami
 logout
 whoami
+delay 500
 echo "--- Test: savestate and loadstate ---"
 login diagUser testpass
 cd /home/diagUser/diag_workspace
@@ -412,6 +462,7 @@ cat "my test dir/file with spaces.txt"
 mv "my test dir" "your test dir"
 ls "your test dir"
 rm -r "your test dir"
+delay 500
 check_fail "ls 'my test dir'"
 echo "Space filename tests complete."
 delay 400
@@ -538,6 +589,7 @@ echo "--- Test: Handling of obnoxious filenames ---"
 mkdir -p "./a directory with spaces and.. special'chars!"
 touch "./a directory with spaces and.. special'chars!/-leading_dash.txt"
 echo "obnoxious" > "./a directory with spaces and.. special'chars!/test.txt"
+delay 400
 ls -l "./a directory with spaces and.. special'chars!"
 cat "./a directory with spaces and.. special'chars!/test.txt"
 rm -r -f "./a directory with spaces and.. special'chars!"
@@ -583,21 +635,21 @@ echo 'limitedsudo cat' >> /etc/sudoers
 useradd limitedsudo
 testpass
 testpass
-
+delay 400
 chmod 701 /home/diagUser
 
 echo "TOP SECRET" > /home/diagUser/diag_workspace/specific_file.txt
 
 login limitedsudo testpass
 cd /home/diagUser/diag_workspace
-
+delay 400
 echo "Attempting to run allowed command ('cat') on a file..."
 sudo cat /home/diagUser/diag_workspace/specific_file.txt
 testpass
 
 echo "Attempting to run disallowed command ('ls')... (This should fail)"
 check_fail "sudo ls /"
-
+delay 400
 login root mcgoopis
 removeuser -f limitedsudo
 grep -v "limitedsudo" /etc/sudoers > sudoers.tmp
@@ -616,6 +668,7 @@ echo "--- Test: File ownership vs. permissions paradox ---"
 useradd paradoxuser
 testpass
 testpass
+delay 400
 touch paradox.txt
 chown paradoxuser paradox.txt
 chmod 000 paradox.txt
@@ -655,6 +708,7 @@ mkdir -p new_dir_post_save
 echo "post-save" > new_dir_post_save/another.txt
 loadstate
 YES
+delay 400
 ls state_integrity.txt
 check_fail "ls new_dir_post_save"
 rm state_integrity.txt
@@ -677,6 +731,7 @@ delay 400
 echo "--- Test: cp -p (Preserve Permissions) ---"
 touch preserve_perms.txt
 chmod 700 preserve_perms.txt
+delay 400
 cp -p preserve_perms.txt preserve_copy.sh
 echo "Verifying preserved permissions:"
 ls -l preserve_perms.txt preserve_copy.sh
@@ -704,6 +759,7 @@ groupadd testgroup
 useradd testuser
 testpass
 testpass
+delay 400
 usermod -aG testgroup testuser
 touch group_test_file.txt
 chown diagUser group_test_file.txt
@@ -715,10 +771,12 @@ echo "Appending to file as group member (should succeed)..."
 echo "appended" >> group_test_file.txt
 cat group_test_file.txt
 login Guest
+delay 400
 cd /home/diagUser/diag_workspace
 echo "Appending to file as Guest (should fail)..."
 check_fail "echo 'appended by guest' >> group_test_file.txt"
 login root mcgoopis
+delay 400
 removeuser -f testuser
 groupdel testgroup
 rm group_test_file.txt
@@ -729,6 +787,7 @@ echo "--- Test: sudo with Granular Permissions ---"
 useradd sudouser2
 testpass
 testpass
+delay 400
 echo "sudouser2 ALL=(ALL) /bin/ls" >> /etc/sudoers
 login sudouser2 testpass
 echo "Running allowed sudo command (sudo ls)..."
@@ -757,17 +816,20 @@ echo "Reverse sort:"
 sort -r sort_test.txt
 echo "Unique sort:"
 sort -u sort_test.txt
+delay 400
 rm sort_test.txt
 echo "sort test complete."
 delay 400
 
 echo "--- Test: find with -exec and -delete ---"
 mkdir find_exec_test
+delay 400
 touch find_exec_test/test.exec
 touch find_exec_test/test.noexec
 echo "Changing permissions with find -exec..."
 find ./find_exec_test -name "*.exec" -exec chmod 777 {} \;
 ls -l find_exec_test
+delay 400
 echo "Deleting with find -delete..."
 find ./find_exec_test -name "*.noexec" -delete
 ls -l find_exec_test
@@ -780,6 +842,7 @@ echo -e "line 1\nline 2\nline 3" > pager_test.txt
 echo "Piping to 'more'..."
 cat pager_test.txt | more | wc -l
 echo "Piping to 'less'..."
+delay 400
 cat pager_test.txt | less | wc -l
 rm pager_test.txt
 echo "Pager test complete."
@@ -809,6 +872,7 @@ delay 400
 echo "--- Test: File I/O with Special Characters ---"
 mkdir "a directory with spaces and.. special'chars!"
 touch "a directory with spaces and.. special'chars!/-leading_dash.txt"
+delay 400
 echo "Special content" > "a directory with spaces and.. special'chars!/-leading_dash.txt"
 cat "a directory with spaces and.. special'chars!/-leading_dash.txt"
 rm -r "a directory with spaces and.. special'chars!"
@@ -834,13 +898,14 @@ removeuser -f diagUser
 removeuser -f sudouser
 removeuser -f testuser
 removeuser -f testuser2
+delay 400
 rm -r -f /home/diagUser
 rm -r -f /home/sudouser
 rm -r -f /home/testuser
 rm -r -f /home/testuser2
 login Guest
 listusers
-delay 700
+delay 1000
 echo "---------------------------------------------------------------------"
 echo ""
 echo "      ===== OopisOS Core Test Suite v4.5 Complete ======="
@@ -853,11 +918,15 @@ delay 150
 echo "  ==           OopisOS Core Diagnostics               =="
 delay 150
 echo "  ==            ALL SYSTEMS OPERATIONAL               =="
-delay 200
+delay 150
 echo "  ==                                                  =="
 delay 150
 echo "  ======================================================"
 echo " "
 delay 500
 echo "(As usual, you've been a real pantload!)"
-delay 200
+delay 500
+echo " "
+echo " "
+echo " "
+delay 100
