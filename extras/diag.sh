@@ -491,7 +491,45 @@ rm empty_via_redir.txt input.txt
 echo "Redirection tests complete."
 delay 700
 echo "---------------------------------------------------------------------"
+echo "===== Phase 17: Testing 'run' Command & Script Execution ====="
+delay 400
 
+echo "--- Test: Basic script execution ---"
+# Create a simple script to be executed.
+echo 'echo "Hello from a run script!"' > simple_test.sh
+chmod 755 simple_test.sh
+# Run it!
+run ./simple_test.sh
+rm simple_test.sh
+echo "Basic execution test complete."
+delay 400
+
+echo "--- Test: Script argument passing ---"
+# Create a script that prints its arguments.
+echo '#!/bin/oopis_shell' > arg_passing_test.sh
+echo 'echo "Arg 1: $1, Arg 2: $2, Arg Count: $#, All Args: $@" ' >> arg_passing_test.sh
+chmod 755 arg_passing_test.sh
+# Run the script with various arguments.
+run ./arg_passing_test.sh first "second arg" third
+rm arg_passing_test.sh
+echo "Argument passing test complete."
+delay 400
+
+echo "--- Test: Script environment sandboxing ---"
+# Create a script that sets a variable.
+echo 'set CHILD_VAR="i am from the child"' > scope_test.sh
+chmod 755 ./scope_test.sh
+# Run the script.
+run ./scope_test.sh
+# Now, check if that variable leaked into our current shell. It shouldn't have!
+# 'check_fail -z' will SUCCEED if the echo command produces NO output.
+check_fail -z "echo $CHILD_VAR"
+rm scope_test.sh
+echo "Script sandboxing test complete."
+delay 700
+
+echo "---------------------------------------------------------------------"
+echo "--- 'run' command diagnostics finished ---"
 echo ""
 echo "===== Phase X: Testing Filesystem Torture & I/O Gauntlet ====="
 delay 400
