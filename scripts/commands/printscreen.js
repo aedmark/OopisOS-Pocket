@@ -32,7 +32,7 @@ window.PrintscreenCommand = class PrintscreenCommand extends Command {
                 return ErrorHandler.createError("printscreen: output file is required in non-interactive mode.");
             }
             const terminalElement = document.getElementById("terminal");
-            const screenText = terminalElement ? terminalElement.textContent || "" : "Error: Could not find terminal element.";
+            const screenText = terminalElement ? terminalElement.innerText || "" : "Error: Could not find terminal element.";
 
             // Resolve the output path to an absolute path
             const absolutePath = FileSystemManager.getAbsolutePath(outputFilename);
