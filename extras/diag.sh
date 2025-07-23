@@ -9,6 +9,7 @@ delay 400
 useradd diagUser
 testpass
 testpass
+delay 400
 mkdir -p /home/diagUser/diag_workspace/
 chown diagUser /home/diagUser/diag_workspace/
 groupadd testgroup
@@ -26,41 +27,51 @@ echo "---------------------------------------------------------------------"
 
 echo ""
 echo "--- Phase 2: Creating diagnostic assets ---"
-# Basic FS assets
+echo "Creating basic FS assets..."
 mkdir -p src mv_test_dir overwrite_dir find_test/subdir zip_test/nested_dir "a dir with spaces"
 mkdir -p recursive_test/level2/level3
-# Text/diff assets
+delay 400
+echo  "Inflating text/diff assets..."
 echo -e "line one\nline two\nline three" > diff_a.txt
 echo -e "line one\nline 2\nline three" > diff_b.txt
-# Permissions assets
+delay 400
+echo "Building permissions assets..."
 echo "I should not be executable" > exec_test.sh; chmod 600 exec_test.sh
 touch preserve_perms.txt; chmod 700 preserve_perms.txt
-# Data processing assets
+delay 700
+echo "Dispensing data processing assets..."
+delay 400
 echo -e "zeta\nalpha\nbeta\nalpha\n10\n2" > sort_test.txt
 echo "The quick brown fox." > text_file.txt
 echo -e "apple\nbanana\napple\napple\norange\nbanana" > uniq_test.txt
 echo -e "id,value,status\n1,150,active\n2,80,inactive\n3,200,active" > awk_test.csv
-# xargs assets
+echo "Generating xargs assets..."
+delay 400
 touch file1.tmp file2.tmp file3.tmp
-# find assets
+echo "Finding assets..."
 touch find_test/a.txt find_test/b.tmp find_test/subdir/c.tmp
 chmod 777 find_test/a.txt
-# zip assets
+delay 400
+echo "Zipping assets..."
 echo "file one content" > zip_test/file1.txt
 echo "nested file content" > zip_test/nested_dir/file2.txt
-# Scripting assets
+delay 400
+echo "Scripting assets..."
 echo '#!/bin/oopis_shell' > arg_test.sh
 echo 'echo "Arg 1: $1, Arg 2: $2, Arg Count: $#, All Args: $@" ' >> arg_test.sh
 chmod 700 arg_test.sh
-# ls sorting assets
+delay 400
+echo "Sorting assets..."
 touch -d "2 days ago" old.ext
 touch -d "1 day ago" new.txt
 echo "short" > small.log
 echo "this is a very long line" > large.log
-# Recursive test assets
+delay 400
+echo "Assembling recursive test assets..."
 echo "I am a secret" > recursive_test/secret.txt
 echo "I am a deeper secret" > recursive_test/level2/level3/deep_secret.txt
-# State management test asset
+delay 400
+echo "Electing state management assets..."
 echo "Original State" > state_test.txt
 echo "Asset creation complete."
 delay 700
@@ -72,10 +83,12 @@ delay 400
 echo "--- Test: diff, cp -p, mv ---"
 diff diff_a.txt diff_b.txt
 cp -p preserve_perms.txt preserve_copy.sh
+delay 400
 echo "Verifying preserved permissions:"
 ls -l preserve_perms.txt preserve_copy.sh
 mv exec_test.sh mv_test_dir/
 ls mv_test_dir/
+delay 400
 echo "--- Test: touch -d and -t ---"
 touch -d "1 day ago" old_file.txt
 touch -t 202305201200.30 specific_time.txt
@@ -83,12 +96,16 @@ ls -l old_file.txt specific_time.txt
 echo "--- Test: ls sorting flags (-t, -S, -X, -r) ---"
 echo "Sorting by modification time (newest first):"
 ls -lt
+delay 400
 echo "Sorting by size (largest first):"
 ls -lS
+delay 400
 echo "Sorting by extension:"
 ls -lX
+delay 400
 echo "Sorting by name in reverse order:"
 ls -lr
+delay 400
 echo "--- Test: cat -n ---"
 cat -n diff_a.txt
 delay 700
@@ -108,12 +125,14 @@ login root mcgoopis
 useradd testuser
 testpass
 testpass
+delay 400
 usermod -aG testgroup testuser
 groups testuser
 mkdir -p /tmp/no_exec_dir
 chmod 644 /tmp/no_exec_dir
 chmod 755 /home/diagUser
 cd /home/diagUser/diag_workspace
+delay 400
 echo "Initial content" > group_test_file.txt
 chown diagUser group_test_file.txt
 chgrp testgroup group_test_file.txt
@@ -121,23 +140,28 @@ chmod 664 group_test_file.txt
 echo "--- Test: Group write permission ---"
 login testuser testpass
 cd /home/diagUser/diag_workspace
+delay 400
 echo "Append by group member" >> group_test_file.txt
 cat group_test_file.txt
 echo "--- Test: 'Other' permissions (should fail) ---"
 login Guest
 cd /home/diagUser/diag_workspace
 check_fail "echo 'Append by other user' >> group_test_file.txt"
+delay 400
 echo "--- Test: Permission Edge Cases ---"
 login testuser testpass
 check_fail "chmod 777 /home/diagUser/diag_workspace/group_test_file.txt"
 check_fail "cd /tmp/no_exec_dir"
 login root mcgoopis
+delay 400
 rm -r -f /tmp
 removeuser -f testuser
 groupdel testgroup
 rm -f /home/diagUser/diag_workspace/group_test_file.txt
+delay 400
 chmod 700 /home/diagUser
 login diagUser testpass
+delay 400
 cd /home/diagUser/diag_workspace
 delay 700
 echo "---------------------------------------------------------------------"
@@ -152,6 +176,7 @@ groupadd recursive_test_group
 useradd recursive_test_user
 testpass
 testpass
+delay 400
 mkdir -p /home/Guest/recursive_chown_test/subdir
 echo "level 1 file" > /home/Guest/recursive_chown_test/file1.txt
 echo "level 2 file" > /home/Guest/recursive_chown_test/subdir/file2.txt
