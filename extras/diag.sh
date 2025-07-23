@@ -653,8 +653,8 @@ delay 500
 
 echo "--- Finalizing symlink test cleanup ---"
 rm link_a link_b my_link
-check_fail "ls link_a"
-check_fail "ls original_target.txt"
+check_fail "cat link_a"
+check_fail "cat original_target.txt"
 echo "Symbolic link tests complete."
 delay 700
 echo "---------------------------------------------------------------------"
