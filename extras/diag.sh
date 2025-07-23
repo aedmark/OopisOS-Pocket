@@ -345,9 +345,13 @@ history -c
 history
 echo "--- Test: alias/unalias ---"
 alias myls="ls -l"
+delay 1000
 myls
+delay 5000
 unalias myls
+delay 5000
 check_fail "myls"
+delay 5000
 echo "--- Test: set/unset ---"
 set MY_VAR="Variable Test Passed"
 echo $MY_VAR
