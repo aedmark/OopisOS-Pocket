@@ -1,8 +1,6 @@
 const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const path = require("path");
 
-// --- START: ENFORCED PORTABLE APP LOGIC ---
-
 // Determine if we are running in a packaged app or in development
 // The 'isPackaged' property is the correct one, not 'ispackaged'.
 const isPackaged = app.isPackaged;
@@ -23,7 +21,6 @@ console.log(
   portableDataPath
 );
 
-// --- END: ENFORCED PORTABLE APP LOGIC ---
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
