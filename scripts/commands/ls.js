@@ -144,7 +144,7 @@ async function listSinglePathContents(
     dependencies
 ) {
   const { FileSystemManager, ErrorHandler } = dependencies;
-  const pathValidationResult = FileSystemManager.validatePath(targetPathArg);
+  const pathValidationResult = FileSystemManager.validatePath(targetPathArg, { resolveLastSymlink: false });
 
   if (!pathValidationResult.success) {
     return ErrorHandler.createError(

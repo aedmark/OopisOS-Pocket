@@ -5,7 +5,7 @@ window.RmCommand = class RmCommand extends Command {
       commandName: "rm",
       description: "Removes files or directories.",
       helpText: `Usage: rm [OPTION]... [FILE]...
-      Remove files or directories.
+      Remove files, directories, or symbolic links.
       DESCRIPTION
       The rm command removes each specified file. By default, it does not
       remove directories. It will remove symbolic links without following them.
@@ -35,7 +35,7 @@ window.RmCommand = class RmCommand extends Command {
           {
             argIndex: 'all',
             permissionsOnParent: ['write'],
-            options: { allowMissing: true } // Allow missing with -f
+            options: { allowMissing: true, resolveLastSymlink: false }
           }
         ]
       },
@@ -64,16 +64,6 @@ window.RmCommand = class RmCommand extends Command {
         messages.push(`rm: cannot remove root directory`);
         allSuccess = false;
         continue;
-      }
-
-      if (node.type === Config.FILESYSTEM.SYMBOLIC_LINK_TYPE) {
-        // Special handling for symlinks: always remove the link itself, never follow.
-        const parentPath = resolvedPath.substring(0, resolvedPath.lastIndexOf('/')) || '/';
-        const linkName = resolvedPath.substring(resolvedPath.lastIndexOf('/') + 1);
-        const parentNode = FileSystemManager.getNodeByPath(parentPath);
-        delete parentNode.children[linkName];
-        anyChangeMade = true;
-        continue; // Move to the next path
       }
 
       if (node.type === "directory" && !flags.recursive) {
