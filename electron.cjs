@@ -36,8 +36,8 @@ function createWindow() {
   });
 
   mainWindow
-    .loadFile("index.html")
-    .catch((err) => console.error("Failed to load index.html", err));
+      .loadFile(path.join(app.getAppPath(), "index.html"))
+      .catch((err) => console.error("Failed to load index.html", err));
 
   // For debugging, you can uncomment the next line
   // mainWindow.webContents.openDevTools();
