@@ -5,9 +5,9 @@ echo "---------------------------------------------------------------------"
 echo ""
 delay 200
 echo "--- Phase 1: Creating dedicated test user and workspace ---"
-delay 800
+delay 200
 login root mcgoopis
-delay 400
+delay 200
 useradd diagUser
 testpass
 testpass
@@ -20,7 +20,7 @@ chmod 775 /home/diagUser/diag_workspace/
 delay 500
 login diagUser testpass
 echo "Current User (expected: diagUser):"
-delay 800
+delay 400
 whoami
 echo "Current Path after login (expected: /home/diagUser):"
 pwd
@@ -77,7 +77,7 @@ delay 400
 echo "Electing state management assets..."
 echo "Original State" > state_test.txt
 echo "Asset creation complete."
-delay 700
+delay 400
 echo "---------------------------------------------------------------------"
 
 echo ""
@@ -86,12 +86,12 @@ delay 400
 echo "--- Test: diff, cp -p, mv ---"
 diff diff_a.txt diff_b.txt
 cp -p preserve_perms.txt preserve_copy.sh
-delay 400
+delay 200
 echo "Verifying preserved permissions:"
 ls -l preserve_perms.txt preserve_copy.sh
 mv exec_test.sh mv_test_dir/
 ls mv_test_dir/
-delay 400
+delay 200
 echo "--- Test: touch -d and -t ---"
 touch -d "1 day ago" old_file.txt
 touch -t 202305201200.30 specific_time.txt
@@ -102,7 +102,7 @@ ls -lt
 delay 400
 echo "Sorting by size (largest first):"
 ls -lS
-delay 400
+delay 200
 echo "Sorting by extension:"
 ls -lX
 delay 400
@@ -113,7 +113,6 @@ echo "--- Test: cat -n ---"
 cat -n diff_a.txt
 delay 700
 echo "--- Test: cd into a file (should fail) ---"
-delay 200
 echo "this is a file" > not_a_directory.txt
 delay 300
 check_fail "cd not_a_directory.txt"
@@ -135,7 +134,7 @@ mkdir -p /tmp/no_exec_dir
 chmod 644 /tmp/no_exec_dir
 chmod 755 /home/diagUser
 cd /home/diagUser/diag_workspace
-delay 400
+delay 200
 echo "Initial content" > group_test_file.txt
 chown diagUser group_test_file.txt
 chgrp testgroup group_test_file.txt
@@ -166,7 +165,7 @@ chmod 700 /home/diagUser
 login diagUser testpass
 delay 400
 cd /home/diagUser/diag_workspace
-delay 700
+delay 500
 echo "---------------------------------------------------------------------"
 
 echo ""
@@ -205,7 +204,7 @@ groupdel recursive_test_group
 rm -r -f /home/Guest/recursive_chown_test
 login Guest
 echo "Recursive ownership tests complete."
-delay 700
+delay 500
 echo "---------------------------------------------------------------------"
 
 echo ""
@@ -711,6 +710,38 @@ ps | grep '$JOB_ID'
 echo "Job successfully terminated and removed from 'ps' list."
 delay 700
 echo "---------------------------------------------------------------------"
+
+echo ""
+echo "===== Phase 20: Testing Stream & Text Manipulation Commands ====="
+delay 400
+
+echo "--- Test: nl (Number Lines) Command ---"
+# Create a test file with blank lines
+echo -e "First line.\n\nThird line." > nl_test.txt
+echo "Testing nl on a file with blank lines:"
+nl nl_test.txt
+delay 400
+echo "Testing nl on piped input:"
+cat nl_test.txt | nl
+rm nl_test.txt
+echo "nl test complete."
+delay 400
+
+echo "--- Test: sed (Stream Editor) Command ---"
+# Create a test file for substitution
+echo "The quick brown fox jumps over the lazy dog." > sed_test.txt
+echo "The fox is a fox." >> sed_test.txt
+echo "Original content:"
+cat sed_test.txt
+delay 400
+echo "Testing single substitution:"
+sed 's/fox/cat/' sed_test.txt
+delay 400
+echo "Testing global substitution:"
+sed 's/fox/cat/g' sed_test.txt
+rm sed_test.txt
+echo "sed test complete."
+delay 700
 
 echo "===== Phase X: Testing Filesystem Torture & I/O Gauntlet ====="
 delay 400
