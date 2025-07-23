@@ -32,7 +32,7 @@ function createWindow() {
     resizable: true,
     autoHideMenuBar: true, // This will hide the menu bar by default.
     webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
+      preload: path.join(__dirname),
       contextIsolation: true,
       sandbox: true,
     },
