@@ -145,50 +145,41 @@ The shell is smart enough to handle basic logic. This is essential for scripting
     - **Use case:** `grep "ERROR" log.txt || echo "No errors found."` (Print a success message only if grep finds nothing and returns an error code).
 
 
-## ## **For Developers: How to Build Great Public Works**
+# For Developers: How Not to Make a Mess
 
-If you want to contribute to our digital city, you need to understand the zoning laws and building codes. The system is designed around a few core principles. Adhering to them is what keeps our city running smoothly.
+If you want to contribute, you need to understand the architecture. It's not complicated, but it is deliberate. The entire system is designed around a few core ideas. Don't fight them.
 
-1. **It's All On The Client.** There is no backend. The OS is 100% self-reliant, and all data lives and dies in the user's browser. This is a hard constraint and a feature, not a bug!
+1. **It's All On The Client.** There is no backend. There is no server to save you. The OS is 100% self-reliant, and all data lives and dies in the user's browser. This is a hard constraint.
 
-2. **Modularity is Not Optional.** Features are built as discrete, isolated components. The `CommandExecutor` orchestrates the `FileSystemManager`; it doesn't get tangled up in its internals. This separation is what keeps the system from turning into a bowl of spaghetti.
+2. **Modularity is Not Optional.** Features are built as discrete, isolated components. The command executor _orchestrates_ the filesystem manager; it doesn't get tangled up in its internals. This separation is what keeps the system from turning into a bowl of spaghetti.
 
-3. **Security is the Foundation, Not an Amenity.** The permission model is not a suggestion. All I/O goes through `FileSystemManager.hasPermission()`. Passwords are never stored in plaintext; they're hashed with the Web Crypto API. There are no shortcuts to good governance.
+3. **Security is the Foundation, Not a Feature.** The permission model is not a suggestion. All I/O, without exception, goes through a single gatekeeper (`FileSystemManager.hasPermission()`). Passwords are never stored in plaintext; they're hashed with the Web Crypto API. There are no shortcuts.
 
-4. **Execution is Contained.** Every command follows a strict lifecycle: Lex, Parse, Validate, Execute. We validate everything—arguments, paths, permissions—_before_ a single line of the command's core logic is run. This prevents a rogue command from causing city-wide problems.
+4. **Execution is Contained.** Every command follows a strict lifecycle: Lex, Parse, Validate, Execute. We validate everything—arguments, paths, permissions—_before_ a single line of the command's core logic is run. This prevents a badly written command from taking down the whole system.
 
-#### **Adding a New Command: The Command Contract 2.0**
 
-This is the most important part for contributors. We've upgraded our entire command infrastructure to a modern, class-based system. It makes everything more organized and easier to manage.
+#### **The Core Architectural Modules**
 
-To create a new command, you define a `class` that extends the base `Command` class. Your command's "contract" is defined in the `constructor` by calling `super()` with an object that details its requirements. This tells the `CommandExecutor` everything it needs to know to run your command safely.
+The system is best understood as a set of interacting, single-purpose managers and classes.
+
+|Module|Responsibility|
+|---|---|
+|**`commexec.js`**|**The Command Executor.** The heart of the shell, this module orchestrates the entire command lifecycle, from parsing and preprocessing to execution, and manages complex features like piping, redirection, and background jobs.|
+|**`command_base.js`**|**The Command Blueprint.** Defines the abstract `Command` class that all other commands extend. It handles all common logic for argument parsing, validation, and input stream handling, drastically simplifying the development of new commands.|
+|**`command_registry.js`**|**The Command Encyclopedia.** A simple but vital module that acts as the central, authoritative list of all command objects that have been loaded into the system, enabling true decoupling.|
+|**`app.js`**|**The Application Blueprint.** Defines the abstract `App` class that serves as the blueprint for all full-screen graphical applications, ensuring a consistent lifecycle (`enter`, `exit`) for predictable system management.|
+
+#### **Adding a New Command: The Command Contract**
+
+This is the most important part for contributors. Adding a command is a declarative process. You don't just write code; you write a _contract_ that tells the `CommandExecutor` what your command needs to run safely. The executor handles all the tedious and error-prone validation _for you_.
 
 **Step 1: Create the Command File**
 
 Make a new file in `/scripts/commands/`. The filename must match the command name (e.g., `mycommand.js`).
 
-**Step 2: Define Your Command Class and Contract**
+**Step 2: Define the Class and Contract**
 
-Inside the file, create your class and call `super()` in the constructor with the contract object. The `README.md` provides an excellent template to follow.
-
-- `commandName`: The name of your command (e.g., "mycommand").
-
-- `description`: A brief summary of what it does.
-
-- `helpText`: The full manual page content.
-
-- `flagDefinitions`: An array defining the flags your command accepts (e.g., `-h`, `--help`).
-
-- `validations`: Rules for arguments and paths. The executor uses these to validate everything _before_ your code runs.
-
-
-**Step 3: Implement the `coreLogic` Method**
-
-This is where the work happens. This `async` method receives a `context` object containing everything you need, already validated against your contract.
-
-Here is a template reflecting our current, best-practice architecture:
-
-JavaScript
+Create a class that extends `Command` and define its contract in the `super()` call within the constructor.
 
 ```
 // scripts/commands/mycommand.js
@@ -196,30 +187,50 @@ window.MycommandCommand = class MycommandCommand extends Command {
   constructor() {
     super({
       commandName: "mycommand",
-      description: "A brief description of my new command.",
-      helpText: `A more detailed explanation of how to use mycommand.`,
-      flagDefinitions: [{ name: "force", short: "-f" }],
+      // What flags does it accept?
+      flagDefinitions: [
+        { name: "force", short: "-f" },
+        { name: "output", short: "-o", takesValue: true }
+      ],
+      // How many arguments are required?
+      argValidation: {
+        min: 1,
+        max: 2,
+        error: "Usage: mycommand [-f] [-o file] <source> [destination]"
+      },
+      // Which arguments are file paths and what are their rules?
       validations: {
-        args: { min: 1, error: "Usage: mycommand <target>" },
-        paths: [{ argIndex: 0, options: { expectedType: 'file' } }]
+          paths: [
+            { argIndex: 0, options: { expectedType: 'file', permissions: ['read'] } },
+            { argIndex: 1, options: { allowMissing: true } }
+          ]
       }
     });
   }
 
+  async coreLogic(context) { /* ... */ }
+};
+```
+
+**Step 3: Write the Core Logic**
+
+Your `coreLogic` function receives a `context` object. By the time your code runs, you can _trust_ that everything in this object has already been validated according to your contract.
+
+```
   async coreLogic(context) {
-    const { args, flags, dependencies, validatedPaths } = context;
+    const { args, flags, currentUser, validatedPaths, dependencies } = context;
     const { ErrorHandler, OutputManager } = dependencies;
 
-    // The CommandExecutor already validated this path exists
-    // and is a file, thanks to our contract!
-    const targetFileNode = validatedPaths[0].node;
+    // No need to check permissions or if the path is valid.
+    // The CommandExecutor already did it. Just do the work.
+    const sourceNode = validatedPaths[0].node;
+    const content = sourceNode.content;
 
-    // Your logic goes here!
-    OutputManager.appendToOutput(`Hello from mycommand! You targeted: ${targetFileNode.name}`);
+    // ... your logic here ...
+    OutputManager.appendToOutput("Execution complete.");
 
     return ErrorHandler.createSuccess();
   }
-}
 ```
 
 This design makes the system robust. It's hard to write an insecure command because the security is handled for you before your code even runs.

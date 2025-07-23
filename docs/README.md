@@ -18,6 +18,8 @@ Welcome, you wonderful, hardworking citizen, to OopisOS! Think of this not just 
 
 And the best part? All your data stays with YOU. This is your town, your files, your world.
 
+---
+
 ## Town Hall Bulletin: What's New in Version 4.6!
 
 This is HUGE! We have just passed a major initiative to bring a powerful, friendly, and frankly amazing AI toolkit into the heart of OopisOS. It's our "Friendly Neighborhood LLM" program!
@@ -34,6 +36,8 @@ This is HUGE! We have just passed a major initiative to bring a powerful, friend
 
 - **True Portability Initiative:** OopisOS is now a completely self-contained application, ready to go wherever you do. It's perfect for a flash drive, making it the ultimate "government-on-the-go" solution!
 
+
+---
 
 ## OopisOS City Services: A Feature Overview
 
@@ -69,87 +73,53 @@ We offer a full range of services to make your digital life better!
 
 - **Our Amazing Application Suite:**
 
-  - **`gemini`**: Your AI copilot for everything from answering questions to helping you with your files.
+  - `gemini`: Your AI copilot for everything from answering questions to helping you with your files.
 
-  - **`chidi`**: The best AI librarian to help you analyze and understand your documents.
+  - `chidi`: The best AI librarian to help you analyze and understand your documents.
 
-  - **`basic`**: An integrated development environment for the classic BASIC programming language.
+  - `basic`: An integrated development environment for the classic BASIC programming language.
 
-  - **`log`**: Your own personal, secure, timestamped journal.
+  - `log`: Your own personal, secure, timestamped journal.
 
-  - **`edit`**: A powerful text editor that knows what you're working on, with live Markdown preview!
+  - `edit`: A powerful text editor that knows what you're working on, with live Markdown preview!
 
-  - **`paint`**: A wonderful art studio for creating character-based masterpieces.
+  - `paint`: A wonderful art studio for creating character-based masterpieces.
 
-  - **`adventure`**: A powerful engine to play and even create your own text adventure games.
-
-
-## City Planning: How It All Works (For Nerds!)
-
-The architecture of OopisOS is a masterclass in planning! It's all about being secure, organized, and persistent.
-
-#### **The Persistence Layer: A Town That Remembers**
-
-OopisOS saves everything right on your machine. No cloud, no servers, just your own personal, persistent world.
-
-- **IndexedDB:** This is our Hall of Records, a powerful database that stores our entire file system.
-
-- **LocalStorage:** This is our City Hall's main office, a super-fast storage for important things like user credentials, command history, and aliases.
+  - `adventure`: A powerful engine to play and even create your own text adventure games.
 
 
-#### **The Command Contract: A Promise of Good Governance**
-
-Every command in OopisOS follows a strict set of rules, which I call the "Command Contract." This ensures that everything is safe, predictable, and stable. It’s like a city ordinance for code! Before any command runs, the `CommandExecutor` checks its contract for things like:
-
-- `flagDefinitions`: Which flags the command can use.
-
-- `argValidation`: The correct number of arguments.
-
-- `pathValidation`: Which arguments are files and if they exist.
-
-- `permissionChecks`: That the user has the right permissions to do what they're asking.
-
-
-This is good government in action! It prevents problems before they even start.
+---
 
 ## Get Involved: Join a Committee!
 
 This is an open-source project, which means it's a community project! If you have ideas, find a problem, or want to help build the next great public park (or feature), please get involved!
 
-Adding a new command to OopisOS is straightforward, thanks to our new class-based command structure. Here’s how you can contribute:
+To add a new command, just create a new file in `/scripts/commands/`, define its class and contract, and our amazing dynamic loader will do the rest.
 
-### The Command Contract 2.0: Class-Based Commands
+### **The OopisOS Architectural Model**
 
-Every command in OopisOS is now a class that extends a base `Command` class. This modern approach makes commands more organized and easier to manage.
+The architecture of OopisOS is a masterclass in planning! It's all about being secure, organized, and persistent through a set of core, decoupled modules.
 
-To create a new command, you'll need to do the following:
+|Module|Responsibility|
+|---|---|
+|**`commexec.js`**|**The Command Executor.** The heart of the shell, this module orchestrates the entire command lifecycle, from parsing and preprocessing to execution, and manages complex features like piping, redirection, and background jobs.|
+|**`command_base.js`**|**The Command Blueprint.** Defines the abstract `Command` class that all other commands extend. It handles all common logic for argument parsing, validation, and input stream handling, drastically simplifying the development of new commands.|
+|**`command_registry.js`**|**The Command Encyclopedia.** A simple but vital module that acts as the central, authoritative list of all command objects that have been loaded into the system, enabling true decoupling.|
+|**`app.js`**|**The Application Blueprint.** Defines the abstract `App` class that serves as the blueprint for all full-screen graphical applications, ensuring a consistent lifecycle (`enter`, `exit`) for predictable system management.|
 
-1. **Create a New File**: Add a new JavaScript file for your command in the `/scripts/commands/` directory (e.g., `mycommand.js`).
+Export to Sheets
 
-2. **Define Your Command Class**: Inside your new file, create a class that extends `Command`.
+### **Adding a New Command: The Class-Based Contract**
 
-3. **Set Up the Constructor**: In the constructor of your class, you'll call `super()` and pass an object that defines your command's "contract." This contract tells the system everything it needs to know about your command, including:
+Every command in OopisOS is a class that extends the base `Command` class. This makes adding new commands a straightforward, declarative process.
 
-  - `commandName`: The name of your command (e.g., "mycommand").
+**Step 1: Create the Command File**
 
-  - `description`: A brief description of what your command does.
+Make a new file in `/scripts/commands/`. The filename must match the command name (e.g., `mycommand.js`).
 
-  - `helpText`: The full help text that will be displayed when a user runs `man mycommand`.
+**Step 2: Define the Command Class and Contract**
 
-  - `flagDefinitions`: An array of objects that define the flags your command accepts (e.g., `-h`, `--help`).
-
-  - `argValidation`: Rules for validating the number of arguments your command accepts.
-
-4. **Implement the `coreLogic` Method**: This is where the magic happens! The `coreLogic` method is where you'll write the code that your command executes. This method receives a `context` object that contains everything you need to interact with the system, including:
-
-  - `args`: The arguments passed to your command.
-
-  - `flags`: The flags passed to your command.
-
-  - `dependencies`: An object containing all the system's managers and utilities, thanks to our dependency injection system! This is how you'll access the `FileSystemManager`, `UserManager`, and more.
-
-
-Here is a simple template to get you started:
+Create a class that extends `Command`. In the constructor, call `super()` with an object that defines your command's contract.
 
 JavaScript
 
@@ -159,24 +129,32 @@ window.MycommandCommand = class MycommandCommand extends Command {
   constructor() {
     super({
       commandName: "mycommand",
-      description: "A brief description of my new command.",
-      helpText: `A more detailed explanation of how to use mycommand.`,
-      // ... other contract properties
+      flagDefinitions: [{ name: "force", short: "-f" }],
+      argValidation: { min: 1 },
+      // ... etc.
     });
   }
 
+  async coreLogic(context) { /* ... */ }
+};
+```
+
+**Step 3: Write the Core Logic**
+
+Your `coreLogic` function receives a `context` object containing everything your command needs, including parsed arguments and system dependencies. By the time this code runs, all validations defined in your contract have already passed.
+
+JavaScript
+
+```
   async coreLogic(context) {
     const { args, flags, dependencies } = context;
     const { ErrorHandler, OutputManager } = dependencies;
 
     // Your command's logic goes here!
-    OutputManager.appendToOutput(`Hello from mycommand! You passed the arguments: ${args.join(", ")}`);
+    OutputManager.appendToOutput("Execution complete.");
 
     return ErrorHandler.createSuccess();
   }
-}
 ```
 
-Once you've created your command file, our dynamic loader will automatically detect and integrate it into the system. It's that easy!
-
-Thank you for being a citizen of OopisOS. Now let's get to work!
+This design makes the system robust and easy to extend. It's hard to write an insecure command because the security is handled for you before your code even runs.
