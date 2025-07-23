@@ -40,30 +40,6 @@ window.UseraddCommand = class UseraddCommand extends Command {
             );
         }
 
-        // --- Start of fix ---
-        if (!options.isInteractive && options.scriptingContext) {
-            const scriptContext = options.scriptingContext;
-            const password = scriptContext.lines[++scriptContext.currentLineIndex];
-            const confirmPassword = scriptContext.lines[++scriptContext.currentLineIndex];
-
-            if (password !== confirmPassword) {
-                return ErrorHandler.createError(Config.MESSAGES.PASSWORD_MISMATCH);
-            }
-            if (!password || password.trim() === "") {
-                return ErrorHandler.createError(Config.MESSAGES.EMPTY_PASSWORD_NOT_ALLOWED);
-            }
-
-            const registerResult = await UserManager.register(username, password);
-            if (registerResult.success) {
-                return ErrorHandler.createSuccess(registerResult.data, {
-                    stateModified: registerResult.stateModified
-                });
-            }
-            return registerResult;
-        }
-        // --- End of fix ---
-
-
         return new Promise(async (resolve) => {
             ModalManager.request({
                 context: "terminal",
