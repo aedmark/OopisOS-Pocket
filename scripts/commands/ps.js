@@ -11,6 +11,7 @@ window.PsCommand = class PsCommand extends Command {
       started with the '&' operator.
       The output includes:
       PID     The unique process ID for the job.
+      STAT    The current status of the job (R for running, T for stopped).
       COMMAND The command that was executed.
       Use 'kill <PID>' to terminate a background job.`,
             validations: {
@@ -30,10 +31,16 @@ window.PsCommand = class PsCommand extends Command {
             return ErrorHandler.createSuccess("");
         }
 
-        let output = "  PID  COMMAND\n";
+        let output = "  PID  STAT  COMMAND\n";
         for (const pid in jobs) {
-            const command = jobs[pid].command;
-            output += `  ${String(pid).padEnd(4)} ${command}\n`;
+            const job = jobs[pid];
+            const command = job.command;
+            let status = 'R'; // Default to Running
+            if (job.status === 'paused') {
+                status = 'T'; // Stopped (Terminated)
+            }
+
+            output += `  ${String(pid).padEnd(4)} ${status.padEnd(5)} ${command}\n`;
         }
 
         return ErrorHandler.createSuccess(output.trim());

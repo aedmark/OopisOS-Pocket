@@ -206,22 +206,34 @@ class CommandExecutor {
     return this.activeJobs;
   }
 
-  killJob(jobId) {
-    const { MessageBusManager, ErrorHandler } = this.dependencies;
+  sendSignalToJob(jobId, signal) {
+    const { ErrorHandler } = this.dependencies;
     const job = this.activeJobs[jobId];
-    if (job && job.abortController) {
-      job.abortController.abort("Killed by user command.");
-      job.promise.catch(() => {});
-      MessageBusManager.unregisterJob(jobId);
-      delete this.activeJobs[jobId];
-      return ErrorHandler.createSuccess(
-          `Signal sent to terminate job ${jobId}.`
-      );
+    if (!job) {
+      return ErrorHandler.createError(`Job ${jobId} not found.`);
     }
-    return ErrorHandler.createError(
-        `Job ${jobId} not found or cannot be killed.`
-    );
+
+    switch (signal.toUpperCase()) {
+      case 'KILL':
+      case 'TERM':
+        if (job.abortController) {
+          job.abortController.abort("Killed by user command.");
+          job.status = 'terminated';
+        }
+        break;
+      case 'STOP':
+        job.status = 'paused';
+        break;
+      case 'CONT':
+        job.status = 'running';
+        break;
+      default:
+        return ErrorHandler.createError(`Invalid signal '${signal}'.`);
+    }
+
+    return ErrorHandler.createSuccess(`Signal ${signal} sent to job ${jobId}.`);
   }
+
 
   async executeScript(lines, options = {}) {
     const { ErrorHandler, EnvironmentManager } = this.dependencies;
@@ -357,6 +369,10 @@ class CommandExecutor {
       const segment = pipeline.segments[i];
       const execOptions = { isInteractive, scriptingContext };
       if (pipeline.isBackground) {
+        const job = this.activeJobs[pipeline.jobId];
+        while (job && job.status === 'paused') {
+          await new Promise(resolve => setTimeout(resolve, 500)); // check every 500ms
+        }
         execOptions.jobId = pipeline.jobId;
       }
       lastResult = await this._executeCommandHandler(
@@ -767,6 +783,7 @@ class CommandExecutor {
             command: cmdToEcho,
             abortController,
             promise: jobPromise,
+            status: 'running',
           };
 
           jobPromise.then((bgResult) => {
