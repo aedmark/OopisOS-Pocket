@@ -437,7 +437,7 @@ echo $MY_VAR
 echo "--- Test: printscreen ---"
 printscreen screen.log
 cat screen.log
-delay 700
+delay 2000
 echo "---------------------------------------------------------------------"
 
 echo ""
@@ -712,6 +712,7 @@ echo "Job successfully terminated and removed from 'ps' list."
 delay 700
 echo "---------------------------------------------------------------------"
 
+echo "===== Phase X: Testing Filesystem Torture & I/O Gauntlet ====="
 echo "===== Phase X: Testing Filesystem Torture & I/O Gauntlet ====="
 delay 400
 
