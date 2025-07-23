@@ -1,6 +1,5 @@
 // scripts/commands/ls.js
 function getItemDetails(itemName, itemNode, itemPath, dependencies) {
-  // ... (this function is correct, no changes needed) ...
   const { FileSystemManager, Utils } = dependencies;
   if (!itemNode) return null;
   return {
@@ -35,18 +34,8 @@ function formatLongListItem(itemDetails, effectiveFlags, dependencies) {
     sixMonthsAgo.setMonth(now.getMonth() - 6);
 
     const months = [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "May",
-      "Jun",
-      "Jul",
-      "Aug",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dec",
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
     ];
     const month = months[fileDate.getMonth()];
     const day = fileDate.getDate().toString().padStart(2, " ");
@@ -66,12 +55,9 @@ function formatLongListItem(itemDetails, effectiveFlags, dependencies) {
   const nameSuffix =
       itemDetails.type === "directory" && !effectiveFlags.dirsOnly ? "/" : "";
 
-  // --- FIX IS HERE ---
-  // Added spaces between owner, group, and size to format correctly.
   return `${perms}  ${String(itemDetails.linkCount).padStart(2)} ${owner} ${group} ${size} ${dateStr.padEnd(12)} ${itemDetails.name}${nameSuffix}`;
 }
 
-// ... (rest of the file is unchanged) ...
 function sortItems(items, currentFlags) {
   let sortedItems = [...items];
   if (currentFlags.noSort) {
@@ -151,15 +137,15 @@ async function listSinglePathContents(
     dependencies
 ) {
   const { FileSystemManager, ErrorHandler } = dependencies;
-  const resolvedPath = FileSystemManager.getAbsolutePath(targetPathArg);
-  const pathValidationResult = FileSystemManager.validatePath(resolvedPath);
+  const pathValidationResult = FileSystemManager.validatePath(targetPathArg);
 
   if (!pathValidationResult.success) {
     return ErrorHandler.createError(
-        `ls: cannot access '${targetPathArg}': ${pathValidationResult.error.replace(resolvedPath + ":", "").trim()}`
+        `ls: cannot access '${targetPathArg}': ${pathValidationResult.error.replace(targetPathArg + ":", "").trim()}`
     );
   }
-  const { node: targetNode } = pathValidationResult.data;
+  const { node: targetNode, resolvedPath } = pathValidationResult.data;
+
 
   if (!FileSystemManager.hasPermission(targetNode, currentUser, "read")) {
     return ErrorHandler.createError(
@@ -190,10 +176,7 @@ async function listSinglePathContents(
     }
     itemDetailsList = sortItems(itemDetailsList, effectiveFlags);
   } else {
-    const fileName = resolvedPath.substring(
-        resolvedPath.lastIndexOf("/") + 1
-    );
-    const details = getItemDetails(fileName, targetNode, resolvedPath, dependencies);
+    const details = getItemDetails(targetPathArg, targetNode, resolvedPath, dependencies);
     if (details)
       singleItemResultOutput = effectiveFlags.long
           ? formatLongListItem(details, effectiveFlags, dependencies)
@@ -275,7 +258,7 @@ window.LsCommand = class LsCommand extends Command {
 
   async coreLogic(context) {
     const { args, flags, currentUser, options, dependencies } = context;
-    const { ErrorHandler, FileSystemManager } = dependencies;
+    const { ErrorHandler } = dependencies;
 
     const effectiveFlags = { ...flags };
     if (
@@ -288,7 +271,9 @@ window.LsCommand = class LsCommand extends Command {
     }
 
     const pathsToList = args.length > 0 ? args : ["."];
-    let outputBlocks = [];
+    const outputBlocks = [];
+    const dirBlocks = [];
+    let fileBlock = "";
     let overallSuccess = true;
 
     if (effectiveFlags.recursive) {
@@ -327,85 +312,60 @@ window.LsCommand = class LsCommand extends Command {
         await displayRecursive(path);
       }
     } else {
-      const fileArgs = [];
-      const dirArgs = [];
-      const errorOutputs = [];
+      const fileItems = [];
+      const dirPaths = [];
 
       for (const path of pathsToList) {
-        const pathValidationResult = FileSystemManager.validatePath(path);
-        if (!pathValidationResult.success) {
-          errorOutputs.push(
-              `ls: cannot access '${path}': ${pathValidationResult.error.replace(path + ":", "").trim()}`
-          );
-          overallSuccess = false;
-        } else if (
-            pathValidationResult.data.node.type === "directory" &&
-            !effectiveFlags.dirsOnly
-        ) {
-          dirArgs.push(path);
-        } else {
-          fileArgs.push(path);
-        }
-      }
+        const listResult = await listSinglePathContents(path, effectiveFlags, currentUser, options, dependencies);
 
-      if (fileArgs.length > 0) {
-        const fileDetailsList = [];
-        for (const filePath of fileArgs) {
-          const pathValidationResult =
-              FileSystemManager.validatePath(filePath);
-          if (pathValidationResult.success) {
-            const details = getItemDetails(
-                filePath,
-                pathValidationResult.data.node,
-                pathValidationResult.data.resolvedPath,
-                dependencies
-            );
-            if (details) fileDetailsList.push(details);
+        if (!listResult.success) {
+          outputBlocks.push(listResult.error);
+          overallSuccess = false;
+        } else {
+          const { output, items, isDir } = listResult.data;
+          if (isDir && !effectiveFlags.dirsOnly) {
+            dirPaths.push(path);
+            dirBlocks.push({ path, output });
+          } else {
+            if (items.length > 0) {
+              fileItems.push(...items);
+            } else if (output) {
+              const singleItem = getItemDetails(path, dependencies.FileSystemManager.getNodeByPath(path), path, dependencies);
+              if(singleItem) fileItems.push(singleItem);
+            }
           }
         }
-
-        const sortedFileItems = sortItems(fileDetailsList, effectiveFlags);
-
-        if (effectiveFlags.long) {
-          sortedFileItems.forEach((item) =>
-              outputBlocks.push(formatLongListItem(item, effectiveFlags, dependencies))
-          );
-        } else if (effectiveFlags.oneColumn) {
-          sortedFileItems.forEach((item) => outputBlocks.push(item.name));
-        } else {
-          outputBlocks.push(
-              formatToColumns(sortedFileItems.map((item) => item.name), options, dependencies)
-          );
-        }
       }
 
-      for (let i = 0; i < dirArgs.length; i++) {
-        if (fileArgs.length > 0 || i > 0 || errorOutputs.length > 0) {
-          outputBlocks.push("");
+      if (fileItems.length > 0) {
+        const sortedFileItems = sortItems(fileItems, effectiveFlags);
+        const fileOutputLines = [];
+        if (effectiveFlags.long) {
+          sortedFileItems.forEach(item => fileOutputLines.push(formatLongListItem(item, effectiveFlags, dependencies)));
+        } else if (effectiveFlags.oneColumn) {
+          sortedFileItems.forEach(item => fileOutputLines.push(item.name));
+        } else {
+          fileOutputLines.push(formatToColumns(sortedFileItems.map(item => item.name), options, dependencies));
+        }
+        fileBlock = fileOutputLines.join('\n');
+        outputBlocks.push(fileBlock);
+      }
+
+      dirBlocks.forEach((block, index) => {
+        if (fileBlock || index > 0) {
+          outputBlocks.push('');
         }
         if (pathsToList.length > 1) {
-          outputBlocks.push(`${dirArgs[i]}:`);
+          outputBlocks.push(`${block.path}:`);
         }
-        const listResult = await listSinglePathContents(
-            dirArgs[i],
-            effectiveFlags,
-            currentUser,
-            options,
-            dependencies
-        );
-        if (listResult.success) {
-          outputBlocks.push(listResult.data.output);
-        } else {
-          errorOutputs.push(listResult.error);
-          overallSuccess = false;
-        }
-      }
-      outputBlocks = [...errorOutputs, ...outputBlocks];
+        outputBlocks.push(block.output);
+      });
     }
 
-    if (!overallSuccess) {
+    if (!overallSuccess && outputBlocks.every(block => typeof block === 'string' && block.startsWith('ls: cannot access'))) {
       return ErrorHandler.createError(outputBlocks.join("\n"));
     }
+
     return ErrorHandler.createSuccess(outputBlocks.join("\n"));
   }
 }
