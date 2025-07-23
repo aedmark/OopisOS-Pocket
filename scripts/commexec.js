@@ -224,7 +224,11 @@ class CommandExecutor {
   }
 
   async executeScript(lines, options = {}) {
-    const {ErrorHandler} = this.dependencies;
+    const { ErrorHandler, EnvironmentManager } = this.dependencies;
+
+    // Create a new, sandboxed environment for the script
+    EnvironmentManager.push();
+
     const scriptingContext = {
       isScripting: true,
       lines: lines,
@@ -232,25 +236,32 @@ class CommandExecutor {
       args: options.args || [],
     };
 
-    for (let i = 0; i < lines.length; i++) {
-      scriptingContext.currentLineIndex = i;
-      const line = lines[i].trim();
-      if (line && !line.startsWith("#")) {
-        const result = await this.processSingleCommand(line, {
-          ...options,
-          scriptingContext,
-        });
+    try {
+      for (let i = 0; i < lines.length; i++) {
+        scriptingContext.currentLineIndex = i;
+        const line = lines[i].trim();
+        if (line && !line.startsWith("#")) {
+          const result = await this.processSingleCommand(line, {
+            ...options,
+            scriptingContext,
+          });
 
-        // Sync the loop counter with the script context.
-        i = scriptingContext.currentLineIndex;
+          // Sync the loop counter with the script context, in case of jumps
+          i = scriptingContext.currentLineIndex;
 
-        if (!result.success) {
-          return ErrorHandler.createError(
-              `Error in script on line ${i + 1}: ${result.error}`
-          );
+          if (!result.success) {
+            // If a command fails in the script, we throw an error.
+            // This will be caught by the try...catch in the 'run' command's coreLogic.
+            throw new Error(`Error on line ${i + 1}: ${result.error}`);
+          }
         }
       }
+    } finally {
+      // This 'finally' block ensures that the script's environment is ALWAYS
+      // discarded, even if an error occurs during execution.
+      EnvironmentManager.pop();
     }
+
     return ErrorHandler.createSuccess("Script finished successfully.");
   }
 

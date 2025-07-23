@@ -64,7 +64,7 @@ function formatLongListItem(itemDetails, effectiveFlags, dependencies) {
 
   const nameSuffix =
       itemDetails.type === "directory" && !effectiveFlags.dirsOnly ? "/" : "";
-  return `${perms}  ${String(itemDetails.linkCount).padStart(2)} ${owner}${group}${size} ${dateStr.padEnd(12)} ${itemDetails.name}${nameSuffix}`;
+  return `${perms}  ${String(itemDetails.linkCount).padStart(2)} ${owner} ${group} ${size} ${dateStr.padEnd(12)} ${itemDetails.name}${nameSuffix}`;
 }
 
 function sortItems(items, currentFlags) {
