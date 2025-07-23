@@ -701,7 +701,7 @@ echo "Job status is correctly reported as 'R' after resuming."
 delay 500
 
 echo "--- Test: Terminating the job with 'kill' ---"
-kill $JOB_ID
+kill -KILL $JOB_ID
 echo "Signal -KILL sent to job $JOB_ID."
 delay 1000 # Give it a moment to terminate
 

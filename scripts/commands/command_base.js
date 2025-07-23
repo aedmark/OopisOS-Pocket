@@ -89,6 +89,7 @@ class Command {
             currentUser: UserManager.getCurrentUser().name,
             validatedPaths,
             dependencies,
+            signal: options.signal,
         };
 
         if (this.definition.isInputStream) {
