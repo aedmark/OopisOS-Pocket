@@ -1,6 +1,6 @@
 // scripts/apps/app.js
 
-class App {
+window.App = class App {
   constructor() {
     if (this.constructor === App) {
       throw new TypeError(
