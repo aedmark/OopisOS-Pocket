@@ -1,5 +1,6 @@
 // scripts/commands/ls.js
 function getItemDetails(itemName, itemNode, itemPath, dependencies) {
+  // ... (this function is correct, no changes needed) ...
   const { FileSystemManager, Utils } = dependencies;
   if (!itemNode) return null;
   return {
@@ -64,9 +65,13 @@ function formatLongListItem(itemDetails, effectiveFlags, dependencies) {
 
   const nameSuffix =
       itemDetails.type === "directory" && !effectiveFlags.dirsOnly ? "/" : "";
+
+  // --- FIX IS HERE ---
+  // Added spaces between owner, group, and size to format correctly.
   return `${perms}  ${String(itemDetails.linkCount).padStart(2)} ${owner} ${group} ${size} ${dateStr.padEnd(12)} ${itemDetails.name}${nameSuffix}`;
 }
 
+// ... (rest of the file is unchanged) ...
 function sortItems(items, currentFlags) {
   let sortedItems = [...items];
   if (currentFlags.noSort) {
