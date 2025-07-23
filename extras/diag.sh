@@ -434,9 +434,9 @@ echo $MY_VAR
 unset MY_VAR
 echo $MY_VAR
 echo "--- Test: printscreen ---"
-printscreen screen.log
-cat screen.log
-delay 2000
+printscreen screen.txt
+cat screen.txt
+delay 200
 echo "---------------------------------------------------------------------"
 
 echo ""
@@ -735,10 +735,10 @@ echo "Original content:"
 cat sed_test.txt
 delay 400
 echo "Testing single substitution:"
-sed 's/fox/cat/' sed_test.txt
+cat sed_test.txt | sed 's/fox/cat/'
 delay 400
 echo "Testing global substitution:"
-sed 's/fox/cat/g' sed_test.txt
+cat sed_test.txt | sed 's/fox/cat/g'
 rm sed_test.txt
 echo "sed test complete."
 delay 700

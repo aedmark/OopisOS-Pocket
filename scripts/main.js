@@ -49,6 +49,9 @@ function initializeTerminalEventListeners(domElements, commandExecutor, dependen
     switch (e.key) {
       case "Enter":
         e.preventDefault();
+        if (!soundManager.isInitialized) {
+          await soundManager.initialize();
+        }
         TabCompletionManager.resetCycle();
         await commandExecutor.processSingleCommand(
             TerminalUI.getCurrentInputValue(),
@@ -157,7 +160,7 @@ window.onload = async () => {
   const uiComponents = new UIComponents();
   const aiManager = new AIManager();
   const commandRegistry = new CommandRegistry();
-
+  const soundManager = new SoundManager();
 
   const dependencies = {
     Config: configManager,
@@ -189,6 +192,7 @@ window.onload = async () => {
     MessageBusManager: messageBusManager,
     UIComponents: uiComponents,
     domElements: domElements,
+    SoundManager: soundManager,
   };
 
   const pagerManager = new PagerManager(dependencies);
@@ -214,6 +218,7 @@ window.onload = async () => {
   tabCompletionManager.setDependencies(dependencies);
   uiComponents.setDependencies(dependencies);
   aiManager.setDependencies(dependencies);
+  soundManager.setDependencies(dependencies);
 
   try {
     // Initialization sequence
