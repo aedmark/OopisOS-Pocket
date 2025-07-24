@@ -150,7 +150,7 @@ class ConfigManager {
         "curl", "date", "delay", "df", "diff", "du", "echo", "edit", "explore", "export",
         "find", "gemini", "grep", "groupadd", "groupdel", "groups", "head", "help", "history",
         "kill", "less", "listusers", "loadstate", "log", "login", "logout", "ls", "ln", "man", "more",
-        "mkdir", "mv", "nl", "ocrypt", "paint", "passwd", "play", "printscreen", "ps", "pwd", "reboot", "removeuser",
+        "mkdir", "mv", "nl", "ocrypt", "paint", "passwd", "play", "printscreen", "ps", "pwd", "reboot", "remix", "removeuser",
         "reset", "restore", "rm", "rmdir", "run", "savefs", "savestate", "sed", "set", "shuf", "sort",
         "su", "sudo", "sync", "tail", "touch", "tree", "unalias", "uniq", "unset", "unzip",
         "upload", "useradd", "usermod", "visudo", "wc", "wget", "whoami", "xor", "zip", "xargs", "ln"

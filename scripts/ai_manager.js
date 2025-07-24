@@ -34,14 +34,14 @@ ls [-l, -a, -R], cd, cat, grep [-i, -v, -n, -R], find [path] -name [pattern] -ty
   }
 
   async getApiKey(provider, options = {}) {
-    const { StorageManager, ModalManager, OutputManager, Config } = this.dependencies;
+    const {StorageManager, ModalManager, OutputManager, Config} = this.dependencies;
     if (provider !== "gemini") {
-      return { success: true, data: { key: null } };
+      return {success: true, data: {key: null}};
     }
 
     const key = StorageManager.loadItem(Config.STORAGE_KEYS.GEMINI_API_KEY);
     if (key) {
-      return { success: true, data: { key, fromStorage: true } };
+      return {success: true, data: {key, fromStorage: true}};
     }
 
     if (!options.isInteractive) {
@@ -82,7 +82,7 @@ ls [-l, -a, -R], cd, cat, grep [-i, -v, -n, -R], find [path] -name [pattern] -ty
           });
         },
         onCancel: () => {
-          resolve({ success: false, error: "API key entry cancelled." });
+          resolve({success: false, error: "API key entry cancelled."});
         },
         options,
       });
@@ -90,7 +90,7 @@ ls [-l, -a, -R], cd, cat, grep [-i, -v, -n, -R], find [path] -name [pattern] -ty
   }
 
   async getTerminalContext() {
-    const { CommandExecutor } = this.dependencies;
+    const {CommandExecutor} = this.dependencies;
     const pwdResult = await CommandExecutor.processSingleCommand("pwd", {
       suppressOutput: true,
       isInteractive: false,
@@ -101,7 +101,7 @@ ls [-l, -a, -R], cd, cat, grep [-i, -v, -n, -R], find [path] -name [pattern] -ty
     });
     const historyResult = await CommandExecutor.processSingleCommand(
         "history",
-        { suppressOutput: true }
+        {suppressOutput: true}
     );
     const setResult = await CommandExecutor.processSingleCommand("set", {
       suppressOutput: true,
@@ -128,7 +128,8 @@ ${setResult.output || "(none)"}`;
       apiKey,
       systemPrompt = null
   ) {
-    const { Config } = this.dependencies;
+    // The 'dependencies' object is now correctly accessed via 'this'
+    const {Config} = this.dependencies;
     const providerConfig =
         typeof Config !== "undefined" ? Config.API.LLM_PROVIDERS[provider] : null;
     if (!providerConfig) {
@@ -168,7 +169,6 @@ ${setResult.output || "(none)"}`;
       case "gemini":
         headers["x-goog-api-key"] = apiKey;
 
-        // Filter out any non-user/model roles from the conversation history
         const filteredConversation = conversation.filter(
             (turn) => turn.role === "user" || turn.role === "model"
         );
@@ -177,7 +177,6 @@ ${setResult.output || "(none)"}`;
           contents: filteredConversation,
         };
 
-        // Add systemInstruction if a systemPrompt is provided
         if (systemPrompt) {
           requestBody.systemInstruction = {
             parts: [
@@ -191,7 +190,7 @@ ${setResult.output || "(none)"}`;
         body = JSON.stringify(requestBody);
         break;
       case "ollama":
-        url = url.replace("/generate", "/chat"); // Use the chat endpoint for ollama
+        url = url.replace("/generate", "/chat");
         body = JSON.stringify({
           model: model || providerConfig.defaultModel,
           messages: chatMessages,
@@ -221,7 +220,6 @@ ${setResult.output || "(none)"}`;
       });
       if (!response.ok) {
         const errorText = await response.text();
-        // Check for specific Gemini API key error
         if (
             provider === "gemini" &&
             response.status === 400 &&
@@ -282,162 +280,152 @@ ${setResult.output || "(none)"}`;
       model,
       options = {}
   ) {
-    const { verboseCallback, isInteractive } = options;
-    const { ErrorHandler, StorageManager, Config } = this.dependencies;
+    const {verboseCallback, isInteractive} = options;
+    const {ErrorHandler, StorageManager, Config} = this.dependencies;
 
-    const apiKeyResult = await this.getApiKey(provider, { isInteractive, dependencies: this.dependencies });
+    // New system prompt for classifying user intent
+    const INTENT_CLASSIFIER_PROMPT = `You are an intent classification agent for a command-line OS. Your task is to determine if the user's prompt is a general knowledge question/statement or if it is a query related to the local file system.
+
+Respond with ONLY ONE of the following classifications:
+- 'filesystem_query': If the user is asking about files, directories, system state, or asking to perform an action on the local system (e.g., "summarize my files", "list scripts", "what's in the docs folder?").
+- 'general_query': If the user is asking a general knowledge question, making a statement, or having a conversation not related to the local file system (e.g., "what is the capital of France?", "tell me a story", "hello there").
+
+User Prompt: "{{prompt}}"`;
+
+    // --- Step 1: Get API Key ---
+    const apiKeyResult = await this.getApiKey(provider, {isInteractive, dependencies: this.dependencies});
     if (!apiKeyResult.success) {
       return ErrorHandler.createError(`AIManager: ${apiKeyResult.error}`);
     }
     let apiKey = apiKeyResult.data.key;
 
-    const plannerContext = await this.getTerminalContext();
-    const plannerPrompt = `User Prompt: "${prompt}"\n\n${plannerContext}`;
-    const plannerConversation = [
-      ...history,
-      {
-        role: "user",
-        parts: [
-          {
-            text: plannerPrompt,
-          },
-        ],
-      },
-    ];
+    // --- Step 2: Pre-planning - Classify User Intent ---
+    const intentPrompt = INTENT_CLASSIFIER_PROMPT.replace("{{prompt}}", prompt);
+    if (verboseCallback) {
+      verboseCallback("AI is determining user intent...", "text-subtle");
+    }
 
-    let plannerResult = await this.callLlmApi(
+    let intentResult = await this.callLlmApi(
         provider,
         model,
-        plannerConversation,
+        [{role: "user", parts: [{text: intentPrompt}]}],
         apiKey,
-        this.PLANNER_SYSTEM_PROMPT
+        null // No complex system prompt needed for this simple classification
     );
 
-    if (
-        !plannerResult.success &&
-        plannerResult.error === "LOCAL_PROVIDER_UNAVAILABLE" &&
-        provider !== "gemini"
-    ) {
-      if (verboseCallback)
-        verboseCallback(
-            `Could not connect to '${provider}'. Falling back to Google Gemini for tool orchestration.`,
-            "text-warning"
-        );
+    // Fallback logic if the primary provider fails
+    if (!intentResult.success && intentResult.error === "LOCAL_PROVIDER_UNAVAILABLE" && provider !== "gemini") {
+      if (verboseCallback) verboseCallback(`Could not connect to '${provider}'. Falling back to Google Gemini for intent classification.`, "text-warning");
       provider = "gemini";
-      const fallbackKeyResult = await this.getApiKey(provider, {
-        isInteractive,
-        dependencies: this.dependencies,
-      });
+      const fallbackKeyResult = await this.getApiKey(provider, {isInteractive, dependencies: this.dependencies});
       if (!fallbackKeyResult.success) return fallbackKeyResult;
       apiKey = fallbackKeyResult.data.key;
-      plannerResult = await this.callLlmApi(
+      intentResult = await this.callLlmApi(provider, model, [{
+        role: "user",
+        parts: [{text: intentPrompt}]
+      }], apiKey, null);
+    }
+
+    const intent = intentResult.success ? intentResult.answer.trim().toLowerCase() : 'filesystem_query'; // Default to filesystem on failure
+    if (verboseCallback) {
+      verboseCallback(`Intent classified as: ${intent}`, "text-subtle");
+    }
+
+    // --- Step 3: Execute based on intent ---
+    if (intent.includes('general_query')) {
+      // --- Path A: General Query ---
+      if (verboseCallback) verboseCallback("Engaging general knowledge module...", "text-subtle");
+      const generalPrompt = `You are a helpful assistant.`;
+      const generalConversation = [...history, {role: "user", parts: [{text: prompt}]}];
+      const finalResult = await this.callLlmApi(provider, model, generalConversation, apiKey, generalPrompt);
+
+      if (finalResult.success) {
+        return ErrorHandler.createSuccess(finalResult.answer);
+      } else {
+        return ErrorHandler.createError(`General Query failed: ${finalResult.error}`);
+      }
+
+    } else {
+      // --- Path B: Filesystem Query (Original Logic) ---
+      if (verboseCallback) verboseCallback("Engaging filesystem tool-use module...", "text-subtle");
+      const plannerContext = await this.getTerminalContext();
+      const plannerPrompt = `User Prompt: "${prompt}"\n\n${plannerContext}`;
+      const plannerConversation = [
+        ...history,
+        {
+          role: "user",
+          parts: [{text: plannerPrompt}],
+        },
+      ];
+
+      let plannerResult = await this.callLlmApi(
           provider,
           model,
           plannerConversation,
           apiKey,
           this.PLANNER_SYSTEM_PROMPT
       );
-    }
 
-    if (!plannerResult.success) {
-      if (plannerResult.error === "INVALID_API_KEY" && provider === "gemini") {
-        StorageManager.removeItem(Config.STORAGE_KEYS.GEMINI_API_KEY);
-        if (verboseCallback)
-          verboseCallback(
-              "Gemini API key was invalid and has been removed.",
-              "text-warning"
-          );
-      }
-      return ErrorHandler.createError(
-          `Planner stage failed: ${plannerResult.error}`
-      );
-    }
-
-    const planText = plannerResult.answer?.trim();
-    if (!planText)
-      return ErrorHandler.createError("AI failed to generate a valid plan.");
-
-    const commandsToExecute = planText
-        .split("\n")
-        .map((line) => line.replace(/^\d+\.\s*/, "").trim())
-        .filter((line) =>
-            this.COMMAND_WHITELIST.includes(line.split(" ")[0])
-        );
-
-    if (commandsToExecute.length === 0) {
-      return ErrorHandler.createSuccess(planText);
-    }
-
-    let executedCommandsOutput = "";
-
-    if (verboseCallback) {
-      verboseCallback(
-          `AI's Plan:\n${commandsToExecute.map((c) => `- ${c}`).join("\n")}`,
-          "text-subtle"
-      );
-    }
-
-    for (const commandStr of commandsToExecute) {
-      const commandName = commandStr.split(" ")[0];
-      if (!this.COMMAND_WHITELIST.includes(commandName)) {
-        const errorMsg = `Execution HALTED: AI attempted to run a non-whitelisted command: '${commandName}'.`;
-        if (verboseCallback) verboseCallback(errorMsg, "text-error");
-        return ErrorHandler.createError(
-            `Attempted to run restricted command: ${commandName}`
-        );
+      if (!plannerResult.success) {
+        if (plannerResult.error === "INVALID_API_KEY" && provider === "gemini") {
+          StorageManager.removeItem(Config.STORAGE_KEYS.GEMINI_API_KEY);
+          if (verboseCallback) verboseCallback("Gemini API key was invalid and has been removed.", "text-warning");
+        }
+        return ErrorHandler.createError(`Planner stage failed: ${plannerResult.error}`);
       }
 
+      const planText = plannerResult.answer?.trim();
+      if (!planText) return ErrorHandler.createError("AI failed to generate a valid plan.");
+
+      const commandsToExecute = planText
+          .split("\n")
+          .map((line) => line.replace(/^\d+\.\s*/, "").trim())
+          .filter((line) => this.COMMAND_WHITELIST.includes(line.split(" ")[0]));
+
+      if (commandsToExecute.length === 0) {
+        return ErrorHandler.createSuccess(planText);
+      }
+
+      let executedCommandsOutput = "";
       if (verboseCallback) {
-        verboseCallback(`> ${commandStr}`, "text-info");
+        verboseCallback(`AI's Plan:\n${commandsToExecute.map((c) => `- ${c}`).join("\n")}`, "text-subtle");
       }
 
-      const execResult = await this.dependencies.CommandExecutor.processSingleCommand(
-          commandStr,
-          { suppressOutput: true, isInteractive: false }
-      );
+      for (const commandStr of commandsToExecute) {
+        const commandName = commandStr.split(" ")[0];
+        if (!this.COMMAND_WHITELIST.includes(commandName)) {
+          const errorMsg = `Execution HALTED: AI attempted to run a non-whitelisted command: '${commandName}'.`;
+          if (verboseCallback) verboseCallback(errorMsg, "text-error");
+          return ErrorHandler.createError(`Attempted to run restricted command: ${commandName}`);
+        }
 
-      const output = execResult.success
-          ? execResult.output || "(No output)"
-          : `Error: ${execResult.error}`;
-
-      if (verboseCallback) {
-        verboseCallback(output, "text-secondary");
+        if (verboseCallback) verboseCallback(`> ${commandStr}`, "text-info");
+        const execResult = await this.dependencies.CommandExecutor.processSingleCommand(
+            commandStr, {suppressOutput: true, isInteractive: false}
+        );
+        const output = execResult.success ? execResult.output || "(No output)" : `Error: ${execResult.error}`;
+        if (verboseCallback) verboseCallback(output, "text-secondary");
+        executedCommandsOutput += `--- Output of '${commandStr}' ---\n${output}\n\n`;
       }
 
-      executedCommandsOutput += `--- Output of '${commandStr}' ---\n${output}\n\n`;
-    }
-
-    const synthesizerPrompt = `Original user question: "${prompt}"\n\nContext from file system:\n${executedCommandsOutput || "No commands were run."}`;
-    const synthesizerResult = await this.callLlmApi(
-        provider,
-        model,
-        [
-          {
-            role: "user",
-            parts: [
-              {
-                text: synthesizerPrompt,
-              },
-            ],
-          },
-        ],
-        apiKey,
-        this.SYNTHESIZER_SYSTEM_PROMPT
-    );
-
-    if (!synthesizerResult.success) {
-      return ErrorHandler.createError(
-          `Synthesizer stage failed: ${synthesizerResult.error}`
+      const synthesizerPrompt = `Original user question: "${prompt}"\n\nContext from file system:\n${executedCommandsOutput || "No commands were run."}`;
+      const synthesizerResult = await this.callLlmApi(
+          provider,
+          model,
+          [{role: "user", parts: [{text: synthesizerPrompt}]}],
+          apiKey,
+          this.SYNTHESIZER_SYSTEM_PROMPT
       );
-    }
 
-    const finalAnswer = synthesizerResult.answer;
-    if (!finalAnswer) {
-      return ErrorHandler.createError(
-          "AI failed to synthesize a final answer."
-      );
-    }
+      if (!synthesizerResult.success) {
+        return ErrorHandler.createError(`Synthesizer stage failed: ${synthesizerResult.error}`);
+      }
 
-    return ErrorHandler.createSuccess(finalAnswer);
+      const finalAnswer = synthesizerResult.answer;
+      if (!finalAnswer) {
+        return ErrorHandler.createError("AI failed to synthesize a final answer.");
+      }
+      return ErrorHandler.createSuccess(finalAnswer);
+    }
   }
 }
