@@ -454,6 +454,13 @@ class TabCompletionManager {
 
     const context = this._getCompletionContext(fullInput, cursorPos);
 
+    const quoteIfNecessary = (text) => {
+      if (/\s/.test(text)) {
+        return `'${text}'`;
+      }
+      return text;
+    };
+
     if (this.suggestionsCache.length === 0) {
       const suggestions = await this._getSuggestionsFromProvider(context);
       if (!suggestions || suggestions.length === 0) {
@@ -470,7 +477,9 @@ class TabCompletionManager {
             completedNode.type ===
             FileSystemManager.config.FILESYSTEM.DEFAULT_DIRECTORY_TYPE;
 
-        const finalCompletion = completion + (isDirectory ? "/" : " ");
+        let finalCompletion = quoteIfNecessary(completion);
+        finalCompletion += (isDirectory ? "/" : " ");
+
         const textBefore = fullInput.substring(0, context.startOfWordIndex);
         const textAfter = fullInput.substring(cursorPos);
 
@@ -518,7 +527,8 @@ class TabCompletionManager {
 
         const textBefore = fullInput.substring(0, context.startOfWordIndex);
         const textAfter = fullInput.substring(cursorPos);
-        const completionText = firstSuggestion + (isDirectory ? "/" : " ");
+        let completionText = quoteIfNecessary(firstSuggestion);
+        completionText += (isDirectory ? "/" : " ");
         let newText = textBefore + completionText + textAfter;
 
         this.lastCompletionInput = newText; // Set this so the next tab press cycles correctly
@@ -540,7 +550,8 @@ class TabCompletionManager {
 
       const textBefore = fullInput.substring(0, context.startOfWordIndex);
       const textAfter = fullInput.substring(cursorPos);
-      const completionText = nextSuggestion + (isDirectory ? "/" : " ");
+      let completionText = quoteIfNecessary(nextSuggestion);
+      completionText += (isDirectory ? "/" : " ");
       let newText = textBefore + completionText + textAfter;
 
       this.lastCompletionInput = newText;
