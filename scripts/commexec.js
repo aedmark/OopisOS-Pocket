@@ -431,8 +431,12 @@ class CommandExecutor {
     }
     if (pipeline.redirection && lastResult.success) {
       const { type: redirType, file: redirFile } = pipeline.redirection;
-      const outputToRedir = lastResult.data || "";
 
+      // Determine the final string to write, adding a newline unless the command suppressed it.
+      let outputToWrite = lastResult.data || "";
+      if (!lastResult.suppressNewline) {
+        outputToWrite += "\n";
+      }
       const redirValResult = FileSystemManager.validatePath(redirFile, {
         allowMissing: true,
         disallowRoot: true,
@@ -512,15 +516,18 @@ class CommandExecutor {
         return ErrorHandler.createError(`no create in '${finalParentDirPath}'`);
       }
 
-      let contentToWrite = outputToRedir;
+      let finalFileContent;
       if (redirType === "append" && existingNode) {
         const existingContent = existingNode.content || "";
-        contentToWrite = existingContent + outputToRedir;
+        // Use the newline-adjusted string here
+        finalFileContent = existingContent + outputToWrite;
+      } else { // 'overwrite'
+        finalFileContent = outputToWrite;
       }
 
       const saveResult = await FileSystemManager.createOrUpdateFile(
           absRedirPath,
-          contentToWrite,
+          finalFileContent,
           {
             currentUser: user,
             primaryGroup: UserManager.getPrimaryGroupForUser(user),

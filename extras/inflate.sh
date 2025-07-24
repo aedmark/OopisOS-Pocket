@@ -254,6 +254,10 @@ echo "Q1 data. Do not modify." > /home/project_y/archive/q1_data.bak
 delay 500
 login Guest
 delay 500
+mkdir music
+echo "# Twinkle, Twinkle, Little Star" > twinkle.sh
+echo "play C4 4n; delay 50; play C4 4n; delay 50; play G4 4n; delay 50; play G4 4n; delay 50; play A4 4n; delay 50; play A4 4n; delay 50; play G4 2n; delay 100; play F4 4n; delay 50; play F4 4n; delay 50; play E4 4n; delay 50; play E4 4n; delay 50; play D4 4n; delay 50; play D4 4n; delay 50; play C4 2n" >> twinkle.sh
+chmod 700 twinkle.sh
 
 # --- Finalization ---
 echo " "
