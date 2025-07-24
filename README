@@ -107,8 +107,6 @@ The architecture of OopisOS is a masterclass in planning! It's all about being s
 |**`command_registry.js`**|**The Command Encyclopedia.** A simple but vital module that acts as the central, authoritative list of all command objects that have been loaded into the system, enabling true decoupling.|
 |**`app.js`**|**The Application Blueprint.** Defines the abstract `App` class that serves as the blueprint for all full-screen graphical applications, ensuring a consistent lifecycle (`enter`, `exit`) for predictable system management.|
 
-Export to Sheets
-
 ### **Adding a New Command: The Class-Based Contract**
 
 Every command in OopisOS is a class that extends the base `Command` class. This makes adding new commands a straightforward, declarative process.
