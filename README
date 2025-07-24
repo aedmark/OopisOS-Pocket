@@ -1,4 +1,4 @@
-# OopisOS v4.6: Your Digital City Hall!
+# OopisOS v5.0: Your Digital Town Hall!
 
 ```
    /$$$$$$                      /$$            /$$$$$$   /$$$$$$
@@ -20,22 +20,15 @@ And the best part? All your data stays with YOU. This is your town, your files, 
 
 ---
 
-## Town Hall Bulletin: What's New in Version 4.6!
+## Town Hall Bulletin: What's New in Version 5.0!
 
-This is HUGE! We have just passed a major initiative to bring a powerful, friendly, and frankly amazing AI toolkit into the heart of OopisOS. It's our "Friendly Neighborhood LLM" program!
+This is a monumental update, folks! We've just completed a major infrastructure overhaul and introduced new cultural programs to enrich your digital lives.
 
-- **The Gemini Gateway Program (`gemini` command):** We've opened up our AI services to everyone! You can now connect to local AI models like Ollama right from the terminal, or use the default cloud provider for some seriously heavy-duty, tool-using AI assistance. It’s like having a whole team of City Hall interns ready to help, but they actually know what they’re doing.
-
-- **Smarter Civil Servants (`chidi` command):** Our AI librarian, Chidi, just got a major upgrade! You can now send lists of files directly to it using pipes, creating custom research packets on the fly! It’s like asking your librarian to analyze every book on gardening before you plant a single petunia.
-
-- **New Community Centers:** We've built two brand-new facilities!
-
-  - **The BASIC IDE (`basic`):** A beautiful, retro-inspired programming environment for all you classic coders out there.
-
-  - **The Journal (`log`):** A personal, secure place to write down all your thoughts, plans, and brilliant ideas.
-
-- **True Portability Initiative:** OopisOS is now a completely self-contained application, ready to go wherever you do. It's perfect for a flash drive, making it the ultimate "government-on-the-go" solution!
-
+-   **City Sound System (`sound_manager.js`):** We've installed a brand-new, state-of-the-art sound system! With the new `beep` command, you can get audible notifications, and with the `synth` application, you can make your own music! It's a new era of auditory excellence.
+-   **Upgraded Hall of Records (`storage_hal.js`):** We've implemented a new Storage Hardware Abstraction Layer. It's a fancy term for a better, more organized, and more robust way of handling all your files. You won't see it, but you'll feel it in the stability and reliability of our services.
+-   **New Public Works Tools:** We've added some powerful new tools for our citizens:
+    -   `sed`: A stream editor for all your text-transformation needs.
+    -   `nl`: A utility to number the lines in your files. Perfect for poets and programmers alike!
 
 ---
 

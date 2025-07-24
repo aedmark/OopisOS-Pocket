@@ -1,4 +1,31 @@
-# Welcome to OopisOS v4.6
+# Welcome to OopisOS v5.0
+
+---
+
+## Town Hall Bulletin: What's New in Version 5.0!
+
+This is a monumental update, folks! We've just completed a major infrastructure overhaul and introduced new cultural programs to enrich your digital lives.
+
+-   **City Sound System (`sound_manager.js`):** We've installed a brand-new, state-of-the-art sound system! With the new `beep` command, you can get audible notifications, and with the `synth` application, you can make your own music! It's a new era of auditory excellence.
+-   **Upgraded Hall of Records (`storage_hal.js`):** We've implemented a new Storage Hardware Abstraction Layer. It's a fancy term for a better, more organized, and more robust way of handling all your files. You won't see it, but you'll feel it in the stability and reliability of our services.
+-   **New Public Works Tools:** We've added some powerful new tools for our citizens:
+  -   `sed`: A stream editor for all your text-transformation needs.
+  -   `nl`: A utility to number the lines in your files. Perfect for poets and programmers alike!
+
+...
+
+|Module|Responsibility|
+|---|---|
+|**`storage_hal.js`**|**The Storage Abstraction Layer.** Defines the contract for all storage backends, decoupling the `FileSystemManager` from the specific storage implementation (like IndexedDB).|
+
+...
+
+|Command|What It _Really_ Does|
+|---|---|
+| `beep` | **Makes a simple beep sound.** Great for getting your attention in scripts. |
+| `synth`| **Launches a musical synthesizer.** Play tunes with your keyboard! |
+| `sed`  | **A stream editor for find-and-replace on text.** Powerful for programmatic edits. |
+| `nl`   | **Numbers the lines of a file.** Great for referencing specific lines. |
 
 ---
 
