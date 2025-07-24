@@ -83,7 +83,7 @@ ${file2Content}
         );
 
         if (llmResult.success) {
-            const finalArticle = llmResult.answer;
+            let finalArticle = llmResult.answer;
             finalArticle = finalArticle.replace(/(?<!\n)\n(?!\n)/g, "\n\n");
 
             // Convert Markdown to sanitized HTML

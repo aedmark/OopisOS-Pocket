@@ -38,7 +38,7 @@ class OutputManager {
       );
       return;
     }
-    const { typeClass = null, isBackground = false, asBlock = false } = options; // Add 'asBlock'
+    const { typeClass = options.messageType || null, isBackground = false, asBlock = false } = options;
 
     if (
         isBackground &&
