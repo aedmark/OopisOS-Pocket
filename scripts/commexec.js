@@ -576,9 +576,9 @@ class CommandExecutor {
           if (typeof lastResult.data === "string") {
             lastResult.data = lastResult.data.replace(/\\n/g, "\n");
           }
-          await OutputManager.appendToOutput(lastResult.data, {
-            typeClass: lastResult.messageType || null,
-          });
+          // Pass ALL options from the result to the Output Manager
+          const { data, success, ...outputOptions } = lastResult;
+          await OutputManager.appendToOutput(data, outputOptions);
         }
       }
     }

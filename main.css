@@ -425,6 +425,11 @@ body {
 }
 
 /* Styling for formatted prose blocks in the terminal */
+.prose-output {
+    white-space: normal; /* Allow text to wrap naturally like prose */
+    line-height: var(--line-height-base); /* Use a more readable line height */
+}
+
 .prose-output p {
     margin-bottom: var(--spacing-md); /* Adds a 1rem space after each paragraph */
 }
@@ -432,4 +437,8 @@ body {
 .prose-output h3 {
     margin-bottom: var(--spacing-sm);
     color: var(--color-info);
+}
+
+.prose-output > *:last-child {
+    margin-bottom: 0; /* Remove margin from the very last element */
 }
