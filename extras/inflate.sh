@@ -289,3 +289,7 @@ echo "- [ ] Delete all the weirdly-named files in /data using a single 'find | x
 echo "- [ ] Make some /music with the run, synth and play commands"
 play C4 12n; play E4 12n; play G4 10n; play C5 8n; play G4 12n; play C5 2n
 delay 400
+echo " "
+echo " "
+echo " "
+delay 200

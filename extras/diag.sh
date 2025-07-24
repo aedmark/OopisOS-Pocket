@@ -765,6 +765,35 @@ echo "'cut' command diagnostics finished."
 delay 700
 echo "---------------------------------------------------------------------"
 
+echo ""
+echo "===== Phase 21: Testing 'tr' Command Suite ====="
+delay 400
+
+echo "--- Test: tr - Basic translation (lower to upper) ---"
+echo "hello world" | tr 'a-z' 'A-Z'
+delay 400
+
+echo "--- Test: tr - Character class translation ---"
+echo "test 123" | tr '[:lower:]' '[:upper:]'
+delay 400
+
+echo "--- Test: tr -d (delete) with character class ---"
+echo "abc-123-def" | tr -d '[:digit:]'
+delay 400
+
+echo "--- Test: tr -s (squeeze-repeats) ---"
+echo "hellloooo     woooorld" | tr -s 'o'
+delay 400
+
+echo "--- Test: tr -c (complement) ---"
+echo "123abc456" | tr -c '[:digit:]' '_'
+delay 400
+
+echo "--- Test: tr -cs (complement and squeeze) ---"
+echo "###Hello... World!!!" | tr -cs '[:alnum:]' '_'
+delay 700
+echo "---------------------------------------------------------------------"
+
 echo "===== Phase X: Testing Filesystem Torture & I/O Gauntlet ====="
 delay 400
 
