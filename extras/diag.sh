@@ -735,7 +735,7 @@ echo "--- Test: Non-interactive 'top' launch ---"
 top &
 TOP_PID=$(ps | grep "top" | awk '{print $1}')
 delay 1500
-kill $TOP_PID
+kill $TOP_PID || true
 echo "'top' non-interactive test complete."
 delay 500
 

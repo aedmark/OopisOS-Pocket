@@ -25,7 +25,7 @@ window.TopCommand = class TopCommand extends Command {
     }
 
     async coreLogic(context) {
-        const { options, dependencies } = context;
+        const { options, signal, dependencies } = context;
         const { ErrorHandler, AppLayerManager, TopManager } = dependencies;
 
         if (
@@ -37,12 +37,22 @@ window.TopCommand = class TopCommand extends Command {
             );
         }
 
-        // If not interactive, the command can still "run" as a background process,
-        // which is what we need for testing. It just won't show the UI.
         if (options.isInteractive) {
+            // If we're interactive, show the beautiful UI!
             AppLayerManager.show(new TopManager(), { dependencies });
+            return ErrorHandler.createSuccess("");
+        } else {
+            // If we're NOT interactive (like in a script), we need to wait patiently.
+            // This promise will keep the process alive until it's stopped by a signal (like 'kill').
+            return new Promise((_resolve, reject) => {
+                if (signal) {
+                    signal.addEventListener('abort', () => {
+                        // The 'kill' command has spoken! Time to go.
+                        reject(new Error(`Operation cancelled. (Reason: ${signal.reason})`));
+                    });
+                }
+                // We just wait here... forever... or until we're told otherwise.
+            });
         }
-
-        return ErrorHandler.createSuccess("");
     }
 }
