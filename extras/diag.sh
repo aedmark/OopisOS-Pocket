@@ -571,7 +571,6 @@ echo "some data" > input.txt
 cat < input.txt
 rm empty_via_redir.txt input.txt
 echo "Redirection tests complete."
-delay 700
 echo "---------------------------------------------------------------------"
 echo "===== Phase 17: Testing 'run' Command & Script Execution ====="
 delay 400
@@ -623,7 +622,6 @@ echo "This is the original target file." > original_target.txt
 ln -s original_target.txt my_link
 echo "Verifying link display with 'ls -l':"
 ls -l my_link
-delay 500
 
 echo "--- Test: Symlink content resolution via 'cat' ---"
 cat my_link
@@ -658,7 +656,6 @@ rm link_a link_b my_link
 check_fail "cat link_a"
 check_fail "cat original_target.txt"
 echo "Symbolic link tests complete."
-delay 700
 echo "---------------------------------------------------------------------"
 delay 400
 
@@ -692,12 +689,10 @@ delay 500
 echo "--- Test: Resuming the job with 'kill -CONT' ---"
 kill -CONT $JOB_ID
 echo "Signal -CONT sent to job $JOB_ID."
-delay 500
 
 echo "--- Test: Verifying job is 'Running' (R) again ---"
 ps | grep "$JOB_ID" | grep 'R'
 echo "Job status is correctly reported as 'R' after resuming."
-delay 500
 
 echo "--- Test: Terminating the job with 'kill' ---"
 kill -KILL $JOB_ID
@@ -792,6 +787,41 @@ delay 400
 
 echo "--- Test: tr -cs (complement and squeeze) ---"
 echo "###Hello... World!!!" | tr -cs '[:alnum:]' '_'
+delay 700
+echo "---------------------------------------------------------------------"
+
+echo ""
+echo "===== Phase 22: Testing 'comm' Command Suite ====="
+delay 400
+
+echo "--- Test: comm - Creating sorted test files ---"
+echo -e "apple\nbanana\ncommon\npear" > comm_a.txt
+echo -e "banana\ncommon\norange\nstrawberry" > comm_b.txt
+delay 400
+
+echo "--- Test: comm - Default (three columns) ---"
+comm comm_a.txt comm_b.txt
+delay 400
+
+echo "--- Test: comm - Suppress column 1 (-1) ---"
+comm -1 comm_a.txt comm_b.txt
+delay 400
+
+echo "--- Test: comm - Suppress column 2 (-2) ---"
+comm -2 comm_a.txt comm_b.txt
+delay 400
+
+echo "--- Test: comm - Suppress column 1 and 3 (-13) ---"
+comm -13 comm_a.txt comm_b.txt
+delay 400
+
+echo "--- Test: comm - Suppress column 1 and 2 (-12) ---"
+comm -12 comm_a.txt comm_b.txt
+delay 400
+
+echo "--- Cleaning up comm test files ---"
+rm comm_a.txt comm_b.txt
+echo "comm test complete."
 delay 700
 echo "---------------------------------------------------------------------"
 
