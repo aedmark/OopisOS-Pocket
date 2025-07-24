@@ -194,7 +194,7 @@ class DefaultStorageHAL extends StorageHAL {
         });
 
         // 2. Clear the entire IndexedDB object store used for the filesystem.
-        await IndexedDBManager.clearAllFS();
+        await IndexedDBManager.clearAllFSData();
 
         console.log("HAL: All OopisOS storage has been cleared.");
     }
