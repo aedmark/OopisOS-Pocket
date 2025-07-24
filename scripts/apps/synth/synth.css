@@ -1,0 +1,93 @@
+/* gem/scripts/apps/synth/synth.css */
+.synth-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 95%;
+    max-width: 800px;
+    height: 350px;
+    background-color: var(--color-background-dark);
+    border: var(--border-width-thick) solid var(--color-border-primary);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-md);
+    box-shadow: var(--shadow-drop-medium);
+    font-family: var(--font-family-sans), sans-serif;
+    color: var(--color-text-secondary);
+    outline: none; /* For when it's focused */
+}
+
+.synth-header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--color-info);
+    margin-bottom: var(--spacing-lg);
+}
+
+.synth-exit-btn {
+    font-size: var(--font-size-2xl);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--color-text-secondary);
+}
+
+.synth-exit-btn:hover {
+    color: var(--color-error);
+}
+
+.synth-keyboard {
+    display: flex;
+    position: relative;
+    height: 150px;
+}
+
+.synth-key {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    padding-bottom: var(--spacing-sm);
+    font-size: var(--font-size-lg);
+    border: 1px solid #000;
+    user-select: none;
+}
+
+.synth-key.white {
+    width: 50px;
+    height: 150px;
+    background-color: #fff;
+    color: #000;
+    border-bottom-left-radius: 5px;
+    border-bottom-right-radius: 5px;
+}
+
+.synth-key.black {
+    width: 30px;
+    height: 90px;
+    background-color: #000;
+    color: #fff;
+    position: absolute;
+    z-index: 1;
+    margin-left: -15px;
+    border-radius: 3px;
+}
+
+.synth-key.black[data-key="w"] { left: 50px; }
+.synth-key.black[data-key="e"] { left: 100px; }
+.synth-key.black[data-key="t"] { left: 200px; }
+.synth-key.black[data-key="y"] { left: 250px; }
+.synth-key.black[data-key="u"] { left: 300px; }
+.synth-key.black[data-key="o"] { left: 400px; }
+.synth-key.black[data-key="p"] { left: 450px; }
+
+.synth-key.active {
+    background-color: var(--color-info);
+}
+
+.synth-octave-display {
+    margin-top: var(--spacing-lg);
+    font-size: var(--font-size-lg);
+    color: var(--color-text-primary);
+}
