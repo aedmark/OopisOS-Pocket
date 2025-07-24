@@ -932,7 +932,6 @@ echo "Appending to file as group member (should succeed)..."
 echo "appended" >> group_test_file.txt
 cat group_test_file.txt
 login Guest
-delay 400
 cd /home/diagUser/diag_workspace
 echo "Appending to file as Guest (should fail)..."
 check_fail "echo 'appended by guest' >> group_test_file.txt"
@@ -1003,7 +1002,6 @@ echo -e "line 1\nline 2\nline 3" > pager_test.txt
 echo "Piping to 'more'..."
 cat pager_test.txt | more | wc -l
 echo "Piping to 'less'..."
-delay 400
 cat pager_test.txt | less | wc -l
 rm pager_test.txt
 echo "Pager test complete."
@@ -1014,7 +1012,7 @@ echo "Redirected input" > input_redir.txt
 cat < input_redir.txt
 rm input_redir.txt
 echo "Input redirection test complete."
-delay 700
+delay 500
 echo "---------------------------------------------------------------------"
 
 
@@ -1033,7 +1031,6 @@ delay 400
 echo "--- Test: File I/O with Special Characters ---"
 mkdir "a directory with spaces and.. special'chars!"
 touch "a directory with spaces and.. special'chars!/-leading_dash.txt"
-delay 400
 echo "Special content" > "a directory with spaces and.. special'chars!/-leading_dash.txt"
 cat "a directory with spaces and.. special'chars!/-leading_dash.txt"
 rm -r "a directory with spaces and.. special'chars!"
@@ -1044,7 +1041,7 @@ echo "--- Test: xargs with Quoted Arguments ---"
 touch "a file with spaces.tmp"
 ls *.tmp | xargs -I {} mv {} {}.bak
 ls *.bak
-delay 500
+delay 200
 rm *.bak
 echo "xargs with quotes test complete."
 delay 700
@@ -1066,7 +1063,7 @@ rm -r -f /home/testuser
 rm -r -f /home/testuser2
 login Guest
 listusers
-delay 1000
+delay 400
 echo "---------------------------------------------------------------------"
 echo ""
 echo "      ===== OopisOS Core Test Suite v4.5 Complete ======="
@@ -1087,6 +1084,8 @@ echo " "
 delay 500
 echo "(As usual, you've been a real pantload!)"
 beep
+delay 400
+play E6 20n; play F6 32n; play F#6 32n; play G6 32n; play A6 32n
 delay 500
 echo " "
 echo " "
