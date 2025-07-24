@@ -44,7 +44,7 @@ window.RunCommand = class RunCommand extends Command {
       await CommandExecutor.executeScript(lines, {
         isInteractive: false,
       });
-      return ErrorHandler.createSuccess("Script finished.");
+      return ErrorHandler.createSuccess("We did it!");
     } catch (e) {
       return ErrorHandler.createError(`run: ${e.message}`);
     }

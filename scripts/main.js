@@ -163,8 +163,7 @@ window.onload = async () => {
   const aiManager = new AIManager();
   const commandRegistry = new CommandRegistry();
   soundManager = new SoundManager();
-  const storageHAL = new IndexedDBStorageHAL({ IndexedDBManager, Config, Utils });
-  await storageHAL.init(); // Initialize the database connection
+  const storageHAL = new IndexedDBStorageHAL();
 
   const dependencies = {
     Config: configManager,
@@ -223,6 +222,7 @@ window.onload = async () => {
   tabCompletionManager.setDependencies(dependencies);
   uiComponents.setDependencies(dependencies);
   aiManager.setDependencies(dependencies);
+  storageHAL.setDependencies(dependencies);
 
   try {
     // Initialization sequence
@@ -230,7 +230,7 @@ window.onload = async () => {
     terminalUI.initialize(domElements);
     modalManager.initialize(domElements);
     appLayerManager.initialize(domElements);
-
+    await storageHAL.init();
     aliasManager.initialize();
     outputManager.initializeConsoleOverrides();
     await fsManager.load();

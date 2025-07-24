@@ -41,9 +41,7 @@ class StorageHAL {
  * The default storage implementation using IndexedDB.
  */
 class IndexedDBStorageHAL extends StorageHAL {
-    constructor(dependencies) {
-        super();
-        this.dbInstance = null;
+    setDependencies(dependencies) {
         this.dependencies = dependencies;
     }
 
