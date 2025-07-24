@@ -17,7 +17,7 @@ chown diagUser /home/diagUser/diag_workspace/
 groupadd testgroup
 chgrp testgroup /home/diagUser/diag_workspace/
 chmod 775 /home/diagUser/diag_workspace/
-delay 500
+
 login diagUser testpass
 echo "Current User (expected: diagUser):"
 delay 400
@@ -25,7 +25,6 @@ whoami
 echo "Current Path after login (expected: /home/diagUser):"
 pwd
 cd /home/diagUser/diag_workspace
-delay 400
 echo "---------------------------------------------------------------------"
 
 echo ""
@@ -41,7 +40,6 @@ delay 400
 echo "Building permissions assets..."
 echo "I should not be executable" > exec_test.sh; chmod 600 exec_test.sh
 touch preserve_perms.txt; chmod 700 preserve_perms.txt
-delay 700
 echo "Dispensing data processing assets..."
 delay 400
 echo -e "zeta\nalpha\nbeta\nalpha\n10\n2" > sort_test.txt
@@ -86,7 +84,6 @@ delay 400
 echo "--- Test: diff, cp -p, mv ---"
 diff diff_a.txt diff_b.txt
 cp -p preserve_perms.txt preserve_copy.sh
-delay 200
 echo "Verifying preserved permissions:"
 ls -l preserve_perms.txt preserve_copy.sh
 mv exec_test.sh mv_test_dir/
@@ -99,7 +96,6 @@ ls -l old_file.txt specific_time.txt
 echo "--- Test: ls sorting flags (-t, -S, -X, -r) ---"
 echo "Sorting by modification time (newest first):"
 ls -lt
-delay 400
 echo "Sorting by size (largest first):"
 ls -lS
 delay 200
@@ -108,7 +104,6 @@ ls -lX
 delay 400
 echo "Sorting by name in reverse order:"
 ls -lr
-delay 400
 echo "--- Test: cat -n ---"
 cat -n diff_a.txt
 delay 700
@@ -474,6 +469,14 @@ rm wget.txt
 curl https://raw.githubusercontent.com/aedmark/Oopis-OS/refs/heads/master/docs/LICENSE.txt > oopis_curl.txt
 cat oopis_curl.txt
 rm oopis_curl.txt
+echo "--- Test: ping - Pinging a known-good host ---"
+ping raw.githubusercontent.com
+delay 700
+echo "--- Test: ping - Pinging a non-existent host (should fail gracefully) ---"
+check_fail "ping a-domain-that-does-not-exist-and-never-will.invalid"
+delay 700
+echo "'ping' command diagnostics finished."
+echo "---------------------------------------------------------------------"
 echo "--- Test: man and help ---"
 man ls
 help cp

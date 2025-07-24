@@ -151,7 +151,7 @@ class ConfigManager {
         "diff", "du", "echo", "edit", "explore", "export", "find", "gemini", "grep",
         "groupadd", "groupdel", "groups", "head", "help", "history", "kill", "less",
         "listusers", "loadstate", "log", "login", "logout", "ls", "ln", "man", "more",
-        "mkdir", "mv", "nl", "ocrypt", "paint", "passwd", "patch", "play",
+        "mkdir", "mv", "nl", "ocrypt", "paint", "passwd", "patch", "ping", "play",
         "printscreen", "ps", "pwd", "reboot", "remix", "removeuser", "reset",
         "restore", "rm", "rmdir", "run", "savefs", "savestate", "sed", "set",
         "shuf", "sort", "su", "sudo", "sync", "synth" ,"tail", "touch", "tr",
