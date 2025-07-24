@@ -55,7 +55,7 @@ window.RemixCommand = class RemixCommand extends Command {
             return ErrorHandler.createError("remix: One or both input files are empty.");
         }
 
-        const userPrompt = `Please synthesize the following two documents into a single, cohesive article. The article should blend the key ideas from both sources into a unique summary.
+        const userPrompt = `Please synthesize the following two documents into a single, cohesive article. The article should blend the key ideas from both sources into a unique summary formatted in Markdown with paragraphs separated by double newlines.
 
 --- DOCUMENT 1: ${file1Path} ---
 ${file1Content}
@@ -83,14 +83,15 @@ ${file2Content}
         );
 
         if (llmResult.success) {
-            if (llmResult.answer.includes("cannot fulfill this request")) {
-                return ErrorHandler.createError(`remix: The AI determined it could not fulfill the request with its current capabilities.`);
-            }
             const finalArticle = llmResult.answer;
-            return ErrorHandler.createSuccess(
-                `### Remix of ${file1Path} & ${file2Path} ###
 
-${finalArticle}`
+            // Convert Markdown to sanitized HTML
+            const articleHtml = DOMPurify.sanitize(marked.parse(finalArticle));
+            const headerHtml = `<h3>Remix of ${file1Path} & ${file2Path}</h3>`;
+
+            return ErrorHandler.createSuccess(
+                headerHtml + articleHtml,
+                { asBlock: true, messageType: 'prose-output' } // Use our new options
             );
         } else {
             if (llmResult.error === "INVALID_API_KEY") {

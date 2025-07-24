@@ -423,3 +423,13 @@ body {
 .text-file {
     color: var(--color-text-primary);
 }
+
+/* Styling for formatted prose blocks in the terminal */
+.prose-output p {
+    margin-bottom: var(--spacing-md); /* Adds a 1rem space after each paragraph */
+}
+
+.prose-output h3 {
+    margin-bottom: var(--spacing-sm);
+    color: var(--color-info);
+}

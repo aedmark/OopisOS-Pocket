@@ -38,7 +38,7 @@ class OutputManager {
       );
       return;
     }
-    const { typeClass = null, isBackground = false } = options;
+    const { typeClass = null, isBackground = false, asBlock = false } = options; // Add 'asBlock'
 
     if (
         isBackground &&
@@ -54,6 +54,18 @@ class OutputManager {
       this.cachedOutputDiv.appendChild(echoLine);
     }
 
+    // If 'asBlock' is true, treat the text as pre-formatted HTML
+    if (asBlock) {
+      const blockWrapper = Utils.createElement("div", {
+        className: typeClass || "",
+        innerHTML: text, // The text is already sanitized HTML
+      });
+      this.cachedOutputDiv.appendChild(blockWrapper);
+      this.cachedOutputDiv.scrollTop = this.cachedOutputDiv.scrollHeight;
+      return;
+    }
+
+    // Original line-by-line logic for standard command output
     const lines = String(text).split("\n");
     const fragment = document.createDocumentFragment();
 
