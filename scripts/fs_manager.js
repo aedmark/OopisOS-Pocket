@@ -251,26 +251,111 @@ class FileSystemManager {
     );
   }
 
-  getNodeByPath(absolutePath) {
+  _createNewSymlinkNode(targetPath, owner, group) {
+    return {
+      type: this.config.FILESYSTEM.SYMBOLIC_LINK_TYPE,
+      target: targetPath,
+      owner: owner,
+      group: group,
+      mode: 0o777,
+      mtime: new Date().toISOString()
+    };
+  }
+
+  getAbsolutePath(targetPath, basePath) {
+    basePath = basePath || this.currentPath;
+    if (!targetPath) targetPath = this.config.FILESYSTEM.CURRENT_DIR_SYMBOL;
+    let effectiveBasePath = basePath;
+    if (targetPath.startsWith(this.config.FILESYSTEM.PATH_SEPARATOR))
+      effectiveBasePath = this.config.FILESYSTEM.ROOT_PATH;
+    const baseSegments =
+        effectiveBasePath === this.config.FILESYSTEM.ROOT_PATH
+            ? []
+            : effectiveBasePath
+                .substring(1)
+                .split(this.config.FILESYSTEM.PATH_SEPARATOR)
+                .filter((s) => s && s !== this.config.FILESYSTEM.CURRENT_DIR_SYMBOL);
+    let resolvedSegments = [...baseSegments];
+    const targetSegments = targetPath.split(this.config.FILESYSTEM.PATH_SEPARATOR);
+    for (const segment of targetSegments) {
+      if (segment === "" || segment === this.config.FILESYSTEM.CURRENT_DIR_SYMBOL) {
+        if (
+            targetPath.startsWith(this.config.FILESYSTEM.PATH_SEPARATOR) &&
+            resolvedSegments.length === 0 &&
+            segment === ""
+        ) {
+        }
+        continue;
+      }
+      if (segment === this.config.FILESYSTEM.PARENT_DIR_SYMBOL) {
+        if (resolvedSegments.length > 0) resolvedSegments.pop();
+      } else resolvedSegments.push(segment);
+    }
+    if (resolvedSegments.length === 0) return this.config.FILESYSTEM.ROOT_PATH;
+    return (
+        this.config.FILESYSTEM.PATH_SEPARATOR +
+        resolvedSegments.join(this.config.FILESYSTEM.PATH_SEPARATOR)
+    );
+  }
+
+  getNodeByPath(absolutePath, options = {}) {
+    const { resolveLastSymlink = true } = options;
+    const MAX_SYMLINK_DEPTH = 10;
     const currentUser = this.dependencies.UserManager.getCurrentUser().name;
-    if (absolutePath === this.config.FILESYSTEM.ROOT_PATH) {
-      return this.fsData[this.config.FILESYSTEM.ROOT_PATH];
-    }
-    const segments = absolutePath
-        .substring(1)
-        .split(this.config.FILESYSTEM.PATH_SEPARATOR)
-        .filter((s) => s);
-    let currentNode = this.fsData[this.config.FILESYSTEM.ROOT_PATH];
-    for (const segment of segments) {
-      if (!this.hasPermission(currentNode, currentUser, "execute")) {
-        return null; // Permission denied during traversal
+
+    let currentPath = absolutePath;
+    for (let depth = 0; depth < MAX_SYMLINK_DEPTH; depth++) {
+      if (currentPath === this.config.FILESYSTEM.ROOT_PATH) {
+        return this.fsData[this.config.FILESYSTEM.ROOT_PATH];
       }
-      if (!currentNode.children || !currentNode.children[segment]) {
-        return null; // Path does not exist
+
+      const segments = currentPath.substring(1).split(this.config.FILESYSTEM.PATH_SEPARATOR).filter(s => s);
+      let currentNode = this.fsData[this.config.FILESYSTEM.ROOT_PATH];
+      let pathTraversedSoFar = '/';
+
+      let pathResolved = true;
+      for (let i = 0; i < segments.length; i++) {
+        const segment = segments[i];
+        const isLastSegment = i === segments.length - 1;
+
+        if (currentNode.type !== this.config.FILESYSTEM.DEFAULT_DIRECTORY_TYPE) {
+          return null;
+        }
+        if (!this.hasPermission(currentNode, currentUser, "execute")) {
+          return null;
+        }
+        if (!currentNode.children || !currentNode.children[segment]) {
+          return null;
+        }
+
+        currentNode = currentNode.children[segment];
+        pathTraversedSoFar = this.getAbsolutePath(segment, pathTraversedSoFar);
+
+        if (currentNode.type === this.config.FILESYSTEM.SYMBOLIC_LINK_TYPE) {
+          if (isLastSegment && !resolveLastSymlink) {
+            return currentNode;
+          }
+
+          const parentOfLink = pathTraversedSoFar.substring(0, pathTraversedSoFar.lastIndexOf('/')) || '/';
+          const targetPath = this.getAbsolutePath(currentNode.target, parentOfLink);
+          const remainingSegments = segments.slice(i + 1);
+
+          currentPath = remainingSegments.length > 0
+              ? this.getAbsolutePath(remainingSegments.join('/'), targetPath)
+              : targetPath;
+
+          pathResolved = false;
+          break;
+        }
       }
-      currentNode = currentNode.children[segment];
+
+      if (pathResolved) {
+        return currentNode;
+      }
     }
-    return currentNode;
+
+    console.error(`getNodeByPath: Too many levels of symbolic links for path '${absolutePath}'`);
+    return null;
   }
 
   validatePath(pathArg, options = {}) {
@@ -279,12 +364,12 @@ class FileSystemManager {
       expectedType = null,
       permissions = [],
       allowMissing = false,
+      resolveLastSymlink = true,
     } = options;
     const currentUser = this.dependencies.UserManager.getCurrentUser().name;
 
     const resolvedPath = this.getAbsolutePath(pathArg);
-
-    const node = this.getNodeByPath(resolvedPath);
+    const node = this.getNodeByPath(resolvedPath, { resolveLastSymlink });
 
     if (!node) {
       if (allowMissing) {
