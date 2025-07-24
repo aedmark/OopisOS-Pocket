@@ -145,9 +145,9 @@ class ConfigManager {
         },
       },
       COMMANDS_MANIFEST: [
-        "adventure", "alias", "awk", "backup", "base64", "basic", "bc", "beep", "cat",
+        "adventure", "alias", "awk", "backup", "base64", "basic", "bc", "beep", "binder", "cat",
         "cd", "check_fail", "chgrp", "chidi", "chmod", "chown", "cksum", "clear",
-        "clearfs", "code", "comm", "cp", "csplit", "curl", "cut", "date", "delay", "df",
+        "clearfs", "code", "comm", "committee", "cp", "csplit", "curl", "cut", "date", "delay", "df",
         "diff", "du", "echo", "edit", "explore", "export", "find", "gemini", "grep",
         "groupadd", "groupdel", "groups", "head", "help", "history", "kill", "less",
         "listusers", "loadstate", "log", "login", "logout", "ls", "ln", "man", "more",

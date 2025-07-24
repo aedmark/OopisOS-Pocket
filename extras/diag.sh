@@ -201,6 +201,47 @@ login Guest
 echo "Recursive ownership tests complete."
 delay 500
 echo "---------------------------------------------------------------------"
+echo ""
+echo "===== Phase 4.6666666666...: Testing High-Level Committee Command ====="
+delay 400
+login root mcgoopis
+echo "--- Setting up for committee test ---"
+useradd comm_user1
+testpass
+testpass
+useradd comm_user2
+testpass
+testpass
+delay 500
+echo "--- Executing committee command ---"
+committee --create harvest_festival --members comm_user1,comm_user2
+delay 500
+echo "--- Verifying results ---"
+echo "Checking group memberships:"
+groups comm_user1
+groups comm_user2
+echo "Checking directory and permissions (should be drwxrwx--- ... harvest_festival):"
+ls -l /home/ | grep "project_harvest_festival"
+delay 500
+echo "--- Test: Member write access (should succeed) ---"
+login comm_user1 testpass
+echo "I solemnly swear to bring a pie." > /home/project_harvest_festival/plan.txt
+cat /home/project_harvest_festival/plan.txt
+delay 500
+echo "--- Test: Non-member access (should fail) ---"
+login Guest
+check_fail "ls /home/project_harvest_festival"
+check_fail "cat /home/project_harvest_festival/plan.txt"
+delay 500
+echo "--- Cleaning up from committee test ---"
+login root mcgoopis
+removeuser -f comm_user1
+removeuser -f comm_user2
+groupdel harvest_festival
+rm -r -f /home/project_harvest_festival
+echo "Committee command test complete."
+delay 700
+echo "---------------------------------------------------------------------"
 
 echo ""
 echo "===== Phase 5: Testing Sudo & Security Model ====="
@@ -825,6 +866,52 @@ delay 400
 echo "--- Cleaning up comm test files ---"
 rm comm_a.txt comm_b.txt
 echo "comm test complete."
+delay 700
+echo "---------------------------------------------------------------------"
+
+echo ""
+echo "===== Phase 23: Testing Binder Command Suite ====="
+delay 400
+
+echo "--- Setting up binder test environment ---"
+mkdir -p binder_test/docs binder_test/assets
+echo "research data" > binder_test/docs/research.txt
+echo "project notes" > binder_test/notes.txt
+echo "asset" > binder_test/assets/icon.svg
+delay 500
+
+echo "--- Test: binder create ---"
+binder create project_alpha
+ls project_alpha.binder
+delay 500
+
+echo "--- Test: binder add (with sections) ---"
+binder add project_alpha.binder ./binder_test/docs/research.txt -s documents
+binder add project_alpha.binder ./binder_test/notes.txt -s general
+binder add project_alpha.binder ./binder_test/assets/icon.svg -s assets
+delay 500
+
+echo "--- Test: binder list ---"
+binder list project_alpha.binder
+delay 500
+
+echo "--- Test: binder exec ---"
+echo "Executing 'cksum' on all files in the binder:"
+binder exec project_alpha.binder -- cksum {}
+delay 500
+
+echo "--- Test: binder remove ---"
+binder remove project_alpha.binder ./binder_test/notes.txt
+delay 500
+
+echo "--- Test: binder list (after removal) ---"
+binder list project_alpha.binder
+delay 500
+
+echo "--- Cleaning up binder test environment ---"
+rm -r -f binder_test
+rm project_alpha.binder
+echo "Binder command suite test complete."
 delay 700
 echo "---------------------------------------------------------------------"
 
