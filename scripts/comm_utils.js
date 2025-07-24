@@ -1,4 +1,4 @@
-// scripts/comm_utils.js
+// gem/scripts/comm_utils.js
 class TimestampParser {
   static parseDateString(dateStr) {
     if (typeof dateStr !== "string") return null;
@@ -220,7 +220,7 @@ class DiffUtils {
             px--;
             py--;
           }
-          return diffOutput.join("");
+          return diffOutput.join("\n");
         }
       }
     }

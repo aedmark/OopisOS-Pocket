@@ -764,6 +764,7 @@ rm cut_test.txt
 echo "'cut' command diagnostics finished."
 delay 700
 echo "---------------------------------------------------------------------"
+echo "---------------------------------------------------------------------"
 
 echo ""
 echo "===== Phase 21: Testing 'tr' Command Suite ====="
@@ -1097,6 +1098,41 @@ rm *.bak
 echo "xargs with quotes test complete."
 delay 700
 echo "---------------------------------------------------------------------"
+
+echo ""
+echo "===== Phase Gamma: Testing Diff and Patch Integration ====="
+delay 400
+
+echo "--- Test: Creating base files for diff and patch ---"
+echo -e "The original first line.\nA second line, which will remain.\nThe third line is the charm." > original_document.txt
+echo -e "The first line, now modified.\nA second line, which will remain.\nThe third line is the charm." > modified_document.txt
+echo "Base files created."
+delay 400
+
+echo "--- Test: Generating a patch file with a custom utility ---"
+# This simulates creating a patch object. A real 'diff' would output text,
+# but for this test, we'll create the JSON patch our command expects.
+echo '{"index":4,"delete":20,"insert":"first line, now modified","deleted":"original first line"}' > changes.diff
+echo "Patch file 'changes.diff' generated. Contents:"
+cat changes.diff
+delay 400
+
+echo "--- Test: Applying the patch to the original file ---"
+patch original_document.txt changes.diff
+echo "Patch applied."
+delay 400
+
+echo "--- Test: Verifying the patched file (should show no differences) ---"
+# We'll use 'check_fail -z' which SUCCEEDS if the command has ZERO output.
+# A successful patch means 'diff' will find no differences and produce no output.
+check_fail -z "diff original_document.txt modified_document.txt"
+echo "Verification complete. If no failure was reported, the test was successful."
+delay 400
+
+echo "--- Cleaning up patch test files ---"
+rm original_document.txt modified_document.txt changes.diff
+echo "Patch integration test complete."
+delay 700
 
 echo ""
 echo "--- Phase Omega: Final Cleanup ---"
