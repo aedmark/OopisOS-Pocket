@@ -286,3 +286,6 @@ echo "- [ ] Figure out what 'sys_check.sh' is for and run it." >> ./todo.txt
 echo "- [ ] Find out who 'Morpheus' is." >> ./todo.txt
 echo "- [ ] Beat the 'Quest for the Lost Semicolon' adventure." >> ./todo.txt
 echo "- [ ] Delete all the weirdly-named files in /data using a single 'find | xargs' command." >> ./todo.txt
+echo "- [ ] Make some /music with the run, synth and play commands"
+play C4 12n; play E4 12n; play G4 10n; play C5 8n; play G4 12n; play C5 2n
+delay 400
