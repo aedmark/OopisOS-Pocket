@@ -163,6 +163,8 @@ window.onload = async () => {
   const aiManager = new AIManager();
   const commandRegistry = new CommandRegistry();
   soundManager = new SoundManager();
+  const storageHAL = new IndexedDBStorageHAL({ IndexedDBManager, Config, Utils });
+  await storageHAL.init(); // Initialize the database connection
 
   const dependencies = {
     Config: configManager,
@@ -195,6 +197,7 @@ window.onload = async () => {
     UIComponents: uiComponents,
     domElements: domElements,
     SoundManager: soundManager,
+    StorageHAL: storageHAL, // Add our new HAL
   };
 
   const pagerManager = new PagerManager(dependencies);
@@ -228,7 +231,6 @@ window.onload = async () => {
     modalManager.initialize(domElements);
     appLayerManager.initialize(domElements);
 
-    await indexedDBManager.init();
     aliasManager.initialize();
     outputManager.initializeConsoleOverrides();
     await fsManager.load();

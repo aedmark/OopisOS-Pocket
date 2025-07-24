@@ -4,12 +4,14 @@ class FileSystemManager {
     this.fsData = {};
     this.currentPath = this.config.FILESYSTEM.ROOT_PATH;
     this.dependencies = {};
+    this.storageHAL = null; // Add this line
   }
 
   setDependencies(dependencies) {
     this.dependencies = dependencies;
     this.userManager = dependencies.UserManager;
     this.groupManager = dependencies.GroupManager;
+    this.storageHAL = dependencies.StorageHAL; // Add this line
   }
 
   async initialize(guestUsername) {
@@ -98,105 +100,38 @@ class FileSystemManager {
   }
 
   async save() {
-    const { IndexedDBManager, ErrorHandler, Utils } = this.dependencies;
-    let db;
-    try {
-      db = IndexedDBManager.getDbInstance();
-    } catch (e) {
-      return ErrorHandler.createError(
-          "File system storage not available for saving."
-      );
+    const { ErrorHandler, Utils } = this.dependencies;
+    const saveData = Utils.deepCopyNode(this.fsData);
+    const success = await this.storageHAL.save(saveData);
+    if (success) {
+      return ErrorHandler.createSuccess();
     }
-
-    return new Promise((resolve) => {
-      const transaction = db.transaction(
-          [this.config.DATABASE.FS_STORE_NAME],
-          "readwrite"
-      );
-      const store = transaction.objectStore(this.config.DATABASE.FS_STORE_NAME);
-      const request = store.put({
-        id: this.config.DATABASE.UNIFIED_FS_KEY,
-        data: Utils.deepCopyNode(this.fsData),
-      });
-      request.onsuccess = () => resolve(ErrorHandler.createSuccess());
-      request.onerror = (event) => {
-        resolve(
-            ErrorHandler.createError(
-                `OopisOs failed to save the file system: ${event.target.error}`
-            )
-        );
-      };
-    });
+    return ErrorHandler.createError("OopisOs failed to save the file system.");
   }
 
   async load() {
-    const { IndexedDBManager, ErrorHandler, OutputManager } = this.dependencies;
-    let db;
-    try {
-      db = IndexedDBManager.getDbInstance();
-    } catch (e) {
+    const { ErrorHandler, OutputManager } = this.dependencies;
+    const loadedData = await this.storageHAL.load();
+
+    if (loadedData) {
+      this.fsData = loadedData;
+    } else {
+      await OutputManager.appendToOutput(
+          "No file system found. Initializing new one.",
+          { typeClass: this.config.CSS_CLASSES.CONSOLE_LOG_MSG }
+      );
       await this.initialize(this.config.USER.DEFAULT_NAME);
-      return ErrorHandler.createError(
-          this.config.INTERNAL_ERRORS.DB_NOT_INITIALIZED_FS_LOAD
-      );
+      await this.save();
     }
-    return new Promise(async (resolve) => {
-      const transaction = db.transaction(
-          [this.config.DATABASE.FS_STORE_NAME],
-          "readonly"
-      );
-      const store = transaction.objectStore(this.config.DATABASE.FS_STORE_NAME);
-      const request = store.get(this.config.DATABASE.UNIFIED_FS_KEY);
-      request.onsuccess = async (event) => {
-        const result = event.target.result;
-        if (result && result.data) {
-          this.fsData = result.data;
-        } else {
-          await OutputManager.appendToOutput(
-              "No file system found. Initializing new one.",
-              {
-                typeClass: this.config.CSS_CLASSES.CONSOLE_LOG_MSG,
-              }
-          );
-          await this.initialize(this.config.USER.DEFAULT_NAME);
-          await this.save();
-        }
-        resolve(ErrorHandler.createSuccess());
-      };
-      request.onerror = async (event) => {
-        await this.initialize(this.config.USER.DEFAULT_NAME);
-        resolve(ErrorHandler.createError(event.target.error));
-      };
-    });
+    return ErrorHandler.createSuccess();
   }
 
   async clearAllFS() {
-    const { IndexedDBManager, ErrorHandler } = this.dependencies;
-    let db;
-    try {
-      db = IndexedDBManager.getDbInstance();
-    } catch (e) {
-      return ErrorHandler.createError(
-          "File system storage not available for clearing all data."
-      );
+    const success = await this.storageHAL.clear();
+    if (success) {
+      return this.dependencies.ErrorHandler.createSuccess();
     }
-    return new Promise((resolve) => {
-      const transaction = db.transaction(
-          [this.config.DATABASE.FS_STORE_NAME],
-          "readwrite"
-      );
-      const store = transaction.objectStore(this.config.DATABASE.FS_STORE_NAME);
-      const request = store.clear();
-      request.onsuccess = () => resolve(ErrorHandler.createSuccess());
-      request.onerror = (event) => {
-        console.error("Error clearing FileSystemsStore:", event.target.error);
-        resolve(
-            ErrorHandler.createError(
-                `Could not clear all user file systems: ${event.target.error}`
-            )
-        );
-      };
-    });
+    return this.dependencies.ErrorHandler.createError("Could not clear all user file systems.");
   }
 
   getCurrentPath() {
@@ -260,42 +195,6 @@ class FileSystemManager {
       mode: 0o777,
       mtime: new Date().toISOString()
     };
-  }
-
-  getAbsolutePath(targetPath, basePath) {
-    basePath = basePath || this.currentPath;
-    if (!targetPath) targetPath = this.config.FILESYSTEM.CURRENT_DIR_SYMBOL;
-    let effectiveBasePath = basePath;
-    if (targetPath.startsWith(this.config.FILESYSTEM.PATH_SEPARATOR))
-      effectiveBasePath = this.config.FILESYSTEM.ROOT_PATH;
-    const baseSegments =
-        effectiveBasePath === this.config.FILESYSTEM.ROOT_PATH
-            ? []
-            : effectiveBasePath
-                .substring(1)
-                .split(this.config.FILESYSTEM.PATH_SEPARATOR)
-                .filter((s) => s && s !== this.config.FILESYSTEM.CURRENT_DIR_SYMBOL);
-    let resolvedSegments = [...baseSegments];
-    const targetSegments = targetPath.split(this.config.FILESYSTEM.PATH_SEPARATOR);
-    for (const segment of targetSegments) {
-      if (segment === "" || segment === this.config.FILESYSTEM.CURRENT_DIR_SYMBOL) {
-        if (
-            targetPath.startsWith(this.config.FILESYSTEM.PATH_SEPARATOR) &&
-            resolvedSegments.length === 0 &&
-            segment === ""
-        ) {
-        }
-        continue;
-      }
-      if (segment === this.config.FILESYSTEM.PARENT_DIR_SYMBOL) {
-        if (resolvedSegments.length > 0) resolvedSegments.pop();
-      } else resolvedSegments.push(segment);
-    }
-    if (resolvedSegments.length === 0) return this.config.FILESYSTEM.ROOT_PATH;
-    return (
-        this.config.FILESYSTEM.PATH_SEPARATOR +
-        resolvedSegments.join(this.config.FILESYSTEM.PATH_SEPARATOR)
-    );
   }
 
   getNodeByPath(absolutePath, options = {}) {
