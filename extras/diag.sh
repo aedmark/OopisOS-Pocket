@@ -731,6 +731,14 @@ echo ""
 echo "===== Phase 19: Advanced Job Control & Signal Handling ====="
 delay 400
 
+echo "--- Test: Non-interactive 'top' launch ---"
+top &
+TOP_PID=$(ps | grep "top" | awk '{print $1}')
+delay 1500
+kill $TOP_PID
+echo "'top' non-interactive test complete."
+delay 500
+
 echo "--- Test: Starting a long-running background job ---"
 delay 30000 &
 # Use ps and grep to get the job ID programmatically
@@ -738,43 +746,48 @@ JOB_ID=$(ps | grep "delay" | awk '{print $1}')
 echo "Started background job with PID: $JOB_ID"
 delay 500
 
-echo "--- Test: Verifying job is 'Running' (R) ---"
-# This check will now simply check if grep finds the running process. If not, the script will error out.
+echo "--- Test: Verifying job is 'Running' (R) with 'ps' and 'jobs' ---"
 ps | grep "$JOB_ID" | grep 'R'
+jobs
 echo "Job status is correctly reported as 'R'."
 delay 500
 
 echo "--- Test: Pausing the job with 'kill -STOP' ---"
 kill -STOP $JOB_ID
 echo "Signal -STOP sent to job $JOB_ID."
-delay 500
+delay 1000
 
 echo "--- Test: Verifying job is 'Stopped' (T) ---"
 ps | grep "$JOB_ID" | grep 'T'
+jobs
 echo "Job status is correctly reported as 'T'."
 delay 500
 
-echo "--- Test: Resuming the job with 'kill -CONT' ---"
-kill -CONT $JOB_ID
-echo "Signal -CONT sent to job $JOB_ID."
+echo "--- Test: Resuming the job with 'bg' ---"
+bg %$JOB_ID
+echo "'bg' command sent to job $JOB_ID."
+delay 500
 
 echo "--- Test: Verifying job is 'Running' (R) again ---"
 ps | grep "$JOB_ID" | grep 'R'
+jobs
 echo "Job status is correctly reported as 'R' after resuming."
+delay 500
 
 echo "--- Test: Terminating the job with 'kill' ---"
 kill -KILL $JOB_ID
 echo "Signal -KILL sent to job $JOB_ID."
-delay 1000 # Give it a moment to terminate
+delay 1000
 
 echo "--- Test: Verifying job has been terminated ---"
 # This check will SUCCEED if grep finds nothing.
-ps | grep '$JOB_ID'
-echo "Job successfully terminated and removed from 'ps' list."
+check_fail -z "ps | grep '$JOB_ID'"
+jobs
+echo "Job successfully terminated and removed from process lists."
 delay 700
 echo "---------------------------------------------------------------------"
-
 echo ""
+
 echo "===== Phase 20: Testing Stream & Text Manipulation Commands ====="
 delay 400
 

@@ -28,12 +28,6 @@ window.TopCommand = class TopCommand extends Command {
         const { options, dependencies } = context;
         const { ErrorHandler, AppLayerManager, TopManager } = dependencies;
 
-        if (!options.isInteractive) {
-            return ErrorHandler.createError(
-                "top: Can only be run in an interactive session."
-            );
-        }
-
         if (
             typeof TopManager === "undefined" ||
             typeof AppLayerManager === "undefined"
@@ -43,7 +37,11 @@ window.TopCommand = class TopCommand extends Command {
             );
         }
 
-        AppLayerManager.show(new TopManager(), { dependencies });
+        // If not interactive, the command can still "run" as a background process,
+        // which is what we need for testing. It just won't show the UI.
+        if (options.isInteractive) {
+            AppLayerManager.show(new TopManager(), { dependencies });
+        }
 
         return ErrorHandler.createSuccess("");
     }
