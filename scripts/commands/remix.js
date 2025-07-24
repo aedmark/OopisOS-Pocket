@@ -4,7 +4,7 @@ window.RemixCommand = class RemixCommand extends Command {
         super({
             commandName: "remix",
             description: "Synthesizes a new article from two source documents using AI.",
-            helpText: `Usage: remix <file1> <file2>
+            helpText: `Usage: remix [-p provider] [-m model] <file1> <file2>
       Combines and summarizes two documents into a unique article.
       DESCRIPTION
       The remix command uses the AI Manager to read two source files,
@@ -12,11 +12,26 @@ window.RemixCommand = class RemixCommand extends Command {
       summarized article that synthesizes the information from both.
       It's a powerful tool for combining related topics or creating
       summaries of comparative works.
+      PROVIDERS & MODELS
+      -p, --provider <name>
+      Specify the AI provider to use (e.g., 'gemini', 'ollama').
+      If not specified, it defaults to 'gemini'. Using a local
+      provider like 'ollama' does not require an API key.
+      -m, --model <name>
+      Specify a particular model for the chosen provider (e.g.,
+      'llama3' for ollama). If not specified, the provider's
+      default model is used.
       EXAMPLES
       remix /docs/api/permissions.md /docs/api/best_practices.md
       Creates a new article about the best practices for using the
-      OopisOS permission model.`,
+      OopisOS permission model.
+      remix -p ollama doc1.txt doc2.txt
+      Uses the local 'ollama' provider for the remix.`,
             completionType: "paths",
+            flagDefinitions: [
+                { name: "provider", short: "-p", long: "--provider", takesValue: true },
+                { name: "model", short: "-m", long: "--model", takesValue: true },
+            ],
             validations: {
                 args: {
                     exact: 2,
@@ -40,7 +55,7 @@ window.RemixCommand = class RemixCommand extends Command {
     }
 
     async coreLogic(context) {
-        const { args, options, validatedPaths, dependencies } = context;
+        const { args, options, flags, validatedPaths, dependencies } = context;
         const { ErrorHandler, AIManager, OutputManager, Config, StorageManager } = dependencies;
 
         const file1Node = validatedPaths[0].node;
@@ -69,15 +84,18 @@ ${file2Content}
             typeClass: Config.CSS_CLASSES.CONSOLE_LOG_MSG,
         });
 
-        const apiKeyResult = await AIManager.getApiKey("gemini", { isInteractive: true, dependencies });
+        const provider = flags.provider || "gemini";
+        const model = flags.model || null;
+
+        const apiKeyResult = await AIManager.getApiKey(provider, { isInteractive: true, dependencies });
         if (!apiKeyResult.success) {
             return ErrorHandler.createError(`remix: ${apiKeyResult.error}`);
         }
         const apiKey = apiKeyResult.data.key;
 
         const llmResult = await AIManager.callLlmApi(
-            "gemini",
-            null,
+            provider,
+            model,
             [{ role: "user", parts: [{ text: userPrompt }] }],
             apiKey
         );
@@ -86,16 +104,16 @@ ${file2Content}
             let finalArticle = llmResult.answer;
             finalArticle = finalArticle.replace(/(?<!\n)\n(?!\n)/g, "\n\n");
 
-            // Convert Markdown to sanitized HTML
             const articleHtml = DOMPurify.sanitize(marked.parse(finalArticle));
-            const headerHtml = `<h3>Remix of ${file1Path} & ${file2Path}</h3>`;
+            const headerHtml = `
+<h3>Remix of ${file1Path} & ${file2Path}</h3>`;
 
             return ErrorHandler.createSuccess(
                 headerHtml + articleHtml,
-                { asBlock: true, messageType: 'prose-output' } // Use our new options
+                { asBlock: true, messageType: 'prose-output' }
             );
         } else {
-            if (llmResult.error === "INVALID_API_KEY") {
+            if (llmResult.error === "INVALID_API_KEY" && provider === 'gemini') {
                 StorageManager.removeItem(Config.STORAGE_KEYS.GEMINI_API_KEY);
                 return ErrorHandler.createError("remix: Invalid API Key. The key has been removed. Please try again.");
             }
