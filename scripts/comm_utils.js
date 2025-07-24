@@ -158,6 +158,12 @@ class TimestampParser {
 
 class DiffUtils {
   static compare(textA, textB) {
+    // If the files are identical, there's no need to do a complex comparison.
+    // Just return an empty string, which is the correct behavior.
+    if (textA === textB) {
+      return "";
+    }
+
     const a = textA.split("\n");
     const b = textB.split("\n");
 
