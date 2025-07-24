@@ -89,6 +89,25 @@ ls -l preserve_perms.txt preserve_copy.sh
 mv exec_test.sh mv_test_dir/
 ls mv_test_dir/
 delay 200
+echo "--- Test: rename (file and directory) ---"
+echo "rename test file" > old_name.txt
+rename old_name.txt new_name.txt
+echo "Verifying file rename:"
+ls new_name.txt
+check_fail "ls old_name.txt"
+mkdir old_dir
+rename old_dir new_dir
+echo "Verifying directory rename:"
+ls -d new_dir/
+check_fail "ls -d old_dir"
+delay 400
+echo "--- Test: rename failure conditions ---"
+echo "another file" > another_file.txt
+check_fail "rename new_name.txt another_file.txt"
+check_fail "rename new_name.txt mv_test_dir/another_location.txt"
+rm -r new_name.txt another_file.txt new_dir
+echo "Rename tests complete."
+delay 500
 echo "--- Test: touch -d and -t ---"
 touch -d "1 day ago" old_file.txt
 touch -t 202305201200.30 specific_time.txt
