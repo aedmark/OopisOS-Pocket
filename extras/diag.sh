@@ -12,11 +12,6 @@ useradd diagUser
 testpass
 testpass
 delay 400
-echo "first:second:third:fourth" > /home/Guest/cut_test.txt
-echo "apple,orange,banana,grape" >> /home/Guest/cut_test.txt
-echo "one;two;three;four" >> /home/Guest/cut_test.txt
-chown Guest /home/Guest/cut_test.txt
-chmod 777 /home/Guest/cut_test.txt
 mkdir -p /home/diagUser/diag_workspace/
 chown diagUser /home/diagUser/diag_workspace/
 groupadd testgroup
@@ -733,7 +728,8 @@ echo "nl test complete."
 delay 400
 
 echo "--- Test: sed (Stream Editor) Command ---"
-# Create a test file for substitution
+echo "Create a test file for substitution..."
+delay 500
 echo "The quick brown fox jumps over the lazy dog." > sed_test.txt
 echo "The fox is a fox." >> sed_test.txt
 echo "Original content:"
@@ -747,19 +743,24 @@ cat sed_test.txt | sed 's/fox/cat/g'
 rm sed_test.txt
 echo "sed test complete."
 delay 700
+echo "Create a test file for cutting..."
+delay 300
+echo "first:second:third:fourth" > cut_test.txt
+echo "apple,orange,banana,grape" >> cut_test.txt
+echo "one;two;three;four" >> cut_test.txt
 echo "--- Test: cut with colon delimiter ---"
-cut -d: -f1,3 /home/Guest/cut_test.txt
+cut -d: -f1,3 cut_test.txt
 delay 400
 echo "--- Test: cut with comma delimiter from pipe ---"
-cat /home/Guest/cut_test.txt | grep "apple" | cut -d, -f2,4
+cat cut_test.txt | grep "apple" | cut -d, -f2,4
 delay 400
 echo "--- Test: cut with semicolon delimiter ---"
-cut -d; -f2,3,4 /home/Guest/cut_test.txt
+cut -d';' -f2,3,4 cut_test.txt
 delay 400
 echo "--- Test: check_fail on missing fields flag ---"
-check_fail "cut -d, /home/Guest/cut_test.txt"
+check_fail "cut -d, cut_test.txt"
 delay 500
-rm /home/Guest/cut_test.txt
+rm cut_test.txt
 echo "'cut' command diagnostics finished."
 delay 700
 echo "---------------------------------------------------------------------"
@@ -1106,9 +1107,7 @@ delay 500
 echo "(As usual, you've been a real pantload!)"
 beep
 delay 650
+echo " "
+echo " "
+delay 300
 play E6 20n; play F6 32n; play F#6 32n; play G6 32n; play A6 64n
-delay 300
-echo " "
-echo " "
-echo " "
-delay 300
