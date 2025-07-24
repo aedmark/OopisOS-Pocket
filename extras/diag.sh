@@ -1084,10 +1084,10 @@ echo " "
 delay 500
 echo "(As usual, you've been a real pantload!)"
 beep
-delay 400
-play E6 20n; play F6 32n; play F#6 32n; play G6 32n; play A6 32n
-delay 500
+delay 650
+play E6 20n; play F6 32n; play F#6 32n; play G6 32n; play A6 64n
+delay 300
 echo " "
 echo " "
 echo " "
-delay 100
+delay 300
