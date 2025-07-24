@@ -12,6 +12,11 @@ useradd diagUser
 testpass
 testpass
 delay 400
+echo "first:second:third:fourth" > /home/Guest/cut_test.txt
+echo "apple,orange,banana,grape" >> /home/Guest/cut_test.txt
+echo "one;two;three;four" >> /home/Guest/cut_test.txt
+chown Guest /home/Guest/cut_test.txt
+chmod 777 /home/Guest/cut_test.txt
 mkdir -p /home/diagUser/diag_workspace/
 chown diagUser /home/diagUser/diag_workspace/
 groupadd testgroup
@@ -742,6 +747,22 @@ cat sed_test.txt | sed 's/fox/cat/g'
 rm sed_test.txt
 echo "sed test complete."
 delay 700
+echo "--- Test: cut with colon delimiter ---"
+cut -d: -f1,3 /home/Guest/cut_test.txt
+delay 400
+echo "--- Test: cut with comma delimiter from pipe ---"
+cat /home/Guest/cut_test.txt | grep "apple" | cut -d, -f2,4
+delay 400
+echo "--- Test: cut with semicolon delimiter ---"
+cut -d; -f2,3,4 /home/Guest/cut_test.txt
+delay 400
+echo "--- Test: check_fail on missing fields flag ---"
+check_fail "cut -d, /home/Guest/cut_test.txt"
+delay 500
+rm /home/Guest/cut_test.txt
+echo "'cut' command diagnostics finished."
+delay 700
+echo "---------------------------------------------------------------------"
 
 echo "===== Phase X: Testing Filesystem Torture & I/O Gauntlet ====="
 delay 400
