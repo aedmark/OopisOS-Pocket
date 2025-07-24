@@ -160,6 +160,15 @@ class DiffUtils {
   static compare(textA, textB) {
     const a = textA.split("\n");
     const b = textB.split("\n");
+
+    // Handle trailing newlines, which split creates an empty string for.
+    if (a.length > 0 && a[a.length - 1] === '') {
+      a.pop();
+    }
+    if (b.length > 0 && b[b.length - 1] === '') {
+      b.pop();
+    }
+
     const N = a.length;
     const M = b.length;
     const max = N + M;

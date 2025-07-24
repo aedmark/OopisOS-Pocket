@@ -1112,7 +1112,7 @@ delay 400
 echo "--- Test: Generating a patch file with a custom utility ---"
 # This simulates creating a patch object. A real 'diff' would output text,
 # but for this test, we'll create the JSON patch our command expects.
-echo '{"index":4,"delete":20,"insert":"first line, now modified","deleted":"original first line"}' > changes.diff
+echo '{"index":4,"delete":20,"insert":"first line, now modified.","deleted":"original first line."}' > changes.diff
 echo "Patch file 'changes.diff' generated. Contents:"
 cat changes.diff
 delay 400
