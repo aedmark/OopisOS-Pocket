@@ -9,7 +9,7 @@ class NetworkManager {
         this.pingCallbacks = new Map(); // For the ping command
 
         // --- WebRTC Properties ---
-        this.signalingServerUrl = ''; // Swapped to a more reliable service!
+        this.signalingServerUrl = 'ws://localhost:8080'; // Swapped to a more reliable service!
         this.websocket = null;
         this.peers = new Map(); // Stores RTCPeerConnection objects
         this.remoteInstances = new Set(); // Stores IDs of discovered remote instances
