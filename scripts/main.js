@@ -162,6 +162,7 @@ window.onload = async () => {
   const uiComponents = new UIComponents();
   const aiManager = new AIManager();
   const commandRegistry = new CommandRegistry();
+  const networkManager = new NetworkManager();
   soundManager = new SoundManager();
   const storageHAL = new IndexedDBStorageHAL();
 
@@ -193,6 +194,7 @@ window.onload = async () => {
     PatchUtils: PatchUtils,
     AIManager: aiManager,
     MessageBusManager: messageBusManager,
+    NetworkManager: networkManager,
     UIComponents: uiComponents,
     domElements: domElements,
     SoundManager: soundManager,
@@ -222,6 +224,7 @@ window.onload = async () => {
   tabCompletionManager.setDependencies(dependencies);
   uiComponents.setDependencies(dependencies);
   aiManager.setDependencies(dependencies);
+  networkManager.setDependencies(dependencies);
   storageHAL.setDependencies(dependencies);
 
   try {
