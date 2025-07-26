@@ -27,6 +27,9 @@ class GroupManager {
       this.createGroup("userDiag");
       this.addUserToGroup("userDiag", "userDiag");
     }
+    if (!this.groups["towncrier"]) {
+      this.createGroup("towncrier");
+    }
     console.log("GroupManager initialized.");
   }
 

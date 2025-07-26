@@ -4,14 +4,14 @@ class FileSystemManager {
     this.fsData = {};
     this.currentPath = this.config.FILESYSTEM.ROOT_PATH;
     this.dependencies = {};
-    this.storageHAL = null; // Add this line
+    this.storageHAL = null;
   }
 
   setDependencies(dependencies) {
     this.dependencies = dependencies;
     this.userManager = dependencies.UserManager;
     this.groupManager = dependencies.GroupManager;
-    this.storageHAL = dependencies.StorageHAL; // Add this line
+    this.storageHAL = dependencies.StorageHAL;
   }
 
   async initialize(guestUsername) {
@@ -31,6 +31,32 @@ class FileSystemManager {
           etc: {
             type: this.config.FILESYSTEM.DEFAULT_DIRECTORY_TYPE,
             children: {},
+            owner: "root",
+            group: "root",
+            mode: 0o755,
+            mtime: nowISO,
+          },
+          var: {
+            type: this.config.FILESYSTEM.DEFAULT_DIRECTORY_TYPE,
+            children: {
+              log: {
+                type: this.config.FILESYSTEM.DEFAULT_DIRECTORY_TYPE,
+                children: {
+                  'bulletin.md': {
+                    type: this.config.FILESYSTEM.DEFAULT_FILE_TYPE,
+                    content: "# OopisOS Town Bulletin\n",
+                    owner: "root",
+                    group: "towncrier",
+                    mode: 0o666, // Writable by owner, group, and others
+                    mtime: nowISO,
+                  }
+                },
+                owner: "root",
+                group: "root",
+                mode: 0o755,
+                mtime: nowISO,
+              }
+            },
             owner: "root",
             group: "root",
             mode: 0o755,
