@@ -15,12 +15,14 @@ window.EditCommand = class EditCommand extends Command {
       - If the file does not exist, a new empty file will be created with that name upon saving.
       - If no filepath is given, it opens a new, untitled document.
       MODES
-      - Markdown (.md): Activates a live preview and a formatting toolbar.
+      - Markdown (.md): Activates a live preview.
       - HTML (.html): Activates a live, sandboxed preview of the rendered HTML.
-      - Other (e.g., .txt, .js, .sh): Provides a clean, standard text editing experience.
+      - Code (.js, .sh, .css, .json): Activates syntax highlighting and word wrap.
+      - Text (.txt, etc.): Provides a clean, standard text editing experience with word wrap.
       KEYBOARD SHORTCUTS
       Ctrl+S: Save       Ctrl+O: Exit
-      Ctrl+P: Toggle Preview`,
+      Ctrl+P: Toggle Preview (for Markdown/HTML)
+      Ctrl+Z: Undo       Ctrl+Y: Redo`,
             completionType: "paths",
             argValidation: {
                 max: 1,
@@ -41,7 +43,7 @@ window.EditCommand = class EditCommand extends Command {
 
     async coreLogic(context) {
         const { args, options, validatedPaths, dependencies } = context;
-        const { ErrorHandler, Utils, CommandExecutor, AppLayerManager, EditorManager } = dependencies;
+        const { ErrorHandler, AppLayerManager, EditorManager, EditorUI, App } = dependencies;
 
         if (!options.isInteractive) {
             return ErrorHandler.createError(
@@ -49,28 +51,16 @@ window.EditCommand = class EditCommand extends Command {
             );
         }
 
-        const hasFileArgument = args.length > 0 && validatedPaths.length > 0;
-        const filePath = hasFileArgument ? validatedPaths[0].resolvedPath : null;
-        const node = hasFileArgument ? validatedPaths[0].node : null;
-
-        const extension = Utils.getFileExtension(filePath);
-        const codeExtensions = ["js", "sh", "css", "json"];
-
-        if (codeExtensions.includes(extension)) {
-            // It's a code file, delegate to the 'code' command/editor
-            await CommandExecutor._ensureCommandLoaded("code");
-            // Use an empty string for path if it's null to avoid issues
-            return CommandExecutor.processSingleCommand(`code "${filePath || ''}"`, {
-                isInteractive: true,
-            });
-        }
-
         // Ensure Editor modules are loaded before using them
-        if (typeof EditorManager === 'undefined') {
+        if (typeof EditorManager === 'undefined' || typeof EditorUI === 'undefined' || typeof App === 'undefined') {
             return ErrorHandler.createError(
                 "edit: The editor application modules are not loaded."
             );
         }
+
+        const hasFileArgument = args.length > 0 && validatedPaths.length > 0;
+        const filePath = hasFileArgument ? validatedPaths[0].resolvedPath : null;
+        const node = hasFileArgument ? validatedPaths[0].node : null;
 
         const fileContent = node ? node.content || "" : "";
 

@@ -1,4 +1,4 @@
-/* OopisOS v4.5 Editor Style Sheet */
+/* OopisOS v5.0 Editor Style Sheet */
 /* ========================================================================== */
 
 .editor-container {
@@ -92,9 +92,19 @@
     overflow-y: auto;
 }
 
+/* --- UPDATED: Styles for contenteditable and word wrap --- */
 .editor-textarea {
-    resize: none;
+    font-family: var(--font-family-mono), monospace;
+    white-space: pre; /* Default: no wrap */
+    word-wrap: normal;
+    caret-color: var(--color-text-primary);
 }
+
+.editor-textarea.word-wrap-enabled {
+    white-space: pre-wrap; /* Wrap enabled */
+    word-wrap: break-word;
+}
+/* --- END UPDATE --- */
 
 /* Preview pane specific styles */
 .editor-preview h1,
@@ -148,4 +158,21 @@
     padding-top: var(--spacing-sm);
     border-top: 1px solid var(--color-border-secondary);
     font-size: var(--font-size-sm);
+}
+
+/* --- NEW: Syntax highlighting styles for contenteditable --- */
+.editor-textarea em {
+    color: #9cdcfe; /* Light blue for comments and numbers */
+    font-style: italic;
+}
+
+.editor-textarea strong {
+    color: #c586c0; /* Purple for keywords and strings */
+    font-weight: normal;
+}
+
+.editor-textarea em strong,
+.editor-textarea strong em {
+    color: #ce9178; /* Orange for special values/string content */
+    font-style: italic;
 }

@@ -63,11 +63,17 @@ window.EditorUI = class EditorUI {
         [toolbarGroup]
     );
 
-    this.elements.textarea = Utils.createElement("textarea", {
+    // --- UPDATED: Replaced textarea with contenteditable pre ---
+    this.elements.textarea = Utils.createElement("pre", {
       id: "editor-textarea",
       className: "editor-textarea",
+      contenteditable: "true",
+      spellcheck: "false",
+      autocapitalize: "none",
       textContent: initialState.currentContent,
     });
+    // --- END UPDATE ---
+
     this.elements.preview = Utils.createElement("div", {
       id: "editor-preview",
       className: "editor-preview",
@@ -129,10 +135,10 @@ window.EditorUI = class EditorUI {
   setViewMode(viewMode, fileMode, content) {
     if (!this.elements.preview || !this.elements.textarea || !this.elements.main) return;
 
-    this.elements.previewBtn.disabled = fileMode === "text";
+    this.elements.previewBtn.disabled = fileMode === "text" || fileMode === "code";
 
-    if (fileMode === "text") {
-      viewMode = "edit"; // Force editor-only mode for plain text
+    if (fileMode === "text" || fileMode === "code") {
+      viewMode = "edit"; // Force editor-only mode for plain text and code
     }
 
     this.elements.main.classList.remove("editor-main--split", "editor-main--full");
@@ -188,14 +194,14 @@ window.EditorUI = class EditorUI {
 
   setContent(content) {
     if (this.elements.textarea) {
-      this.elements.textarea.value = content;
+      this.elements.textarea.textContent = content;
     }
   }
 
+  // --- UPDATED: classList toggle instead of direct style manipulation ---
   setWordWrap(enabled) {
     if (this.elements.textarea) {
-      this.elements.textarea.style.whiteSpace = enabled ? "pre-wrap" : "pre";
-      this.elements.textarea.style.wordBreak = enabled ? "break-all" : "normal";
+      this.elements.textarea.classList.toggle("word-wrap-enabled", enabled);
       if (this.elements.wordWrapBtn) {
         this.elements.wordWrapBtn.classList.toggle("active", enabled);
       }
@@ -204,7 +210,14 @@ window.EditorUI = class EditorUI {
 
   _addEventListeners() {
     this.elements.textarea.addEventListener("input", () => {
-      this.managerCallbacks.onContentChange(this.elements.textarea.value);
+      this.managerCallbacks.onContentChange(this.elements.textarea);
+    });
+
+    // --- NEW: Handle paste as plain text ---
+    this.elements.textarea.addEventListener("paste", (e) => {
+      e.preventDefault();
+      const text = (e.clipboardData || window.clipboardData).getData("text/plain");
+      document.execCommand("insertText", false, text);
     });
   }
 }

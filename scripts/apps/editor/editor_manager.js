@@ -3,10 +3,87 @@ window.EditorManager = class EditorManager extends App {
     super();
     this.state = {};
     this.dependencies = {};
-    this._debouncedPushUndo = null;
+    this._debouncedHighlight = null;
     this.callbacks = {};
     this.ui = null;
   }
+
+  // --- NEW: Cursor preservation logic ---
+  _getSelection(element) {
+    const selection = window.getSelection();
+    if (selection.rangeCount === 0) return { start: 0, end: 0 };
+    const range = selection.getRangeAt(0);
+    const preSelectionRange = range.cloneRange();
+    preSelectionRange.selectNodeContents(element);
+    preSelectionRange.setEnd(range.startContainer, range.startOffset);
+    const start = preSelectionRange.toString().length;
+    return {
+      start: start,
+      end: start + range.toString().length,
+    };
+  }
+
+  _setSelection(element, offset) {
+    const range = document.createRange();
+    const sel = window.getSelection();
+    let charCount = 0;
+    let foundNode = false;
+
+    function findTextNode(node) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const nextCharCount = charCount + node.length;
+        if (!foundNode && offset.start >= charCount && offset.start <= nextCharCount) {
+          range.setStart(node, offset.start - charCount);
+          foundNode = true;
+        }
+        if (foundNode && offset.end >= charCount && offset.end <= nextCharCount) {
+          range.setEnd(node, offset.end - charCount);
+          return true;
+        }
+        charCount = nextCharCount;
+      } else {
+        for (let i = 0; i < node.childNodes.length; i++) {
+          if (findTextNode(node.childNodes[i])) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    findTextNode(element);
+    if (sel && foundNode) {
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+  }
+
+  // --- NEW: Syntax Highlighter ---
+  _jsHighlighter(text) {
+    const escapedText = text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    return escapedText
+        .replace(/(\/\*[\s\S]*?\*\/|\/\/.+)/g, "<em>$1</em>") // Comments
+        .replace(/\b(new|if|else|do|while|switch|for|in|of|continue|break|return|typeof|function|var|const|let|async|await|class|extends|true|false|null)(?=[^\w])/g, "<strong>$1</strong>") // Keywords
+        .replace(/(".*?"|'.*?'|`.*?`)/g, "<strong><em>$1</em></strong>") // Strings
+        .replace(/\b(\d+)/g, "<em><strong>$1</strong></em>"); // Numbers
+  }
+
+  // --- NEW: Combined Highlight and Update Logic ---
+  _updateContent(element) {
+    if (this.state.fileMode === 'code') {
+      const selection = this._getSelection(element);
+      const text = element.textContent || "";
+      element.innerHTML = this._jsHighlighter(text);
+      this._setSelection(element, selection);
+    }
+    if (this.state.viewMode !== "edit") {
+      this.ui.renderPreview(element.textContent || "", this.state.fileMode);
+    }
+  }
+
 
   enter(appLayer, options = {}) {
     const { filePath, fileContent, onSaveCallback, dependencies } = options;
@@ -27,7 +104,6 @@ window.EditorManager = class EditorManager extends App {
     this.state = {
       currentFilePath: filePath,
       originalContent: normalizedContent,
-      currentContent: normalizedContent,
       isDirty: false,
       fileMode: this._getFileMode(filePath),
       viewMode: "split",
@@ -43,11 +119,14 @@ window.EditorManager = class EditorManager extends App {
 
     this.isActive = true;
 
-    this.ui = new this.dependencies.EditorUI(this.state, this.callbacks, this.dependencies);
+    this.ui = new this.dependencies.EditorUI({ ...this.state, currentContent: normalizedContent }, this.callbacks, this.dependencies);
     this.container = this.ui.elements.container;
 
     appLayer.appendChild(this.container);
     this.container.focus();
+
+    // Initial render
+    this._updateContent(this.ui.elements.textarea);
   }
 
   async exit() {
@@ -119,25 +198,21 @@ window.EditorManager = class EditorManager extends App {
     const { Utils } = this.dependencies;
     if (!filePath) return "text";
     const extension = Utils.getFileExtension(filePath);
+    const codeExtensions = ["js", "sh", "css", "json"];
     if (extension === "md") return "markdown";
     if (extension === "html") return "html";
+    if (codeExtensions.includes(extension)) return "code";
     return "text";
   }
 
   _createCallbacks() {
     return {
-      onContentChange: (newContent) => {
-        this.state.currentContent = newContent;
-        this.state.isDirty =
-            this.state.currentContent !== this.state.originalContent;
+      onContentChange: (element) => {
+        const newContent = element.textContent || "";
+        this.state.isDirty = newContent !== this.state.originalContent;
         this.ui.updateDirtyStatus(this.state.isDirty);
         this._debouncedPushUndo(newContent);
-        if (this.state.viewMode !== "edit") {
-          this.ui.renderPreview(
-              this.state.currentContent,
-              this.state.fileMode
-          );
-        }
+        this._updateContent(element);
       },
       onSaveRequest: async () => {
         const { ModalManager, FileSystemManager, UserManager } = this.dependencies;
@@ -161,9 +236,11 @@ window.EditorManager = class EditorManager extends App {
           this.state.fileMode = this._getFileMode(savePath);
           this.ui.updateWindowTitle(savePath);
         }
+
+        const currentContent = this.ui.elements.textarea.textContent || "";
         const saveResult = await FileSystemManager.createOrUpdateFile(
             savePath,
-            this.state.currentContent,
+            currentContent,
             {
               currentUser: UserManager.getCurrentUser().name,
               primaryGroup: UserManager.getPrimaryGroupForUser(
@@ -172,7 +249,7 @@ window.EditorManager = class EditorManager extends App {
             }
         );
         if (saveResult.success && (await FileSystemManager.save())) {
-          this.state.originalContent = this.state.currentContent;
+          this.state.originalContent = currentContent;
           this.state.isDirty = false;
           this.ui.updateDirtyStatus(false);
           this.ui.updateStatusMessage(`File saved to ${savePath}`);
@@ -195,23 +272,23 @@ window.EditorManager = class EditorManager extends App {
         this.ui.setViewMode(
             this.state.viewMode,
             this.state.fileMode,
-            this.state.currentContent
+            this.ui.elements.textarea.textContent || ""
         );
       },
       onUndo: () => {
         if (this.state.undoStack.length > 1) {
           this.state.redoStack.push(this.state.undoStack.pop());
-          this.state.currentContent =
-              this.state.undoStack[this.state.undoStack.length - 1];
-          this.ui.setContent(this.state.currentContent);
+          const content = this.state.undoStack[this.state.undoStack.length - 1];
+          this.ui.setContent(content);
+          this._updateContent(this.ui.elements.textarea);
         }
       },
       onRedo: () => {
         if (this.state.redoStack.length > 0) {
           const nextState = this.state.redoStack.pop();
           this.state.undoStack.push(nextState);
-          this.state.currentContent = nextState;
-          this.ui.setContent(this.state.currentContent);
+          this.ui.setContent(nextState);
+          this._updateContent(this.ui.elements.textarea);
         }
       },
       onWordWrapToggle: () => {
