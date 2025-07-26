@@ -55,9 +55,14 @@ class NetworkManager {
             this.websocket.send(JSON.stringify(presencePayload));
         };
 
-        this.websocket.onmessage = (event) => {
+        this.websocket.onmessage = async (event) => {
             try {
-                const payload = JSON.parse(event.data);
+                let messageData = event.data;
+                // If the data is a Blob, we need to read it as text first.
+                if (messageData instanceof Blob) {
+                    messageData = await messageData.text();
+                }
+                const payload = JSON.parse(messageData);
                 if (payload.sourceId === this.instanceId) return;
 
                 switch (payload.type) {
