@@ -148,7 +148,7 @@ class ConfigManager {
         "adventure", "alias", "awk", "backup", "base64", "basic", "bc", "beep", "bg", "binder", "buletin",
         "cat", "cd", "check_fail", "chgrp", "chidi", "chmod", "chown", "cksum", "clear",
         "clearfs", "comm", "committee", "cp", "csplit", "curl", "cut", "date", "delay", "df",
-        "diff", "du", "echo", "edit", "explore", "export", "expr", "fg", "find", "gemini", "grep",
+        "diff", "du", "echo", "edit", "explore", "export", "expr", "fg", "find", "fsck", "gemini", "grep",
         "groupadd", "groupdel", "groups", "head", "help", "history", "jobs", "kill", "less",
         "listusers", "loadstate", "log", "login", "logout", "ls", "ln", "man", "more",
         "mkdir", "mv", "nc", "netstat", "nl", "ocrypt", "paint", "passwd", "patch", "ping", "play",

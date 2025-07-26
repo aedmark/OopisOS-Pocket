@@ -16,7 +16,7 @@ delay 500
 
 # --- Preparing the canvas (by burning the old one) ---
 echo "Sanitizing the area. Out with the old, in with the weird."
-rm -r -f docs src data reports games .secret_stuff net_practice archive_this my_archive.zip find_test zip_test
+rm -r -f docs src data reports games .secret_stuff net_practice archive_this my_archive.zip find_test zip_test programs todo.txt music twinkle.sh
 delay 300
 
 # --- Laying the foundations of your new digital kingdom ---
@@ -199,6 +199,43 @@ delay 300
 echo "Logging in as root. Kneel before your god."
 login root mcgoopis
 delay 300
+
+# --- NEW: System Corruption Simulation for fsck testing ---
+echo "Initiating controlled demolition... for science! Creating test cases for fsck."
+mkdir /var/audit_test
+# 1. Dangling symlink
+echo "Creating a dead-end street sign..."
+touch /var/audit_test/will_vanish.txt
+ln -s /var/audit_test/will_vanish.txt /var/audit_test/dangling_link
+rm /var/audit_test/will_vanish.txt
+# 2. Orphaned file
+echo "Creating a file owned by a ghost..."
+useradd ghost_user
+temppass
+temppass
+groupadd phantom_group
+touch /var/audit_test/orphaned_file.txt
+chown ghost_user /var/audit_test/orphaned_file.txt
+chgrp phantom_group /var/audit_test/orphaned_file.txt
+removeuser -f ghost_user
+groupdel phantom_group
+# 3. User home directory issues
+echo "Evicting some users and squatting in their homes..."
+useradd homeless_joe
+pass
+pass
+rm -r /home/homeless_joe
+useradd file_house_pete
+pass
+pass
+rm -r /home/file_house_pete
+touch /home/file_house_pete
+useradd squatter_sue
+pass
+pass
+chown root /home/squatter_sue
+delay 500
+
 echo "Creating a more complex user/group environment..."
 groupadd developers
 delay 200
@@ -271,12 +308,11 @@ echo " "
 echo "  > \`ls -R\` or \`tree\` to see the beautiful world we've built."
 echo "  > \`alias\` to see the cool shortcuts you now have."
 echo "  > \`grep -iR 'duck' .\` to begin your investigation."
-echo "  > \`sort ./data/sort_test.txt | uniq -c\` to test data processing."
 echo "  > \`find . -name \"*.txt\" | xargs wc -l\` to see find and xargs in action."
-echo "  > \`zip my_archive.zip ./src\` and then \`unzip my_archive.zip\` to test archival."
 echo "  > \`cat /vault/top_secret.txt\` to test the security system (it'll fail)."
 echo "  > \`chidi ./docs\` to have the AI read you the new, improved manuals."
 echo "  > \`adventure ./games/quest.json\` to start your epic quest."
+echo "  > \`sudo fsck --repair\` to find and fix the problems we just created!"
 echo " "
 
 # A todo list to guide the user
