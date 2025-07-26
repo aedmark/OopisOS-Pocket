@@ -1,24 +1,19 @@
+/* oos-dev/scripts/apps/editor/editor.css */
 /* OopisOS v5.0 Editor Style Sheet */
 /* ========================================================================== */
 
-.editor-container {
+/* The main app window, provided by UIComponents, is a flex-column.
+   The .app-main area within it is a flex-row by default.
+   We need to override .app-main for the editor to be a flex-column. */
+#text-editor-app-container .app-main {
     display: flex;
-    flex-direction: column;
-    width: 95%;
-    max-width: 1200px;
-    height: 95%;
-    background-color: var(--color-background-medium);
-    border: var(--border-width-thick) solid var(--color-border-secondary);
-    border-radius: var(--border-radius-md);
-    padding: var(--spacing-md);
-    box-shadow: var(--shadow-inset-dark), var(--shadow-drop-medium);
-    font-family: var(--font-family-sans), sans-serif;
-    color: var(--color-text-secondary);
+    flex-direction: column; /* Stack header, toolbar, and content vertically */
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
 }
 
 .editor-header {
-    flex-shrink: 0;
-    margin-bottom: var(--spacing-sm);
+    flex-shrink: 0; /* Don't shrink the header */
 }
 
 .editor-title-input {
@@ -42,10 +37,10 @@
 .editor-toolbar {
     display: flex;
     flex-wrap: wrap;
-    justify-content: space-between;
+    justify-content: center; /* This is the corrected line! */
     align-items: center;
-    margin-bottom: var(--spacing-sm);
     gap: var(--spacing-sm);
+    flex-shrink: 0; /* Don't shrink the toolbar */
 }
 
 .editor-toolbar-group {
@@ -54,32 +49,35 @@
     gap: var(--spacing-xs);
 }
 
-.editor-main {
-    flex-grow: 1;
-    display: flex;
-    min-height: 0;
+/* This is the container for the text and preview areas */
+.editor-main-content {
+    flex-grow: 1; /* This is the key to making it fill the remaining space */
+    display: flex; /* Make it a flex-row for the side-by-side view */
+    min-height: 0; /* Crucial for flex children to scroll instead of overflowing */
     gap: var(--spacing-md);
 }
 
+/* This class controls the split view */
 .editor-main--split .editor-textarea,
 .editor-main--split .editor-preview {
-    flex-grow: 1;
-    flex-shrink: 1;
-    flex-basis: 0;
+    flex: 1 1 0; /* shorthand for flex-grow: 1, flex-shrink: 1, flex-basis: 0 */
+    min-width: 0; /* Prevents flex items from overflowing */
 }
 
+/* This class handles when one pane takes the full width */
 .editor-main--full .editor-textarea,
 .editor-main--full .editor-preview {
-    flex: 1;
-    width: 100%;
+    flex: 1 1 100%;
 }
 
-.editor-main .hidden {
+/* Hide the inactive pane */
+.editor-main-content .hidden {
     display: none;
 }
 
+/* Shared styles for both the editor textarea and the preview pane */
 .editor-textarea, .editor-preview {
-    height: 100%;
+    /* No height: 100% needed, flexbox will handle it */
     padding: var(--spacing-md);
     border: 1px solid var(--color-border-primary);
     border-radius: var(--border-radius-sm);
@@ -89,24 +87,22 @@
     line-height: 1.6;
     outline: none;
     transition: all 0.2s ease-in-out;
-    overflow-y: auto;
+    overflow-y: auto; /* Allow scrolling within each pane */
 }
 
-/* --- UPDATED: Styles for contenteditable and word wrap --- */
 .editor-textarea {
     font-family: var(--font-family-mono), monospace;
-    white-space: pre; /* Default: no wrap */
+    white-space: pre; /* Keep whitespace, but don't wrap by default */
     word-wrap: normal;
     caret-color: var(--color-text-primary);
 }
 
 .editor-textarea.word-wrap-enabled {
-    white-space: pre-wrap; /* Wrap enabled */
+    white-space: pre-wrap; /* Enable word wrapping when the class is added */
     word-wrap: break-word;
 }
-/* --- END UPDATE --- */
 
-/* Preview pane specific styles */
+/* Preview pane specific styles for rendered markdown/html */
 .editor-preview h1,
 .editor-preview h2,
 .editor-preview h3 {
@@ -149,30 +145,19 @@
     margin-bottom: 1em;
 }
 
-.editor-footer {
-    flex-shrink: 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: var(--spacing-sm);
-    padding-top: var(--spacing-sm);
-    border-top: 1px solid var(--color-border-secondary);
-    font-size: var(--font-size-sm);
-}
-
-/* --- NEW: Syntax highlighting styles for contenteditable --- */
+/* Syntax Highlighting Styles */
 .editor-textarea em {
-    color: #9cdcfe; /* Light blue for comments and numbers */
+    color: #9cdcfe; /* Light blue for numbers/comments */
     font-style: italic;
 }
 
 .editor-textarea strong {
-    color: #c586c0; /* Purple for keywords and strings */
+    color: #c586c0; /* Purple for keywords */
     font-weight: normal;
 }
 
 .editor-textarea em strong,
 .editor-textarea strong em {
-    color: #ce9178; /* Orange for special values/string content */
+    color: #ce9178; /* Orange for strings */
     font-style: italic;
 }

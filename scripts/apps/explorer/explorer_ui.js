@@ -14,7 +14,12 @@ window.ExplorerUI = class ExplorerUI {
   }
 
   _buildLayout() {
-    const { Utils } = this.dependencies;
+    const { Utils, UIComponents } = this.dependencies;
+
+    const appWindow = UIComponents.createAppWindow('File Explorer', this.callbacks.onExit);
+    this.elements.container = appWindow.container;
+    this.elements.main = appWindow.main;
+    this.elements.footer = appWindow.footer;
 
     this.elements.treePane = Utils.createElement("div", {
       id: "explorer-tree-pane",
@@ -24,46 +29,10 @@ window.ExplorerUI = class ExplorerUI {
       id: "explorer-main-pane",
       className: "explorer__main-pane",
     });
-    this.elements.statusBar = Utils.createElement("div", {
-      id: "explorer-status-bar",
-      className: "explorer__status-bar",
-    });
 
-    this.elements.exitBtn = Utils.createElement("button", {
-      id: "explorer-exit-btn",
-      className: "explorer__exit-btn",
-      textContent: "×",
-      title: "Close Explorer (Esc)",
-      eventListeners: { click: () => this.callbacks.onExit() },
-    });
+    this.elements.main.append(this.elements.treePane, this.elements.mainPane);
 
-    const header = Utils.createElement(
-        "header",
-        { id: "explorer-header", className: "explorer__header" },
-        Utils.createElement("h2", {
-          className: "explorer__title",
-          textContent: "OopisOS File Explorer",
-        }),
-        this.elements.exitBtn
-    );
-
-    const mainContainer = Utils.createElement(
-        "div",
-        { id: "explorer-main-container", className: "explorer__main" },
-        this.elements.treePane,
-        this.elements.mainPane
-    );
-
-    this.elements.container = Utils.createElement(
-        "div",
-        {
-          id: "explorer-container",
-          className: "explorer-container",
-        },
-        header,
-        mainContainer,
-        this.elements.statusBar
-    );
+    this.elements.statusBar = this.elements.footer;
 
     this.elements.mainPane.addEventListener("contextmenu", (e) => {
       e.preventDefault();

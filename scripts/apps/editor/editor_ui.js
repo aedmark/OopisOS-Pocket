@@ -10,40 +10,31 @@ window.EditorUI = class EditorUI {
   buildAndShow(initialState) {
     const { Utils, UIComponents } = this.dependencies;
 
-    this.elements.container = Utils.createElement("div", {
-      id: "editor-container",
-      className: "editor-container",
-    });
+    // Create the main application window using the toolkit
+    const appWindow = UIComponents.createAppWindow('Text Editor', () => this.managerCallbacks.onExitRequest());
+    this.elements.container = appWindow.container;
+    this.elements.main = appWindow.main;
+    this.elements.footer = appWindow.footer;
+
+    // Create editor-specific elements
     this.elements.titleInput = Utils.createElement("input", {
       id: "editor-title",
       className: "editor-title-input",
       type: "text",
       value: initialState.currentFilePath || "Untitled",
     });
-    const header = Utils.createElement(
+    const headerContent = Utils.createElement(
         "header",
         { className: "editor-header" },
         [this.elements.titleInput]
     );
 
-    this.elements.saveBtn = UIComponents.createButton("💾 Save", {
-      onClick: () => this.managerCallbacks.onSaveRequest(),
-    });
-    this.elements.exitBtn = UIComponents.createButton("Exit", {
-      onClick: () => this.managerCallbacks.onExitRequest(),
-    });
-    this.elements.previewBtn = UIComponents.createButton("👁️ View", {
-      onClick: () => this.managerCallbacks.onTogglePreview(),
-    });
-    this.elements.undoBtn = UIComponents.createButton("↩ Undo", {
-      onClick: () => this.managerCallbacks.onUndo(),
-    });
-    this.elements.redoBtn = UIComponents.createButton("↪ Redo", {
-      onClick: () => this.managerCallbacks.onRedo(),
-    });
-    this.elements.wordWrapBtn = UIComponents.createButton("Wrap", {
-      onClick: () => this.managerCallbacks.onWordWrapToggle(),
-    });
+    this.elements.saveBtn = UIComponents.createButton({ icon: "💾", text: "Save", onClick: () => this.managerCallbacks.onSaveRequest() });
+    this.elements.exitBtn = UIComponents.createButton({ text: "Exit", onClick: () => this.managerCallbacks.onExitRequest() });
+    this.elements.previewBtn = UIComponents.createButton({ icon: "👁️", text: "View", onClick: () => this.managerCallbacks.onTogglePreview() });
+    this.elements.undoBtn = UIComponents.createButton({ icon: "↩", text: "Undo", onClick: () => this.managerCallbacks.onUndo() });
+    this.elements.redoBtn = UIComponents.createButton({ icon: "↪", text: "Redo", onClick: () => this.managerCallbacks.onRedo() });
+    this.elements.wordWrapBtn = UIComponents.createButton({ text: "Wrap", onClick: () => this.managerCallbacks.onWordWrapToggle() });
 
     const toolbarGroup = Utils.createElement(
         "div",
@@ -63,7 +54,6 @@ window.EditorUI = class EditorUI {
         [toolbarGroup]
     );
 
-    // --- UPDATED: Replaced textarea with contenteditable pre ---
     this.elements.textarea = Utils.createElement("pre", {
       id: "editor-textarea",
       className: "editor-textarea",
@@ -72,30 +62,22 @@ window.EditorUI = class EditorUI {
       autocapitalize: "none",
       textContent: initialState.currentContent,
     });
-    // --- END UPDATE ---
 
     this.elements.preview = Utils.createElement("div", {
       id: "editor-preview",
       className: "editor-preview",
     });
-    this.elements.main = Utils.createElement("main", { className: "editor-main" }, [
+
+    const editorMainContent = Utils.createElement("div", { className: "editor-main-content" }, [
       this.elements.textarea,
       this.elements.preview,
     ]);
 
-    this.elements.dirtyStatus = Utils.createElement("span", {
-      id: "editor-dirty-status",
-    });
-    this.elements.statusMessage = Utils.createElement("span", {
-      id: "editor-status-message",
-    });
-    const footer = Utils.createElement(
-        "footer",
-        { className: "editor-footer" },
-        [this.elements.dirtyStatus, this.elements.statusMessage]
-    );
+    this.elements.main.append(headerContent, toolbar, editorMainContent);
 
-    this.elements.container.append(header, toolbar, this.elements.main, footer);
+    this.elements.dirtyStatus = Utils.createElement("span", { id: "editor-dirty-status" });
+    this.elements.statusMessage = Utils.createElement("span", { id: "editor-status-message" });
+    this.elements.footer.append(this.elements.dirtyStatus, this.elements.statusMessage);
 
     this._addEventListeners();
     this.updateDirtyStatus(initialState.isDirty);
@@ -121,7 +103,7 @@ window.EditorUI = class EditorUI {
         iframe = this.dependencies.Utils.createElement("iframe", {
           style: "width: 100%; height: 100%; border: none;",
         });
-        this.elements.preview.innerHTML = ""; // Clear any previous content
+        this.elements.preview.innerHTML = "";
         this.elements.preview.appendChild(iframe);
       }
 
@@ -133,31 +115,32 @@ window.EditorUI = class EditorUI {
   }
 
   setViewMode(viewMode, fileMode, content) {
-    if (!this.elements.preview || !this.elements.textarea || !this.elements.main) return;
+    const editorMainContent = this.elements.main.querySelector('.editor-main-content');
+    if (!this.elements.preview || !this.elements.textarea || !editorMainContent) return;
 
     this.elements.previewBtn.disabled = fileMode === "text" || fileMode === "code";
 
     if (fileMode === "text" || fileMode === "code") {
-      viewMode = "edit"; // Force editor-only mode for plain text and code
+      viewMode = "edit";
     }
 
-    this.elements.main.classList.remove("editor-main--split", "editor-main--full");
+    editorMainContent.classList.remove("editor-main--split", "editor-main--full");
     this.elements.textarea.classList.remove("hidden");
     this.elements.preview.classList.remove("hidden");
 
     switch (viewMode) {
       case "edit":
-        this.elements.main.classList.add("editor-main--full");
+        editorMainContent.classList.add("editor-main--full");
         this.elements.preview.classList.add("hidden");
         break;
       case "preview":
-        this.elements.main.classList.add("editor-main--full");
+        editorMainContent.classList.add("editor-main--full");
         this.elements.textarea.classList.add("hidden");
         this.renderPreview(content, fileMode);
         break;
       case "split":
       default:
-        this.elements.main.classList.add("editor-main--split");
+        editorMainContent.classList.add("editor-main--split");
         this.renderPreview(content, fileMode);
         break;
     }
@@ -198,7 +181,6 @@ window.EditorUI = class EditorUI {
     }
   }
 
-  // --- UPDATED: classList toggle instead of direct style manipulation ---
   setWordWrap(enabled) {
     if (this.elements.textarea) {
       this.elements.textarea.classList.toggle("word-wrap-enabled", enabled);
@@ -213,7 +195,6 @@ window.EditorUI = class EditorUI {
       this.managerCallbacks.onContentChange(this.elements.textarea);
     });
 
-    // --- NEW: Handle paste as plain text ---
     this.elements.textarea.addEventListener("paste", (e) => {
       e.preventDefault();
       const text = (e.clipboardData || window.clipboardData).getData("text/plain");

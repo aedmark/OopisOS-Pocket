@@ -1,7 +1,7 @@
 // scripts/network_manager.js
 class NetworkManager {
     constructor() {
-        this.instanceId = `oos-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+        this.instanceId = `oos-${Date.now()}-${Math.floor(Math.random() * 100)}`;
         this.channel = new BroadcastChannel('oopisos-network');
         this.dependencies = {};
         this.listenCallback = null;
