@@ -150,7 +150,7 @@ class ConfigManager {
         "clearfs", "comm", "committee", "cp", "csplit", "curl", "cut", "date", "delay", "df",
         "diff", "du", "echo", "edit", "explore", "export", "expr", "fg", "find", "gemini", "grep",
         "groupadd", "groupdel", "groups", "head", "help", "history", "jobs", "kill", "less",
-        "midi2play", "listusers", "loadstate", "log", "login", "logout", "ls", "ln", "man", "more",
+        "listusers", "loadstate", "log", "login", "logout", "ls", "ln", "man", "more",
         "mkdir", "mv", "nc", "netstat", "nl", "ocrypt", "paint", "passwd", "patch", "ping", "play",
         "printscreen", "ps", "pwd", "reboot", "remix", "removeuser", "rename", "reset",
         "restore", "rm", "rmdir", "run", "savefs", "savestate", "sed", "set",
