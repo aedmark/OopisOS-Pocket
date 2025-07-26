@@ -14,138 +14,98 @@
                     |__/  A Browser-Based OS Simulation
 ```
 
-Welcome, you wonderful, hardworking citizen, to OopisOS! Think of this not just as an operating system, but as your own personal, digital municipality. It’s a place for you to build, create, and explore, all from the privacy and comfort of your own computer. We run on a platform of pure, unadulterated public service, and our mission is to provide you with the best tools to make your digital life amazing.
+# OopisOS v5.0
 
-And the best part? All your data stays with YOU. This is your town, your files, your world.
+**OopisOS: A Pocket-Sized, AI-Powered, Web-Based Operating System.**
 
----
-
-## Town Hall Bulletin: What's New in Version 5.0!
-
-This is a monumental update, folks! We've just completed a major infrastructure overhaul and introduced new cultural programs to enrich your digital lives.
-
--   **City Sound System (`sound_manager.js`):** We've installed a brand-new, state-of-the-art sound system! With the new `beep` command, you can get audible notifications, and with the `synth` application, you can make your own music! It's a new era of auditory excellence.
--   **Upgraded Hall of Records (`storage_hal.js`):** We've implemented a new Storage Hardware Abstraction Layer. It's a fancy term for a better, more organized, and more robust way of handling all your files. You won't see it, but you'll feel it in the stability and reliability of our services.
--   **New Public Works Tools:** We've added some powerful new tools for our citizens:
-    -   `sed`: A stream editor for all your text-transformation needs.
-    -   `nl`: A utility to number the lines in your files. Perfect for poets and programmers alike!
+Welcome to OopisOS, a fully-featured, simulated operating system that runs directly in your web browser! OopisOS combines the power and feel of a classic command-line Unix-like environment with a suite of modern, graphical, and AI-powered applications. It's a playground for developers, a tool for learning, and a canvas for creativity.
 
 ---
 
-## OopisOS City Services: A Feature Overview
+## ✨ Features
 
-We offer a full range of services to make your digital life better!
+OopisOS is packed with features designed to provide a rich and engaging experience.
 
-#### **The City Council Chambers (Core Shell Experience)**
+### Core System & Command Line
 
-- **Advanced Terminal:** An amazing interactive command-line with history, tab completion, and even background processes (`&`) for multitasking!
+- **Unix-like Shell**: A powerful command-line interface with support for piping (`|`), redirection (`>`), background processes (`&`), and more.
 
-- **Public Works Department (Piping & Redirection):** Connect commands with pipes (`|`) and redirect their output to files (`>` and `>>`). It's teamwork at its finest!
+- **Robust File System**: A complete virtual file system with support for directories, files, permissions (`chmod`), and ownership (`chown`, `chgrp`).
 
-- **City Ordinances (Sequencing & Aliasing):** Run multiple commands in a row with `;` and create easy-to-remember shortcuts for your favorite long commands with `alias`.
+- **User & Group Management**: Multi-user support with password protection (`useradd`, `passwd`, `login`, `su`) and group permissions for collaborative projects (`groupadd`, `usermod`).
 
-- **Parks Department Signs (Environment Variables):** Keep track of important information with session variables using `set`, `unset`, and `$VAR`.
+- **Full Suite of Commands**: Dozens of classic commands are at your fingertips, including `ls`, `cd`, `pwd`, `cat`, `grep`, `find`, `rm`, `mv`, `cp`, `mkdir`, `touch`, and many more.
 
-
-#### **The Citizen Registry & Security Detail (Multi-User Security)**
-
-- **A Real Community:** Create users (`useradd`), form community groups (`groupadd`), and manage who belongs where (`usermod -aG`). It's all about bringing people together!
-
-- **The City Manager's Office (`sudo`):** Execute important commands as the superuser (`root`) and manage permissions safely with `visudo`.
-
-- **Zoning Laws (Unix-like Permissions):** Use `chmod` with simple 3-digit codes (like `755`) to control who can read, write, and execute files. It’s planning and organization at its best!
-
-- **Property Deeds (`chown` & `chgrp`):** Easily change file ownership with `chown` and group ownership with `chgrp`.
+- **Scripting Support**: Write and execute shell scripts with the `run` command to automate tasks.
 
 
-#### **Public Facilities & Community Centers (File System & Apps)**
+### 🤖 AI-Powered Tools
 
-- **The Hall of Records (Persistent VFS):** A powerful and reliable virtual file system that saves everything, so your work is always there when you come back.
+- **Gemini Command**: An integrated AI assistant that can use system tools to answer questions about your files and orchestrate complex tasks.
 
-- **City Services:** A full suite of commands to manage your files, including `ls`, `find`, `tree`, `diff`, `mkdir`, `cp`, `mv`, `rm`, `zip`, and `unzip`.
+- **Chidi AI Analyst**: A graphical tool that leverages an LLM to help you understand and interact with your documents and code. It can summarize, suggest insightful questions, and answer questions based on your files.
 
-- **Our Amazing Application Suite:**
+- **Remix Command**: Synthesize a new article from two source documents using AI, creating a unique summary that blends ideas from both.
 
-  - `gemini`: Your AI copilot for everything from answering questions to helping you with your files.
 
-  - `chidi`: The best AI librarian to help you analyze and understand your documents.
+### 🎨 Creative & Productive Applications
 
-  - `basic`: An integrated development environment for the classic BASIC programming language.
+- **`edit` and `code`**: Two powerful, full-screen editors. `edit` intelligently adapts for Markdown and HTML with live previews, while `code` offers a lightweight experience with syntax highlighting for various languages.
 
-  - `log`: Your own personal, secure, timestamped journal.
+- **`explore`**: A graphical, two-pane file explorer for easy navigation and file management.
 
-  - `edit`: A powerful text editor that knows what you're working on, with live Markdown preview!
+- **`paint`**: A character-based art editor for creating ASCII and ANSI art on an 80x24 canvas.
 
-  - `paint`: A wonderful art studio for creating character-based masterpieces.
+- **`synth`**: A playable synthesizer application that turns your keyboard into a musical instrument.
 
-  - `adventure`: A powerful engine to play and even create your own text adventure games.
+- **`adventure`**: An interactive text adventure engine! Play the built-in game or create your own adventures with the creation tools.
+
+- **`log`**: A personal, timestamped journal application to keep track of your thoughts and progress.
+
+- **`basic`**: A complete Integrated Development Environment for the Oopis Basic programming language, featuring advanced functions and system integration.
 
 
 ---
 
-## Get Involved: Join a Committee!
+## 🚀 Getting Started
 
-This is an open-source project, which means it's a community project! If you have ideas, find a problem, or want to help build the next great public park (or feature), please get involved!
+Getting started with OopisOS is as simple as it gets. No installation is required!
 
-To add a new command, just create a new file in `/scripts/commands/`, define its class and contract, and our amazing dynamic loader will do the rest.
+1. **Visit the website**: Navigate to the OopisOS URL.
 
-### **The OopisOS Architectural Model**
+2. **Start typing**: The terminal is ready for your commands.
 
-The architecture of OopisOS is a masterclass in planning! It's all about being secure, organized, and persistent through a set of core, decoupled modules.
+3. Type `help` to see a list of available commands.
 
-|Module|Responsibility|
-|---|---|
-|**`commexec.js`**|**The Command Executor.** The heart of the shell, this module orchestrates the entire command lifecycle, from parsing and preprocessing to execution, and manages complex features like piping, redirection, and background jobs.|
-|**`command_base.js`**|**The Command Blueprint.** Defines the abstract `Command` class that all other commands extend. It handles all common logic for argument parsing, validation, and input stream handling, drastically simplifying the development of new commands.|
-|**`command_registry.js`**|**The Command Encyclopedia.** A simple but vital module that acts as the central, authoritative list of all command objects that have been loaded into the system, enabling true decoupling.|
-|**`app.js`**|**The Application Blueprint.** Defines the abstract `App` class that serves as the blueprint for all full-screen graphical applications, ensuring a consistent lifecycle (`enter`, `exit`) for predictable system management.|
 
-### **Adding a New Command: The Class-Based Contract**
+---
 
-Every command in OopisOS is a class that extends the base `Command` class. This makes adding new commands a straightforward, declarative process.
+## 💻 Usage
 
-**Step 1: Create the Command File**
+Interact with OopisOS primarily through its terminal.
 
-Make a new file in `/scripts/commands/`. The filename must match the command name (e.g., `mycommand.js`).
+- Enter commands at the prompt and press `Enter`.
 
-**Step 2: Define the Command Class and Contract**
+- Use the **Up** and **Down** arrow keys to navigate your command history.
 
-Create a class that extends `Command`. In the constructor, call `super()` with an object that defines your command's contract.
+- Use the **Tab** key for auto-completion of commands, file paths, and more.
 
-JavaScript
+- Launch graphical applications like `explore`, `edit`, or `paint` directly from the command line.
 
-```
-// scripts/commands/mycommand.js
-window.MycommandCommand = class MycommandCommand extends Command {
-  constructor() {
-    super({
-      commandName: "mycommand",
-      flagDefinitions: [{ name: "force", short: "-f" }],
-      argValidation: { min: 1 },
-      // ... etc.
-    });
-  }
 
-  async coreLogic(context) { /* ... */ }
-};
-```
+---
 
-**Step 3: Write the Core Logic**
+## License
+This project is licensed under a modified MIT License. See the LICENSE.txt file for details.
 
-Your `coreLogic` function receives a `context` object containing everything your command needs, including parsed arguments and system dependencies. By the time this code runs, all validations defined in your contract have already passed.
+---
 
-JavaScript
+## Contact
 
-```
-  async coreLogic(context) {
-    const { args, flags, dependencies } = context;
-    const { ErrorHandler, OutputManager } = dependencies;
+Created by Edmark & Gemini.
 
-    // Your command's logic goes here!
-    OutputManager.appendToOutput("Execution complete.");
+- **Email**: [oopismcgoopis@gmail.com](mailto:oopismcgoopis@gmail.com)
 
-    return ErrorHandler.createSuccess();
-  }
-```
+- **GitHub**: [https://github.com/aedmark/oopisos-pocket](https://github.com/aedmark/oopisos-pocket)
 
-This design makes the system robust and easy to extend. It's hard to write an insecure command because the security is handled for you before your code even runs.
+- **Website**: [https://oopisos.com](https://oopisos.com)
